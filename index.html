@@ -53,7 +53,21 @@
     @media (prefers-color-scheme: light){
       .topbar{background:rgba(255,255,255,.70)}
     }
-    .brand{font-weight:800; letter-spacing:.2px}
+    .brand{font-weight:900; letter-spacing:.2px}
+    .right{display:flex; align-items:center; gap:10px}
+    .userPill{
+      border:1px solid var(--line);
+      background:transparent;
+      color:var(--muted);
+      padding:8px 10px;
+      border-radius:999px;
+      font-weight:800;
+      font-size:12px;
+      max-width:52vw;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
     .iconBtn{
       border:1px solid var(--line);
       background:transparent;
@@ -77,13 +91,11 @@
       box-shadow:none;
     }
     .punchHead{display:flex; align-items:center; justify-content:space-between; gap:10px}
-    .punchTitle{
-      font-size:22px; font-weight:850; letter-spacing:.2px;
-    }
+    .punchTitle{font-size:22px; font-weight:900; letter-spacing:.2px}
     .pill{
       padding:7px 12px;
       border-radius:999px;
-      font-weight:700;
+      font-weight:800;
       border:1px solid var(--line);
       display:inline-flex;
       align-items:center;
@@ -93,13 +105,15 @@
     .pill.ready{color:#2d7dff}
     .pill.run{color:var(--good)}
     .pill.pause{color:var(--warn)}
-    .netRow{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      margin-top:10px;
-      gap:10px;
+    .spinner{
+      width:14px; height:14px; border-radius:50%;
+      border:2px solid currentColor; border-right-color:transparent;
+      display:inline-block;
+      animation: spin 1.2s linear infinite;
     }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .netRow{display:flex; align-items:center; justify-content:space-between; margin-top:10px; gap:10px}
     .netTime{
       font-family:var(--mono);
       font-size:54px;
@@ -117,8 +131,9 @@
       font-size:26px;
       user-select:none;
     }
+
     .chips{display:flex; gap:10px; margin-top:8px}
-    .chips3{display:flex; gap:10px}
+    .chips3{display:flex; gap:10px; margin-top:12px}
     .chip{
       flex:1;
       background:var(--card2);
@@ -127,7 +142,7 @@
       padding:10px 12px;
       min-width:0;
     }
-    .chipLabel{font-size:12px; color:var(--muted); font-weight:700; letter-spacing:.2px}
+    .chipLabel{font-size:12px; color:var(--muted); font-weight:800; letter-spacing:.2px}
     .chipValue{
       margin-top:4px;
       font-family:var(--mono);
@@ -141,7 +156,7 @@
     .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
     @media (max-width:520px){.grid2{grid-template-columns:1fr}}
     .field{display:flex; flex-direction:column; gap:6px}
-    .field > span{font-size:12px; color:var(--muted); font-weight:700}
+    .field > span{font-size:12px; color:var(--muted); font-weight:800}
     input{
       width:100%;
       padding:12px 12px;
@@ -160,7 +175,7 @@
       border:1px solid var(--line);
       background:var(--card2);
       color:var(--text);
-      font-weight:850;
+      font-weight:900;
       cursor:pointer;
       flex:1;
     }
@@ -175,11 +190,13 @@
     .summaryHead{display:flex; align-items:center; justify-content:space-between; gap:10px}
     .h2{font-weight:900; font-size:18px}
     .sub{color:var(--muted); font-size:13px; margin-top:2px}
-    .toggle{display:flex; align-items:center; gap:8px; user-select:none; color:var(--muted); font-weight:800}
+    .toggle{display:flex; align-items:center; gap:8px; user-select:none; color:var(--muted); font-weight:900}
     .toggle input{width:18px; height:18px}
+
     .filterBox{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
     @media (max-width:520px){.filterBox{grid-template-columns:1fr}}
     .row{display:flex; gap:10px; margin-top:12px}
+
     .list{display:flex; flex-direction:column; gap:10px; margin-top:10px}
     .item{
       border:1px solid var(--line);
@@ -201,7 +218,7 @@
       background:transparent;
       color:var(--text);
       cursor:pointer;
-      font-weight:800;
+      font-weight:900;
     }
     .miniBtn.d{border-color:rgba(255,70,70,.25); background:rgba(255,70,70,.08)}
     .empty{
@@ -227,14 +244,28 @@
     .dlgInner{padding:16px; display:flex; flex-direction:column; gap:12px}
     .dlgTitle{font-weight:900; font-size:18px}
     .msg{font-size:13px; color:var(--muted)}
-    .kbd{font-family:var(--mono); font-size:12px; padding:2px 6px; border:1px solid var(--line); border-radius:8px; background:var(--card2)}
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+      border:1px dashed var(--line);
+      background:rgba(0,0,0,.06);
+      padding:10px 12px;
+      border-radius:14px;
+    }
+    @media (prefers-color-scheme: light){
+      .hint{background:rgba(0,0,0,.03)}
+    }
   </style>
 </head>
 
 <body>
   <header class="topbar">
     <div class="brand">Timbratrice</div>
-    <button id="btnSettings" class="iconBtn" aria-label="Impostazioni">⚙️</button>
+    <div class="right">
+      <div id="userPill" class="userPill">Non loggato</div>
+      <button id="btnSettings" class="iconBtn" aria-label="Account">⚙️</button>
+    </div>
   </header>
 
   <main class="wrap">
@@ -277,6 +308,10 @@
         <button id="btnBreak" class="btn">Inizia pausa</button>
         <button id="btnStop" class="btn danger">Stop</button>
       </div>
+
+      <div id="loginHint" class="hint" style="margin-top:12px">
+        🔐 Per sincronizzare su Supabase: apri ⚙️, fai login (o registrati) e poi usa l’app normalmente.
+      </div>
     </section>
 
     <section class="card">
@@ -292,7 +327,7 @@
         </label>
       </div>
 
-      <div class="chips3" style="margin-top:12px">
+      <div class="chips3">
         <div class="chip">
           <div class="chipLabel">Turni</div>
           <div class="chipValue" id="sumTurns">0</div>
@@ -322,9 +357,6 @@
         <button id="btnRefresh" class="btn">Aggiorna</button>
         <button id="btnExport" class="btn">Esporta CSV</button>
       </div>
-      <div class="msg" style="margin-top:10px">
-        Suggerimento: apri ⚙️ e inserisci <span class="kbd">endpoint /exec</span> e <span class="kbd">token</span>. Senza, funziona in modalità locale.
-      </div>
     </section>
 
     <section class="card">
@@ -336,16 +368,21 @@
 
   <dialog id="settingsDlg" class="dlg">
     <form method="dialog" class="dlgInner">
-      <div class="dlgTitle">Impostazioni</div>
+      <div class="dlgTitle">Account & Impostazioni</div>
+
+      <div class="hint">
+        ✅ Hai già fatto Supabase. Qui devi solo inserire email/password per login o registrazione.
+        <br>Il nome report serve per il file CSV.
+      </div>
 
       <label class="field">
-        <span>Endpoint Apps Script (/exec)</span>
-        <input id="epInput" type="url" placeholder="https://script.google.com/.../exec">
+        <span>Email</span>
+        <input id="emailInput" type="email" placeholder="tuo@email.com" autocomplete="email">
       </label>
 
       <label class="field">
-        <span>Token</span>
-        <input id="tokenInput" type="text" placeholder="gargamella">
+        <span>Password</span>
+        <input id="passInput" type="password" placeholder="min 6 caratteri" autocomplete="current-password">
       </label>
 
       <label class="field">
@@ -354,20 +391,36 @@
       </label>
 
       <div class="row">
-        <button id="btnPing" class="btn" value="ping">Ping</button>
-        <button class="btn primary" value="close">Chiudi</button>
+        <button id="btnLogin" class="btn primary" value="login">Login</button>
+        <button id="btnSignup" class="btn" value="signup">Registrati</button>
+      </div>
+
+      <div class="row">
+        <button id="btnLogout" class="btn danger" value="logout">Logout</button>
+        <button class="btn" value="close">Chiudi</button>
       </div>
 
       <div id="settingsMsg" class="msg"></div>
     </form>
   </dialog>
 
+  <!-- Supabase JS v2 -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script>
+    // =========================================================
+    // ===== SUPABASE CONFIG (INC0LLA QUI) ======================
+    // =========================================================
+    const SUPABASE_URL = "INCOLLA_QUI_PROJECT_URL";   // es: https://xxxxx.supabase.co
+    const SUPABASE_ANON_KEY = "INCOLLA_QUI_ANON_KEY"; // Settings -> API -> anon public
+
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
     // --------- utilities ---------
     const $ = (id) => document.getElementById(id);
     const pad2 = (n) => String(n).padStart(2, "0");
     const fmtHM = (min) => {
-      const m = Math.max(0, Math.floor(min));
+      const m = Math.max(0, Math.floor(Number(min || 0)));
       const h = Math.floor(m / 60);
       const mm = m % 60;
       return `${h}:${pad2(mm)}`;
@@ -381,114 +434,68 @@
       return `${yyyy}-${mm}-${dd}`;
     }
 
-    // --------- storage (local fallback) ---------
+    // --------- local settings ---------
     const LS = {
       get(key, def=""){ try{ return localStorage.getItem(key) ?? def; }catch{ return def; } },
       set(key, val){ try{ localStorage.setItem(key, val); }catch{} },
-      del(key){ try{ localStorage.removeItem(key); }catch{} },
-      jsonGet(key, def){ try{ return JSON.parse(localStorage.getItem(key) || "") || def; }catch{ return def; } },
-      jsonSet(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch{} },
     };
+    const KEYS = { report: "tw_report" };
 
-    const KEYS = {
-      endpoint: "tw_endpoint",
-      token: "tw_token",
-      report: "tw_report",
-      local: "tw_local_records",
-      localActiveId: "tw_local_active_id",
-    };
+    function cfg(){
+      const report = (LS.get(KEYS.report,"Report")||"Report").trim();
+      return { report };
+    }
 
     // --------- app state ---------
-    let active = null;     // {id,title,startISO,endISO,pauseMin,workMin,km,notes,breakStartISO}
-    let history = [];      // ended only
-    let filterEnabled = false;
+    let active = null;   // {id,title,startISO,endISO,pauseMin,workMin,km,notes,breakStartISO}
+    let history = [];    // ended only
 
-    // --------- DOM refs ---------
-    const settingsDlg = $("settingsDlg");
-    const settingsMsg = $("settingsMsg");
-
-    // --------- API (Apps Script) ---------
-    function cfg(){
-      const endpoint = (LS.get(KEYS.endpoint,"")||"").trim();
-      const token = (LS.get(KEYS.token,"")||"").trim();
-      const report = (LS.get(KEYS.report,"Report")||"Report").trim();
-      return { endpoint, token, report };
+    // --------- auth helpers ---------
+    async function getUser(){
+      const { data } = await sb.auth.getUser();
+      return data.user || null;
     }
 
-    async function postJSON(action, payload = {}){
-      const { endpoint, token } = cfg();
-      if(!endpoint || !token) throw new Error("Endpoint o token mancante (⚙️).");
-      const res = await fetch(endpoint, {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ token, action, ...payload }),
-      });
-      const text = await res.text();
-      let json;
-      try{ json = JSON.parse(text); } catch { throw new Error("Risposta non JSON: " + text.slice(0,200)); }
-      if(!json.ok) throw new Error(json.error || "Errore sconosciuto");
-      return json;
-    }
-
-    // --------- local mode ---------
-    function localLoad(){
-      const rows = LS.jsonGet(KEYS.local, []);
-      const activeId = LS.get(KEYS.localActiveId,"");
-      active = rows.find(r => r.id === activeId && !r.endISO) || null;
-      history = rows.filter(r => r.endISO);
-    }
-    function localSaveRow(row){
-      const rows = LS.jsonGet(KEYS.local, []);
-      const idx = rows.findIndex(r => r.id === row.id);
-      if(idx >= 0) rows[idx] = row; else rows.push(row);
-      LS.jsonSet(KEYS.local, rows);
-    }
-    function localDeleteRow(id){
-      const rows = LS.jsonGet(KEYS.local, []).filter(r => r.id !== id);
-      LS.jsonSet(KEYS.local, rows);
-      if(LS.get(KEYS.localActiveId,"") === id) LS.del(KEYS.localActiveId);
-    }
-
-    function usingRemote(){
-      const { endpoint, token } = cfg();
-      return !!(endpoint && token);
-    }
-
-    // --------- core operations ---------
-    function newId(){
-      return "WEB-" + crypto.randomUUID();
-    }
-
-    async function refresh(){
-      if(usingRemote()){
-        const fromISO = getFilterFromISO();
-        const toISO = getFilterToISO();
-        const payload = {};
-        // server-side filter is optional in your script; we filter client-side anyway
-        const res = await postJSON("list", payload);
-        const rows = (res.rows || []).map(x => ({
-          id: x.remoteId,
-          title: x.title || "",
-          startISO: x.startISO || "",
-          endISO: x.endISO || "",
-          pauseMin: Number(x.pauseMin || 0),
-          workMin: Number(x.workMin || 0),
-          km: Number(x.km || 0),
-          notes: x.notes || "",
-          breakStartISO: x.breakStartISO || ""
-        }));
-        active = rows.find(r => !r.endISO) || null;
-        history = rows.filter(r => !!r.endISO);
-        // client filter
-        ({history} = applyFilter(history, fromISO, toISO));
-      } else {
-        localLoad();
-        // client filter for local
-        const fromISO = getFilterFromISO();
-        const toISO = getFilterToISO();
-        ({history} = applyFilter(history, fromISO, toISO));
+    function setUserUI(user){
+      const pill = $("userPill");
+      const hint = $("loginHint");
+      if(user){
+        pill.textContent = user.email || "Loggato";
+        hint.classList.add("hidden");
+      }else{
+        pill.textContent = "Non loggato";
+        hint.classList.remove("hidden");
       }
-      renderAll();
+    }
+
+    async function signUp(email, password){
+      const { error } = await sb.auth.signUp({ email, password });
+      if(error) throw error;
+    }
+
+    async function signIn(email, password){
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if(error) throw error;
+    }
+
+    async function signOut(){
+      const { error } = await sb.auth.signOut();
+      if(error) throw error;
+    }
+
+    sb.auth.onAuthStateChange(async () => {
+      const user = await getUser();
+      setUserUI(user);
+      await refresh();
+    });
+
+    // --------- core computations ---------
+    function computeWorkMin(row, nowISO){
+      const start = row.startISO ? new Date(row.startISO) : new Date(nowISO);
+      const end = row.endISO ? new Date(row.endISO) : new Date(nowISO);
+      const totalMin = Math.max(0, Math.floor((end - start)/60000));
+      const work = Math.max(0, totalMin - (Number(row.pauseMin)||0));
+      return work;
     }
 
     function getFilterFromISO(){
@@ -504,56 +511,99 @@
       return new Date(v + "T23:59:59").toISOString();
     }
 
-    function applyFilter(rows, fromISO, toISO){
-      if(!fromISO || !toISO) return { history: rows };
-      const from = new Date(fromISO).getTime();
-      const to = new Date(toISO).getTime();
-      const filtered = rows.filter(r => {
-        const t = new Date(r.startISO).getTime();
-        return t >= from && t <= to;
-      });
-      return { history: filtered };
+    // --------- Supabase CRUD ---------
+    async function refresh(){
+      const user = await getUser();
+      if(!user){
+        active = null;
+        history = [];
+        renderAll();
+        return;
+      }
+
+      let q = sb
+        .from("work_records")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("start_ts", { ascending: false });
+
+      const fromISO = getFilterFromISO();
+      const toISO = getFilterToISO();
+      if(fromISO && toISO){
+        q = q.gte("start_ts", fromISO).lte("start_ts", toISO);
+      }
+
+      const { data, error } = await q;
+      if(error){ console.error(error); alert(error.message); return; }
+
+      const rows = (data || []).map(r => ({
+        id: r.id,
+        title: r.title || "",
+        startISO: r.start_ts ? new Date(r.start_ts).toISOString() : "",
+        endISO: r.end_ts ? new Date(r.end_ts).toISOString() : "",
+        pauseMin: Number(r.pause_min || 0),
+        workMin: Number(r.work_min || 0),
+        km: Number(r.km || 0),
+        notes: r.notes || "",
+        breakStartISO: r.break_start_ts ? new Date(r.break_start_ts).toISOString() : ""
+      }));
+
+      active = rows.find(r => !r.endISO) || null;
+      history = rows.filter(r => !!r.endISO);
+
+      renderAll();
     }
 
     async function upsertRow(row){
-      if(usingRemote()){
-        await postJSON("upsert", {
-          record: {
-            remoteId: row.id,
-            title: row.title || "",
-            startISO: row.startISO || "",
-            endISO: row.endISO || "",
-            pauseMin: Number(row.pauseMin || 0),
-            workMin: Number(row.workMin || 0),
-            km: Number(row.km || 0),
-            notes: row.notes || ""
-          }
-        });
-      } else {
-        localSaveRow(row);
-      }
+      const user = await getUser();
+      if(!user) throw new Error("Fai login (⚙️) per salvare.");
+
+      const payload = {
+        id: row.id,                 // uuid
+        user_id: user.id,
+        title: row.title || "",
+        start_ts: row.startISO || null,
+        end_ts: row.endISO || null,
+        pause_min: Number(row.pauseMin || 0),
+        work_min: Number(row.workMin || 0),
+        km: Number(row.km || 0),
+        notes: row.notes || "",
+        break_start_ts: row.breakStartISO || null,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await sb
+        .from("work_records")
+        .upsert(payload, { onConflict: "id" });
+
+      if(error) throw error;
     }
 
     async function deleteRow(id){
-      if(usingRemote()){
-        await postJSON("delete", { remoteId:id });
-      } else {
-        localDeleteRow(id);
-      }
+      const user = await getUser();
+      if(!user) throw new Error("Fai login (⚙️) per cancellare.");
+
+      const { error } = await sb
+        .from("work_records")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", user.id);
+
+      if(error) throw error;
     }
 
-    function computeWorkMin(row, nowISO){
-      const start = row.startISO ? new Date(row.startISO) : new Date(nowISO);
-      const end = row.endISO ? new Date(row.endISO) : new Date(nowISO);
-      const totalMin = Math.max(0, Math.floor((end - start)/60000));
-      const work = Math.max(0, totalMin - (Number(row.pauseMin)||0));
-      return work;
+    // --------- actions ---------
+    function newId(){
+      return crypto.randomUUID(); // uuid puro (compatibile col tipo uuid in db)
     }
 
     async function startShift(){
+      const user = await getUser();
+      if(!user){ alert("Fai login (⚙️) per iniziare e salvare."); return; }
       if(active) return;
+
       const title = ($("titleInput").value || "").trim() || `Turno ${new Date().toLocaleDateString("it-IT")}`;
-      const km = parseInt(($("kmInput").value||"0").replace(/\D/g,""),10) || 0;
+      const km = parseFloat(($("kmInput").value||"0").replace(",", ".")) || 0;
 
       const now = new Date();
       const row = {
@@ -569,16 +619,17 @@
       };
 
       active = row;
-      if(!usingRemote()){
-        LS.set(KEYS.localActiveId, row.id);
+      try{
+        await upsertRow(row);
+        await refresh();
+      }catch(e){
+        alert(e.message || String(e));
       }
-
-      await upsertRow(row);
-      await refresh();
-      vib("rigid");
     }
 
     async function toggleBreak(){
+      const user = await getUser();
+      if(!user){ alert("Fai login (⚙️)."); return; }
       if(!active) return;
 
       const nowISO = toISO(new Date());
@@ -586,9 +637,10 @@
       // start break
       if(!active.breakStartISO){
         active.breakStartISO = nowISO;
-        await upsertRow(active);
-        await refresh();
-        vib("soft");
+        try{
+          await upsertRow(active);
+          await refresh();
+        }catch(e){ alert(e.message || String(e)); }
         return;
       }
 
@@ -599,13 +651,18 @@
       active.pauseMin = Number(active.pauseMin||0) + addMin;
       active.breakStartISO = "";
       active.workMin = computeWorkMin(active, nowISO);
-      await upsertRow(active);
-      await refresh();
-      vib("light");
+
+      try{
+        await upsertRow(active);
+        await refresh();
+      }catch(e){ alert(e.message || String(e)); }
     }
 
     async function stopShift(){
+      const user = await getUser();
+      if(!user){ alert("Fai login (⚙️)."); return; }
       if(!active) return;
+
       const nowISO = toISO(new Date());
 
       // if break running -> close it first
@@ -620,23 +677,21 @@
       active.endISO = nowISO;
       active.workMin = computeWorkMin(active, nowISO);
 
-      await upsertRow(active);
-
-      if(!usingRemote()){
-        LS.del(KEYS.localActiveId);
+      try{
+        await upsertRow(active);
+        active = null;
+        await refresh();
+      }catch(e){
+        alert(e.message || String(e));
       }
-      active = null;
-
-      await refresh();
-      vib("heavy");
     }
 
     // --------- UI rendering ---------
     function renderAll(){
       const now = new Date();
-      // Status
       const pill = $("statusPill");
       const bigIcon = $("bigIcon");
+
       let netMin = 0;
       let pauseMin = 0;
 
@@ -647,10 +702,13 @@
         $("btnStart").disabled = false;
         $("btnBreak").disabled = true;
         $("btnStop").disabled = true;
-      } else {
+        $("btnBreak").textContent = "Inizia pausa";
+        $("kmVal").textContent = "0";
+      }else{
         const isPause = !!active.breakStartISO;
+
         pill.className = "pill " + (isPause ? "pause" : "run");
-        pill.textContent = isPause ? "⏸︎ Pausa" : "🕒 In corso";
+        pill.innerHTML = isPause ? `⏸︎ Pausa` : `<span class="spinner"></span> In corso`;
         bigIcon.textContent = isPause ? "⏸︎" : "🕒";
 
         $("btnStart").disabled = true;
@@ -658,7 +716,6 @@
         $("btnBreak").textContent = isPause ? "Fine pausa" : "Inizia pausa";
         $("btnStop").disabled = false;
 
-        // live compute
         const nowISO = toISO(now);
         pauseMin = Number(active.pauseMin||0);
         if(active.breakStartISO){
@@ -673,7 +730,7 @@
       $("netTime").textContent = fmtHM(netMin);
       $("pauseVal").textContent = fmtHM(pauseMin);
 
-      // summary
+      // summary (solo turni chiusi)
       const turns = history.length;
       const sumWorkMin = history.reduce((a,r)=>a + Number(r.workMin||0), 0);
       const sumKm = history.reduce((a,r)=>a + Number(r.km||0), 0);
@@ -681,11 +738,10 @@
       $("sumHours").textContent = fmtHM(sumWorkMin);
       $("sumKm").textContent = String(sumKm);
 
-      // range text
       const ft = $("filterToggle").checked;
       if(ft && $("fromDate").value && $("toDate").value){
         $("rangeText").textContent = `Selezione: ${$("fromDate").value} → ${$("toDate").value}`;
-      } else {
+      }else{
         $("rangeText").textContent = "Storico: tutti";
       }
 
@@ -694,7 +750,7 @@
       list.innerHTML = "";
       if(history.length === 0){
         $("empty").classList.remove("hidden");
-      } else {
+      }else{
         $("empty").classList.add("hidden");
         const sorted = [...history].sort((a,b)=> (b.startISO||"").localeCompare(a.startISO||""));
         for(const r of sorted){
@@ -720,8 +776,12 @@
           btn.addEventListener("click", async (e)=>{
             const id = e.currentTarget.getAttribute("data-del");
             if(!confirm("Eliminare questo record?")) return;
-            await deleteRow(id);
-            await refresh();
+            try{
+              await deleteRow(id);
+              await refresh();
+            }catch(err){
+              alert(err.message || String(err));
+            }
           });
         });
       }
@@ -731,11 +791,12 @@
       return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     }
 
-    // --------- CSV export (netto ore + km + turni) ---------
+    // --------- CSV export (turni + ore nette + km) ---------
     function exportCSV(){
       const { report } = cfg();
       const sep = ";";
       const rows = [...history].sort((a,b)=> (a.startISO||"").localeCompare(b.startISO||""));
+
       const dt = (iso)=>{
         if(!iso) return "";
         const d = new Date(iso);
@@ -748,30 +809,28 @@
       };
 
       let csv = "\uFEFF";
-      csv += ["Titolo","DataOraInizio","DataOraFine","Pausa_hh:mm","Ore_nette_hh:mm","Km"].join(sep) + "\r\n";
+      csv += ["Titolo","DataOraInizio","DataOraFine","Ore_nette_hh:mm","Km"].join(sep) + "\r\n";
 
-      let sumWork = 0, sumPause = 0, sumKm = 0;
+      let sumWork = 0, sumKm = 0;
 
       for(const r of rows){
         sumWork += Number(r.workMin||0);
-        sumPause += Number(r.pauseMin||0);
         sumKm += Number(r.km||0);
         csv += [
           csvEscape(r.title||"", sep),
           dt(r.startISO),
           dt(r.endISO),
-          fmtHM(Number(r.pauseMin||0)),
           fmtHM(Number(r.workMin||0)),
           String(Number(r.km||0))
         ].join(sep) + "\r\n";
       }
 
-      csv += ["TOTALE SELEZIONE","","", fmtHM(sumPause), fmtHM(sumWork), String(sumKm)].join(sep) + "\r\n";
+      csv += ["TOTALE SELEZIONE","","", fmtHM(sumWork), String(sumKm)].join(sep) + "\r\n";
       csv += "\r\n";
-      csv += ["RIEPILOGO","","","","",""].join(sep) + "\r\n";
-      csv += ["Turni", String(rows.length), "","","",""].join(sep) + "\r\n";
-      csv += ["Ore totali (nette)", fmtHM(sumWork), "","","",""].join(sep) + "\r\n";
-      csv += ["Km totali", String(sumKm), "","","",""].join(sep) + "\r\n";
+      csv += ["RIEPILOGO","","","",""].join(sep) + "\r\n";
+      csv += ["Turni", String(rows.length), "","",""].join(sep) + "\r\n";
+      csv += ["Ore totali (nette)", fmtHM(sumWork), "","",""].join(sep) + "\r\n";
+      csv += ["Km totali", String(sumKm), "","",""].join(sep) + "\r\n";
 
       const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
       const a = document.createElement("a");
@@ -791,44 +850,60 @@
       return t;
     }
 
-    // --------- vibration (android) / haptic-ish fallback ---------
-    function vib(kind){
-      // iOS Safari ignores navigator.vibrate; harmless.
-      if(!navigator.vibrate) return;
-      if(kind==="heavy") navigator.vibrate([30,30,30]);
-      else if(kind==="rigid") navigator.vibrate([20,25,15]);
-      else if(kind==="light") navigator.vibrate(15);
-      else navigator.vibrate(10);
-    }
-
     // --------- events ---------
-    $("btnSettings").addEventListener("click", ()=>{
-      const c = cfg();
-      $("epInput").value = c.endpoint;
-      $("tokenInput").value = c.token;
-      $("reportInput").value = c.report;
+    const settingsDlg = $("settingsDlg");
+    const settingsMsg = $("settingsMsg");
+
+    $("btnSettings").addEventListener("click", async ()=>{
       settingsMsg.textContent = "";
+      $("reportInput").value = cfg().report;
+
+      const user = await getUser();
+      if(user){
+        $("emailInput").value = user.email || "";
+      }
       settingsDlg.showModal();
     });
 
     $("settingsDlg").addEventListener("close", ()=>{
-      // save on close
-      LS.set(KEYS.endpoint, ($("epInput").value||"").trim());
-      LS.set(KEYS.token, ($("tokenInput").value||"").trim());
       LS.set(KEYS.report, ($("reportInput").value||"Report").trim());
     });
 
-    $("btnPing").addEventListener("click", async (e)=>{
+    $("btnLogin").addEventListener("click", async (e)=>{
       e.preventDefault();
       try{
-        LS.set(KEYS.endpoint, ($("epInput").value||"").trim());
-        LS.set(KEYS.token, ($("tokenInput").value||"").trim());
-        const c = cfg();
-        if(!c.endpoint.endsWith("/exec")) throw new Error("L'endpoint deve finire con /exec");
-        await postJSON("ping", {});
-        settingsMsg.textContent = "✅ Ping OK";
+        const email = ($("emailInput").value||"").trim();
+        const pass = ($("passInput").value||"").trim();
+        if(!email || !pass) throw new Error("Inserisci email e password.");
+        await signIn(email, pass);
+        settingsMsg.textContent = "✅ Login OK";
+        setTimeout(()=>settingsDlg.close(), 350);
       }catch(err){
-        settingsMsg.textContent = "❌ " + err.message;
+        settingsMsg.textContent = "❌ " + (err.message || String(err));
+      }
+    });
+
+    $("btnSignup").addEventListener("click", async (e)=>{
+      e.preventDefault();
+      try{
+        const email = ($("emailInput").value||"").trim();
+        const pass = ($("passInput").value||"").trim();
+        if(!email || !pass) throw new Error("Inserisci email e password.");
+        if(pass.length < 6) throw new Error("Password troppo corta (min 6).");
+        await signUp(email, pass);
+        settingsMsg.textContent = "✅ Registrazione OK (se richiesto, conferma via email). Ora fai Login.";
+      }catch(err){
+        settingsMsg.textContent = "❌ " + (err.message || String(err));
+      }
+    });
+
+    $("btnLogout").addEventListener("click", async (e)=>{
+      e.preventDefault();
+      try{
+        await signOut();
+        settingsMsg.textContent = "✅ Logout";
+      }catch(err){
+        settingsMsg.textContent = "❌ " + (err.message || String(err));
       }
     });
 
@@ -860,16 +935,19 @@
       await refresh();
     });
 
-    // live updates while active
-    setInterval(()=>{
-      if(active) renderAll();
-    }, 1000);
+    // live updates while active (solo UI, non scrive su DB)
+    setInterval(()=>{ if(active) renderAll(); }, 1000);
 
     // init
-    $("fromDate").value = todayISODate(new Date(new Date().setDate(new Date().getDate()-7)));
-    $("toDate").value = todayISODate();
-    $("filterBox").classList.add("hidden");
-    refresh().catch(console.error);
+    (async function boot(){
+      $("fromDate").value = todayISODate(new Date(new Date().setDate(new Date().getDate()-7)));
+      $("toDate").value = todayISODate();
+      $("filterBox").classList.add("hidden");
+
+      const user = await getUser();
+      setUserUI(user);
+      await refresh();
+    })();
   </script>
 </body>
 </html>
