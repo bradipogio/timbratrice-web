@@ -367,7 +367,7 @@
   </main>
 
   <dialog id="settingsDlg" class="dlg">
-    <form method="dialog" class="dlgInner">
+    <form class="dlgInner" onsubmit="return false;">
       <div class="dlgTitle">Account & Impostazioni</div>
 
       <div class="hint">
@@ -390,15 +390,15 @@
         <input id="reportInput" type="text" placeholder="Report di Giovanni">
       </label>
 
-      <div class="row">
-        <button id="btnLogin" class="btn primary" value="login">Login</button>
-        <button id="btnSignup" class="btn" value="signup">Registrati</button>
-      </div>
+<div class="row">
+  <button id="btnLogin" type="button" class="btn primary">Login</button>
+  <button id="btnSignup" type="button" class="btn">Registrati</button>
+</div>
 
-      <div class="row">
-        <button id="btnLogout" class="btn danger" value="logout">Logout</button>
-        <button class="btn" value="close">Chiudi</button>
-      </div>
+<div class="row">
+  <button id="btnLogout" type="button" class="btn danger">Logout</button>
+  <button id="btnCloseDlg" type="button" class="btn">Chiudi</button>
+</div>
 
       <div id="settingsMsg" class="msg"></div>
     </form>
@@ -906,6 +906,7 @@
         settingsMsg.textContent = "❌ " + (err.message || String(err));
       }
     });
+$("btnCloseDlg").addEventListener("click", ()=> settingsDlg.close());
 
     $("btnStart").addEventListener("click", startShift);
     $("btnBreak").addEventListener("click", toggleBreak);
