@@ -1,159 +1,875 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!doctype html>
+<html lang="it">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2685.2">
-  <style type="text/css">
-    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
-    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Timbratrice Web</title>
+
+  <style>
+    :root{
+      --bg:#0b0b0c;
+      --card:#141417;
+      --card2:#17171b;
+      --text:#f2f2f2;
+      --muted:#b8b8bf;
+      --line:rgba(255,255,255,.10);
+      --red:#D22B2B;
+      --red2:#b21f1f;
+      --good:#3ddc84;
+      --warn:#ffb020;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius:18px;
+      --radius2:14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#f5f5f7;
+        --card:#ffffff;
+        --card2:#fafafa;
+        --text:#121212;
+        --muted:#6c6c75;
+        --line:rgba(0,0,0,.10);
+        --shadow: 0 10px 30px rgba(0,0,0,.10);
+      }
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background:linear-gradient(180deg, rgba(210,43,43,.12), transparent 40%), var(--bg);
+      color:var(--text);
+    }
+    .topbar{
+      position:sticky; top:0; z-index:20;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 16px;
+      background:rgba(0,0,0,.18);
+      backdrop-filter: blur(12px);
+      border-bottom:1px solid var(--line);
+    }
+    @media (prefers-color-scheme: light){
+      .topbar{background:rgba(255,255,255,.70)}
+    }
+    .brand{font-weight:800; letter-spacing:.2px}
+    .iconBtn{
+      border:1px solid var(--line);
+      background:transparent;
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+    }
+
+    .wrap{max-width:720px; margin:0 auto; padding:16px; display:flex; flex-direction:column; gap:14px}
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+      padding:14px;
+    }
+    .punch{
+      padding:16px;
+      border:2px solid rgba(210,43,43,.35);
+      box-shadow:none;
+    }
+    .punchHead{display:flex; align-items:center; justify-content:space-between; gap:10px}
+    .punchTitle{
+      font-size:22px; font-weight:850; letter-spacing:.2px;
+    }
+    .pill{
+      padding:7px 12px;
+      border-radius:999px;
+      font-weight:700;
+      border:1px solid var(--line);
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      white-space:nowrap;
+    }
+    .pill.ready{color:#2d7dff}
+    .pill.run{color:var(--good)}
+    .pill.pause{color:var(--warn)}
+    .netRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-top:10px;
+      gap:10px;
+    }
+    .netTime{
+      font-family:var(--mono);
+      font-size:54px;
+      font-weight:900;
+      letter-spacing:-.5px;
+    }
+    .bigIcon{
+      width:52px;height:52px;
+      border-radius:16px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:rgba(210,43,43,.12);
+      border:1px solid rgba(210,43,43,.25);
+      font-size:26px;
+      user-select:none;
+    }
+    .chips{display:flex; gap:10px; margin-top:8px}
+    .chips3{display:flex; gap:10px}
+    .chip{
+      flex:1;
+      background:var(--card2);
+      border:1px solid var(--line);
+      border-radius:var(--radius2);
+      padding:10px 12px;
+      min-width:0;
+    }
+    .chipLabel{font-size:12px; color:var(--muted); font-weight:700; letter-spacing:.2px}
+    .chipValue{
+      margin-top:4px;
+      font-family:var(--mono);
+      font-size:18px;
+      font-weight:800;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
+    @media (max-width:520px){.grid2{grid-template-columns:1fr}}
+    .field{display:flex; flex-direction:column; gap:6px}
+    .field > span{font-size:12px; color:var(--muted); font-weight:700}
+    input{
+      width:100%;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:var(--card2);
+      color:var(--text);
+      outline:none;
+      font-size:16px;
+    }
+    input:focus{border-color: rgba(210,43,43,.55)}
+    .actions{display:flex; gap:10px; margin-top:14px}
+    .btn{
+      padding:14px 14px;
+      border-radius:16px;
+      border:1px solid var(--line);
+      background:var(--card2);
+      color:var(--text);
+      font-weight:850;
+      cursor:pointer;
+      flex:1;
+    }
+    .btn.primary{
+      background:linear-gradient(180deg, var(--red), var(--red2));
+      border-color:rgba(255,255,255,.10);
+      color:white;
+    }
+    .btn.danger{background:rgba(255,70,70,.10); border-color:rgba(255,70,70,.25)}
+    .btn:disabled{opacity:.45; cursor:not-allowed}
+
+    .summaryHead{display:flex; align-items:center; justify-content:space-between; gap:10px}
+    .h2{font-weight:900; font-size:18px}
+    .sub{color:var(--muted); font-size:13px; margin-top:2px}
+    .toggle{display:flex; align-items:center; gap:8px; user-select:none; color:var(--muted); font-weight:800}
+    .toggle input{width:18px; height:18px}
+    .filterBox{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
+    @media (max-width:520px){.filterBox{grid-template-columns:1fr}}
+    .row{display:flex; gap:10px; margin-top:12px}
+    .list{display:flex; flex-direction:column; gap:10px; margin-top:10px}
+    .item{
+      border:1px solid var(--line);
+      background:var(--card2);
+      border-radius:16px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .itemTop{display:flex; justify-content:space-between; gap:10px; align-items:flex-start}
+    .itemTitle{font-weight:900}
+    .itemMeta{font-family:var(--mono); color:var(--muted); font-size:12px}
+    .itemBtns{display:flex; gap:10px}
+    .miniBtn{
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:transparent;
+      color:var(--text);
+      cursor:pointer;
+      font-weight:800;
+    }
+    .miniBtn.d{border-color:rgba(255,70,70,.25); background:rgba(255,70,70,.08)}
+    .empty{
+      text-align:center;
+      color:var(--muted);
+      padding:18px 8px;
+      border:1px dashed var(--line);
+      border-radius:16px;
+      margin-top:10px;
+    }
+    .hidden{display:none!important}
+
+    dialog.dlg{
+      border:none;
+      border-radius:18px;
+      padding:0;
+      width:min(560px, calc(100% - 28px));
+      background:var(--card);
+      color:var(--text);
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+    }
+    .dlgInner{padding:16px; display:flex; flex-direction:column; gap:12px}
+    .dlgTitle{font-weight:900; font-size:18px}
+    .msg{font-size:13px; color:var(--muted)}
+    .kbd{font-family:var(--mono); font-size:12px; padding:2px 6px; border:1px solid var(--line); border-radius:8px; background:var(--card2)}
   </style>
 </head>
+
 <body>
-<p class="p1">&lt;!doctype html&gt;</p>
-<p class="p1">&lt;html lang="it"&gt;</p>
-<p class="p1">&lt;head&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;meta charset="utf-8" /&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;title&gt;Timbratrice Web&lt;/title&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;link rel="manifest" href="manifest.json"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;meta name="theme-color" content="#D22B2B"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;link rel="icon" href="icon-192.png"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;link rel="stylesheet" href="style.css" /&gt;</p>
-<p class="p1">&lt;/head&gt;</p>
-<p class="p1">&lt;body&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;header class="topbar"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="brand"&gt;Timbratrice&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;button id="btnSettings" class="iconBtn" aria-label="Impostazioni"&gt;⚙️&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/header&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;main class="wrap"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;section class="card punch"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="punchHead"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="punchTitle"&gt;Timbratrice&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div id="statusPill" class="pill ready"&gt;Pronto&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="netRow"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="netTime" id="netTime"&gt;0:00&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="bigIcon" id="bigIcon"&gt;✅&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="chips"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="chip"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipLabel"&gt;Pausa&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipValue" id="pauseVal"&gt;0:00&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="chip"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipLabel"&gt;Km&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipValue" id="kmVal"&gt;0&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="grid2"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;label class="field"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;Titolo&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;input id="titleInput" type="text" placeholder="Opzionale"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/label&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;label class="field"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;Km&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;input id="kmInput" inputmode="numeric" type="text" placeholder="0"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="actions"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="btnStart" class="btn primary"&gt;Inizia turno&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="btnBreak" class="btn"&gt;Inizia pausa&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="btnStop" class="btn danger"&gt;Stop&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/section&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;section class="card"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="summaryHead"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="h2"&gt;Riepilogo&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="sub" id="rangeText"&gt;Storico: tutti&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;label class="toggle"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;input id="filterToggle" type="checkbox" /&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;Filtra&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="chips3"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="chip"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipLabel"&gt;Turni&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipValue" id="sumTurns"&gt;0&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="chip"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipLabel"&gt;Ore&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipValue" id="sumHours"&gt;0:00&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="chip"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipLabel"&gt;Km&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipValue" id="sumKm"&gt;0&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="filterBox" class="filterBox hidden"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;label class="field"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;Da&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;input id="fromDate" type="date" /&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;label class="field"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;A&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">          </span>&lt;input id="toDate" type="date" /&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;/label&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="row"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="btnRefresh" class="btn"&gt;Aggiorna&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="btnExport" class="btn"&gt;Esporta CSV&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/section&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;section class="card"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="h2"&gt;Storico&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="list" class="list"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="empty" class="empty hidden"&gt;Nessun record&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/section&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/main&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- Settings Modal --&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;dialog id="settingsDlg" class="dlg"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;form method="dialog" class="dlgInner"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="dlgTitle"&gt;Impostazioni&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;label class="field"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;span&gt;Endpoint Apps Script (/exec)&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;input id="epInput" type="url" placeholder="https://script.google.com/.../exec"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/label&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;label class="field"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;span&gt;Token&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;input id="tokenInput" type="text" placeholder="gargamella"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/label&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;label class="field"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;span&gt;Nome report (export)&lt;/span&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;input id="reportInput" type="text" placeholder="Report di Giovanni"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/label&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="row"&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="btnPing" class="btn"&gt;Ping&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">        </span>&lt;button class="btn primary"&gt;Chiudi&lt;/button&gt;</p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="settingsMsg" class="sub"&gt;&lt;/div&gt;</p>
-<p class="p1"><span class="Apple-converted-space">    </span>&lt;/form&gt;</p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;/dialog&gt;</p>
-<p class="p2"><br></p>
-<p class="p1"><span class="Apple-converted-space">  </span>&lt;script type="module" src="app.js"&gt;&lt;/script&gt;</p>
-<p class="p1">&lt;/body&gt;</p>
-<p class="p1">&lt;/html&gt;</p>
+  <header class="topbar">
+    <div class="brand">Timbratrice</div>
+    <button id="btnSettings" class="iconBtn" aria-label="Impostazioni">⚙️</button>
+  </header>
+
+  <main class="wrap">
+    <section class="card punch">
+      <div class="punchHead">
+        <div class="punchTitle">Timbratrice</div>
+        <div id="statusPill" class="pill ready">✅ Pronto</div>
+      </div>
+
+      <div class="netRow">
+        <div class="netTime" id="netTime">0:00</div>
+        <div class="bigIcon" id="bigIcon">✅</div>
+      </div>
+
+      <div class="chips">
+        <div class="chip">
+          <div class="chipLabel">Pausa</div>
+          <div class="chipValue" id="pauseVal">0:00</div>
+        </div>
+        <div class="chip">
+          <div class="chipLabel">Km</div>
+          <div class="chipValue" id="kmVal">0</div>
+        </div>
+      </div>
+
+      <div class="grid2">
+        <label class="field">
+          <span>Titolo</span>
+          <input id="titleInput" type="text" placeholder="Opzionale">
+        </label>
+
+        <label class="field">
+          <span>Km</span>
+          <input id="kmInput" inputmode="numeric" type="text" placeholder="0">
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="btnStart" class="btn primary">Inizia turno</button>
+        <button id="btnBreak" class="btn">Inizia pausa</button>
+        <button id="btnStop" class="btn danger">Stop</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="summaryHead">
+        <div>
+          <div class="h2">Riepilogo</div>
+          <div class="sub" id="rangeText">Storico: tutti</div>
+        </div>
+
+        <label class="toggle">
+          <input id="filterToggle" type="checkbox" />
+          <span>Filtra</span>
+        </label>
+      </div>
+
+      <div class="chips3" style="margin-top:12px">
+        <div class="chip">
+          <div class="chipLabel">Turni</div>
+          <div class="chipValue" id="sumTurns">0</div>
+        </div>
+        <div class="chip">
+          <div class="chipLabel">Ore</div>
+          <div class="chipValue" id="sumHours">0:00</div>
+        </div>
+        <div class="chip">
+          <div class="chipLabel">Km</div>
+          <div class="chipValue" id="sumKm">0</div>
+        </div>
+      </div>
+
+      <div id="filterBox" class="filterBox hidden">
+        <label class="field">
+          <span>Da</span>
+          <input id="fromDate" type="date" />
+        </label>
+        <label class="field">
+          <span>A</span>
+          <input id="toDate" type="date" />
+        </label>
+      </div>
+
+      <div class="row">
+        <button id="btnRefresh" class="btn">Aggiorna</button>
+        <button id="btnExport" class="btn">Esporta CSV</button>
+      </div>
+      <div class="msg" style="margin-top:10px">
+        Suggerimento: apri ⚙️ e inserisci <span class="kbd">endpoint /exec</span> e <span class="kbd">token</span>. Senza, funziona in modalità locale.
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="h2">Storico</div>
+      <div id="list" class="list"></div>
+      <div id="empty" class="empty hidden">Nessun record</div>
+    </section>
+  </main>
+
+  <dialog id="settingsDlg" class="dlg">
+    <form method="dialog" class="dlgInner">
+      <div class="dlgTitle">Impostazioni</div>
+
+      <label class="field">
+        <span>Endpoint Apps Script (/exec)</span>
+        <input id="epInput" type="url" placeholder="https://script.google.com/.../exec">
+      </label>
+
+      <label class="field">
+        <span>Token</span>
+        <input id="tokenInput" type="text" placeholder="gargamella">
+      </label>
+
+      <label class="field">
+        <span>Nome report (export)</span>
+        <input id="reportInput" type="text" placeholder="Report di Giovanni">
+      </label>
+
+      <div class="row">
+        <button id="btnPing" class="btn" value="ping">Ping</button>
+        <button class="btn primary" value="close">Chiudi</button>
+      </div>
+
+      <div id="settingsMsg" class="msg"></div>
+    </form>
+  </dialog>
+
+  <script>
+    // --------- utilities ---------
+    const $ = (id) => document.getElementById(id);
+    const pad2 = (n) => String(n).padStart(2, "0");
+    const fmtHM = (min) => {
+      const m = Math.max(0, Math.floor(min));
+      const h = Math.floor(m / 60);
+      const mm = m % 60;
+      return `${h}:${pad2(mm)}`;
+    };
+    const toISO = (d) => new Date(d).toISOString();
+
+    function todayISODate(d=new Date()){
+      const yyyy = d.getFullYear();
+      const mm = pad2(d.getMonth()+1);
+      const dd = pad2(d.getDate());
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    // --------- storage (local fallback) ---------
+    const LS = {
+      get(key, def=""){ try{ return localStorage.getItem(key) ?? def; }catch{ return def; } },
+      set(key, val){ try{ localStorage.setItem(key, val); }catch{} },
+      del(key){ try{ localStorage.removeItem(key); }catch{} },
+      jsonGet(key, def){ try{ return JSON.parse(localStorage.getItem(key) || "") || def; }catch{ return def; } },
+      jsonSet(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch{} },
+    };
+
+    const KEYS = {
+      endpoint: "tw_endpoint",
+      token: "tw_token",
+      report: "tw_report",
+      local: "tw_local_records",
+      localActiveId: "tw_local_active_id",
+    };
+
+    // --------- app state ---------
+    let active = null;     // {id,title,startISO,endISO,pauseMin,workMin,km,notes,breakStartISO}
+    let history = [];      // ended only
+    let filterEnabled = false;
+
+    // --------- DOM refs ---------
+    const settingsDlg = $("settingsDlg");
+    const settingsMsg = $("settingsMsg");
+
+    // --------- API (Apps Script) ---------
+    function cfg(){
+      const endpoint = (LS.get(KEYS.endpoint,"")||"").trim();
+      const token = (LS.get(KEYS.token,"")||"").trim();
+      const report = (LS.get(KEYS.report,"Report")||"Report").trim();
+      return { endpoint, token, report };
+    }
+
+    async function postJSON(action, payload = {}){
+      const { endpoint, token } = cfg();
+      if(!endpoint || !token) throw new Error("Endpoint o token mancante (⚙️).");
+      const res = await fetch(endpoint, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ token, action, ...payload }),
+      });
+      const text = await res.text();
+      let json;
+      try{ json = JSON.parse(text); } catch { throw new Error("Risposta non JSON: " + text.slice(0,200)); }
+      if(!json.ok) throw new Error(json.error || "Errore sconosciuto");
+      return json;
+    }
+
+    // --------- local mode ---------
+    function localLoad(){
+      const rows = LS.jsonGet(KEYS.local, []);
+      const activeId = LS.get(KEYS.localActiveId,"");
+      active = rows.find(r => r.id === activeId && !r.endISO) || null;
+      history = rows.filter(r => r.endISO);
+    }
+    function localSaveRow(row){
+      const rows = LS.jsonGet(KEYS.local, []);
+      const idx = rows.findIndex(r => r.id === row.id);
+      if(idx >= 0) rows[idx] = row; else rows.push(row);
+      LS.jsonSet(KEYS.local, rows);
+    }
+    function localDeleteRow(id){
+      const rows = LS.jsonGet(KEYS.local, []).filter(r => r.id !== id);
+      LS.jsonSet(KEYS.local, rows);
+      if(LS.get(KEYS.localActiveId,"") === id) LS.del(KEYS.localActiveId);
+    }
+
+    function usingRemote(){
+      const { endpoint, token } = cfg();
+      return !!(endpoint && token);
+    }
+
+    // --------- core operations ---------
+    function newId(){
+      return "WEB-" + crypto.randomUUID();
+    }
+
+    async function refresh(){
+      if(usingRemote()){
+        const fromISO = getFilterFromISO();
+        const toISO = getFilterToISO();
+        const payload = {};
+        // server-side filter is optional in your script; we filter client-side anyway
+        const res = await postJSON("list", payload);
+        const rows = (res.rows || []).map(x => ({
+          id: x.remoteId,
+          title: x.title || "",
+          startISO: x.startISO || "",
+          endISO: x.endISO || "",
+          pauseMin: Number(x.pauseMin || 0),
+          workMin: Number(x.workMin || 0),
+          km: Number(x.km || 0),
+          notes: x.notes || "",
+          breakStartISO: x.breakStartISO || ""
+        }));
+        active = rows.find(r => !r.endISO) || null;
+        history = rows.filter(r => !!r.endISO);
+        // client filter
+        ({history} = applyFilter(history, fromISO, toISO));
+      } else {
+        localLoad();
+        // client filter for local
+        const fromISO = getFilterFromISO();
+        const toISO = getFilterToISO();
+        ({history} = applyFilter(history, fromISO, toISO));
+      }
+      renderAll();
+    }
+
+    function getFilterFromISO(){
+      if(!$("filterToggle").checked) return "";
+      const v = $("fromDate").value;
+      if(!v) return "";
+      return new Date(v + "T00:00:00").toISOString();
+    }
+    function getFilterToISO(){
+      if(!$("filterToggle").checked) return "";
+      const v = $("toDate").value;
+      if(!v) return "";
+      return new Date(v + "T23:59:59").toISOString();
+    }
+
+    function applyFilter(rows, fromISO, toISO){
+      if(!fromISO || !toISO) return { history: rows };
+      const from = new Date(fromISO).getTime();
+      const to = new Date(toISO).getTime();
+      const filtered = rows.filter(r => {
+        const t = new Date(r.startISO).getTime();
+        return t >= from && t <= to;
+      });
+      return { history: filtered };
+    }
+
+    async function upsertRow(row){
+      if(usingRemote()){
+        await postJSON("upsert", {
+          record: {
+            remoteId: row.id,
+            title: row.title || "",
+            startISO: row.startISO || "",
+            endISO: row.endISO || "",
+            pauseMin: Number(row.pauseMin || 0),
+            workMin: Number(row.workMin || 0),
+            km: Number(row.km || 0),
+            notes: row.notes || ""
+          }
+        });
+      } else {
+        localSaveRow(row);
+      }
+    }
+
+    async function deleteRow(id){
+      if(usingRemote()){
+        await postJSON("delete", { remoteId:id });
+      } else {
+        localDeleteRow(id);
+      }
+    }
+
+    function computeWorkMin(row, nowISO){
+      const start = row.startISO ? new Date(row.startISO) : new Date(nowISO);
+      const end = row.endISO ? new Date(row.endISO) : new Date(nowISO);
+      const totalMin = Math.max(0, Math.floor((end - start)/60000));
+      const work = Math.max(0, totalMin - (Number(row.pauseMin)||0));
+      return work;
+    }
+
+    async function startShift(){
+      if(active) return;
+      const title = ($("titleInput").value || "").trim() || `Turno ${new Date().toLocaleDateString("it-IT")}`;
+      const km = parseInt(($("kmInput").value||"0").replace(/\D/g,""),10) || 0;
+
+      const now = new Date();
+      const row = {
+        id: newId(),
+        title,
+        startISO: toISO(now),
+        endISO: "",
+        pauseMin: 0,
+        workMin: 0,
+        km,
+        notes:"",
+        breakStartISO:""
+      };
+
+      active = row;
+      if(!usingRemote()){
+        LS.set(KEYS.localActiveId, row.id);
+      }
+
+      await upsertRow(row);
+      await refresh();
+      vib("rigid");
+    }
+
+    async function toggleBreak(){
+      if(!active) return;
+
+      const nowISO = toISO(new Date());
+
+      // start break
+      if(!active.breakStartISO){
+        active.breakStartISO = nowISO;
+        await upsertRow(active);
+        await refresh();
+        vib("soft");
+        return;
+      }
+
+      // end break
+      const bs = new Date(active.breakStartISO);
+      const now = new Date(nowISO);
+      const addMin = Math.max(0, Math.floor((now - bs)/60000));
+      active.pauseMin = Number(active.pauseMin||0) + addMin;
+      active.breakStartISO = "";
+      active.workMin = computeWorkMin(active, nowISO);
+      await upsertRow(active);
+      await refresh();
+      vib("light");
+    }
+
+    async function stopShift(){
+      if(!active) return;
+      const nowISO = toISO(new Date());
+
+      // if break running -> close it first
+      if(active.breakStartISO){
+        const bs = new Date(active.breakStartISO);
+        const now = new Date(nowISO);
+        const addMin = Math.max(0, Math.floor((now - bs)/60000));
+        active.pauseMin = Number(active.pauseMin||0) + addMin;
+        active.breakStartISO = "";
+      }
+
+      active.endISO = nowISO;
+      active.workMin = computeWorkMin(active, nowISO);
+
+      await upsertRow(active);
+
+      if(!usingRemote()){
+        LS.del(KEYS.localActiveId);
+      }
+      active = null;
+
+      await refresh();
+      vib("heavy");
+    }
+
+    // --------- UI rendering ---------
+    function renderAll(){
+      const now = new Date();
+      // Status
+      const pill = $("statusPill");
+      const bigIcon = $("bigIcon");
+      let netMin = 0;
+      let pauseMin = 0;
+
+      if(!active){
+        pill.className = "pill ready";
+        pill.textContent = "✅ Pronto";
+        bigIcon.textContent = "✅";
+        $("btnStart").disabled = false;
+        $("btnBreak").disabled = true;
+        $("btnStop").disabled = true;
+      } else {
+        const isPause = !!active.breakStartISO;
+        pill.className = "pill " + (isPause ? "pause" : "run");
+        pill.textContent = isPause ? "⏸︎ Pausa" : "🕒 In corso";
+        bigIcon.textContent = isPause ? "⏸︎" : "🕒";
+
+        $("btnStart").disabled = true;
+        $("btnBreak").disabled = false;
+        $("btnBreak").textContent = isPause ? "Fine pausa" : "Inizia pausa";
+        $("btnStop").disabled = false;
+
+        // live compute
+        const nowISO = toISO(now);
+        pauseMin = Number(active.pauseMin||0);
+        if(active.breakStartISO){
+          const bs = new Date(active.breakStartISO);
+          pauseMin += Math.max(0, Math.floor((now - bs)/60000));
+        }
+        const temp = {...active, pauseMin};
+        netMin = computeWorkMin(temp, nowISO);
+        $("kmVal").textContent = String(Number(active.km||0));
+      }
+
+      $("netTime").textContent = fmtHM(netMin);
+      $("pauseVal").textContent = fmtHM(pauseMin);
+
+      // summary
+      const turns = history.length;
+      const sumWorkMin = history.reduce((a,r)=>a + Number(r.workMin||0), 0);
+      const sumKm = history.reduce((a,r)=>a + Number(r.km||0), 0);
+      $("sumTurns").textContent = String(turns);
+      $("sumHours").textContent = fmtHM(sumWorkMin);
+      $("sumKm").textContent = String(sumKm);
+
+      // range text
+      const ft = $("filterToggle").checked;
+      if(ft && $("fromDate").value && $("toDate").value){
+        $("rangeText").textContent = `Selezione: ${$("fromDate").value} → ${$("toDate").value}`;
+      } else {
+        $("rangeText").textContent = "Storico: tutti";
+      }
+
+      // list
+      const list = $("list");
+      list.innerHTML = "";
+      if(history.length === 0){
+        $("empty").classList.remove("hidden");
+      } else {
+        $("empty").classList.add("hidden");
+        const sorted = [...history].sort((a,b)=> (b.startISO||"").localeCompare(a.startISO||""));
+        for(const r of sorted){
+          const start = r.startISO ? new Date(r.startISO).toLocaleString("it-IT") : "";
+          const end = r.endISO ? new Date(r.endISO).toLocaleString("it-IT") : "";
+          const el = document.createElement("div");
+          el.className = "item";
+          el.innerHTML = `
+            <div class="itemTop">
+              <div>
+                <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
+                <div class="itemMeta">Inizio: ${escapeHTML(start)}  •  Fine: ${escapeHTML(end)}</div>
+                <div class="itemMeta">Ore: ${escapeHTML(fmtHM(r.workMin||0))}  •  Km: ${escapeHTML(String(r.km||0))}</div>
+              </div>
+              <div class="itemBtns">
+                <button class="miniBtn d" data-del="${r.id}">Elimina</button>
+              </div>
+            </div>
+          `;
+          list.appendChild(el);
+        }
+        list.querySelectorAll("[data-del]").forEach(btn=>{
+          btn.addEventListener("click", async (e)=>{
+            const id = e.currentTarget.getAttribute("data-del");
+            if(!confirm("Eliminare questo record?")) return;
+            await deleteRow(id);
+            await refresh();
+          });
+        });
+      }
+    }
+
+    function escapeHTML(s){
+      return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    }
+
+    // --------- CSV export (netto ore + km + turni) ---------
+    function exportCSV(){
+      const { report } = cfg();
+      const sep = ";";
+      const rows = [...history].sort((a,b)=> (a.startISO||"").localeCompare(b.startISO||""));
+      const dt = (iso)=>{
+        if(!iso) return "";
+        const d = new Date(iso);
+        const yyyy = d.getFullYear();
+        const mm = pad2(d.getMonth()+1);
+        const dd = pad2(d.getDate());
+        const HH = pad2(d.getHours());
+        const MI = pad2(d.getMinutes());
+        return `${yyyy}/${mm}/${dd} ${HH}:${MI}`;
+      };
+
+      let csv = "\uFEFF";
+      csv += ["Titolo","DataOraInizio","DataOraFine","Pausa_hh:mm","Ore_nette_hh:mm","Km"].join(sep) + "\r\n";
+
+      let sumWork = 0, sumPause = 0, sumKm = 0;
+
+      for(const r of rows){
+        sumWork += Number(r.workMin||0);
+        sumPause += Number(r.pauseMin||0);
+        sumKm += Number(r.km||0);
+        csv += [
+          csvEscape(r.title||"", sep),
+          dt(r.startISO),
+          dt(r.endISO),
+          fmtHM(Number(r.pauseMin||0)),
+          fmtHM(Number(r.workMin||0)),
+          String(Number(r.km||0))
+        ].join(sep) + "\r\n";
+      }
+
+      csv += ["TOTALE SELEZIONE","","", fmtHM(sumPause), fmtHM(sumWork), String(sumKm)].join(sep) + "\r\n";
+      csv += "\r\n";
+      csv += ["RIEPILOGO","","","","",""].join(sep) + "\r\n";
+      csv += ["Turni", String(rows.length), "","","",""].join(sep) + "\r\n";
+      csv += ["Ore totali (nette)", fmtHM(sumWork), "","","",""].join(sep) + "\r\n";
+      csv += ["Km totali", String(sumKm), "","","",""].join(sep) + "\r\n";
+
+      const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+      const a = document.createElement("a");
+      const safe = (report || "timbratrice").replace(/[^\w\-]+/g,"-");
+      a.href = URL.createObjectURL(blob);
+      a.download = `${safe}-${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    function csvEscape(s, sep){
+      const t = String(s||"").trim();
+      if(t.includes(sep) || t.includes('"') || t.includes("\n") || t.includes("\r")){
+        return `"${t.replace(/"/g,'""')}"`;
+      }
+      return t;
+    }
+
+    // --------- vibration (android) / haptic-ish fallback ---------
+    function vib(kind){
+      // iOS Safari ignores navigator.vibrate; harmless.
+      if(!navigator.vibrate) return;
+      if(kind==="heavy") navigator.vibrate([30,30,30]);
+      else if(kind==="rigid") navigator.vibrate([20,25,15]);
+      else if(kind==="light") navigator.vibrate(15);
+      else navigator.vibrate(10);
+    }
+
+    // --------- events ---------
+    $("btnSettings").addEventListener("click", ()=>{
+      const c = cfg();
+      $("epInput").value = c.endpoint;
+      $("tokenInput").value = c.token;
+      $("reportInput").value = c.report;
+      settingsMsg.textContent = "";
+      settingsDlg.showModal();
+    });
+
+    $("settingsDlg").addEventListener("close", ()=>{
+      // save on close
+      LS.set(KEYS.endpoint, ($("epInput").value||"").trim());
+      LS.set(KEYS.token, ($("tokenInput").value||"").trim());
+      LS.set(KEYS.report, ($("reportInput").value||"Report").trim());
+    });
+
+    $("btnPing").addEventListener("click", async (e)=>{
+      e.preventDefault();
+      try{
+        LS.set(KEYS.endpoint, ($("epInput").value||"").trim());
+        LS.set(KEYS.token, ($("tokenInput").value||"").trim());
+        const c = cfg();
+        if(!c.endpoint.endsWith("/exec")) throw new Error("L'endpoint deve finire con /exec");
+        await postJSON("ping", {});
+        settingsMsg.textContent = "✅ Ping OK";
+      }catch(err){
+        settingsMsg.textContent = "❌ " + err.message;
+      }
+    });
+
+    $("btnStart").addEventListener("click", startShift);
+    $("btnBreak").addEventListener("click", toggleBreak);
+    $("btnStop").addEventListener("click", ()=>{
+      if(confirm("Finire il turno?")) stopShift();
+    });
+
+    $("btnRefresh").addEventListener("click", refresh);
+    $("btnExport").addEventListener("click", exportCSV);
+
+    $("filterToggle").addEventListener("change", async ()=>{
+      const on = $("filterToggle").checked;
+      $("filterBox").classList.toggle("hidden", !on);
+      await refresh();
+    });
+
+    $("fromDate").addEventListener("change", async ()=>{
+      if($("toDate").value && $("fromDate").value > $("toDate").value){
+        $("toDate").value = $("fromDate").value;
+      }
+      await refresh();
+    });
+    $("toDate").addEventListener("change", async ()=>{
+      if($("fromDate").value && $("toDate").value < $("fromDate").value){
+        $("fromDate").value = $("toDate").value;
+      }
+      await refresh();
+    });
+
+    // live updates while active
+    setInterval(()=>{
+      if(active) renderAll();
+    }, 1000);
+
+    // init
+    $("fromDate").value = todayISODate(new Date(new Date().setDate(new Date().getDate()-7)));
+    $("toDate").value = todayISODate();
+    $("filterBox").classList.add("hidden");
+    refresh().catch(console.error);
+  </script>
 </body>
 </html>
