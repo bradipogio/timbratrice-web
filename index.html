@@ -1,0 +1,159 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.2">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px Helvetica; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1">&lt;!doctype html&gt;</p>
+<p class="p1">&lt;html lang="it"&gt;</p>
+<p class="p1">&lt;head&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;meta charset="utf-8" /&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" /&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;title&gt;Timbratrice Web&lt;/title&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;link rel="manifest" href="manifest.json"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;meta name="theme-color" content="#D22B2B"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;link rel="icon" href="icon-192.png"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;link rel="stylesheet" href="style.css" /&gt;</p>
+<p class="p1">&lt;/head&gt;</p>
+<p class="p1">&lt;body&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;header class="topbar"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;div class="brand"&gt;Timbratrice&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;button id="btnSettings" class="iconBtn" aria-label="Impostazioni"&gt;⚙️&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/header&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;main class="wrap"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;section class="card punch"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="punchHead"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="punchTitle"&gt;Timbratrice&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div id="statusPill" class="pill ready"&gt;Pronto&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="netRow"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="netTime" id="netTime"&gt;0:00&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="bigIcon" id="bigIcon"&gt;✅&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="chips"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="chip"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipLabel"&gt;Pausa&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipValue" id="pauseVal"&gt;0:00&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="chip"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipLabel"&gt;Km&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipValue" id="kmVal"&gt;0&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="grid2"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;label class="field"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;Titolo&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;input id="titleInput" type="text" placeholder="Opzionale"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/label&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;label class="field"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;Km&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;input id="kmInput" inputmode="numeric" type="text" placeholder="0"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/label&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="actions"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="btnStart" class="btn primary"&gt;Inizia turno&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="btnBreak" class="btn"&gt;Inizia pausa&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="btnStop" class="btn danger"&gt;Stop&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;section class="card"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="summaryHead"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="h2"&gt;Riepilogo&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="sub" id="rangeText"&gt;Storico: tutti&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;label class="toggle"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;input id="filterToggle" type="checkbox" /&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;Filtra&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/label&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="chips3"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="chip"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipLabel"&gt;Turni&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipValue" id="sumTurns"&gt;0&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="chip"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipLabel"&gt;Ore&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipValue" id="sumHours"&gt;0:00&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;div class="chip"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipLabel"&gt;Km&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;div class="chipValue" id="sumKm"&gt;0&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="filterBox" class="filterBox hidden"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;label class="field"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;Da&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;input id="fromDate" type="date" /&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/label&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;label class="field"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;span&gt;A&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">          </span>&lt;input id="toDate" type="date" /&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;/label&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="btnRefresh" class="btn"&gt;Aggiorna&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="btnExport" class="btn"&gt;Esporta CSV&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/section&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;section class="card"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="h2"&gt;Storico&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="list" class="list"&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="empty" class="empty hidden"&gt;Nessun record&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/section&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/main&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;!-- Settings Modal --&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;dialog id="settingsDlg" class="dlg"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;form method="dialog" class="dlgInner"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="dlgTitle"&gt;Impostazioni&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;label class="field"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span&gt;Endpoint Apps Script (/exec)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;input id="epInput" type="url" placeholder="https://script.google.com/.../exec"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/label&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;label class="field"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span&gt;Token&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;input id="tokenInput" type="text" placeholder="gargamella"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/label&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;label class="field"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;span&gt;Nome report (export)&lt;/span&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;input id="reportInput" type="text" placeholder="Report di Giovanni"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/label&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div class="row"&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;button id="btnPing" class="btn"&gt;Ping&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">        </span>&lt;button class="btn primary"&gt;Chiudi&lt;/button&gt;</p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;/div&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">      </span>&lt;div id="settingsMsg" class="sub"&gt;&lt;/div&gt;</p>
+<p class="p1"><span class="Apple-converted-space">    </span>&lt;/form&gt;</p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;/dialog&gt;</p>
+<p class="p2"><br></p>
+<p class="p1"><span class="Apple-converted-space">  </span>&lt;script type="module" src="app.js"&gt;&lt;/script&gt;</p>
+<p class="p1">&lt;/body&gt;</p>
+<p class="p1">&lt;/html&gt;</p>
+</body>
+</html>
