@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Timbratrice Admin</title>
+  <style>
+    :root{
+      --bg:#0b0b0c;
+      --card:#141417;
+      --card2:#17171b;
+      --text:#f2f2f2;
+      --muted:#b8b8bf;
+      --line:rgba(255,255,255,.10);
+      --red:#D22B2B;
+      --red2:#b21f1f;
+      --good:#3ddc84;
+      --warn:#ffb020;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius:18px;
+      --radius2:14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#f5f5f7;
+        --card:#ffffff;
+        --card2:#fafafa;
+        --text:#121212;
+        --muted:#6c6c75;
+        --line:rgba(0,0,0,.10);
+        --shadow: 0 10px 30px rgba(0,0,0,.10);
+      }
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background:linear-gradient(180deg, rgba(210,43,43,.12), transparent 40%), var(--bg);
+      color:var(--text);
+    }
+    .topbar{
+      position:sticky; top:0; z-index:20;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 16px;
+      background:rgba(0,0,0,.18);
+      backdrop-filter: blur(12px);
+      border-bottom:1px solid var(--line);
+    }
+    @media (prefers-color-scheme: light){
+      .topbar{background:rgba(255,255,255,.70)}
+    }
+    .brand{font-weight:900; letter-spacing:.2px}
+    .right{display:flex; align-items:center; gap:10px}
+    .userPill{
+      border:1px solid var(--line);
+      background:transparent;
+      color:var(--muted);
+      padding:8px 10px;
+      border-radius:999px;
+      font-weight:800;
+      font-size:12px;
+      max-width:52vw;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .wrap{max-width:980px; margin:0 auto; padding:16px; display:flex; flex-direction:column; gap:14px}
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+      padding:14px;
+    }
+    .h2{font-weight:900; font-size:18px}
+    .sub{color:var(--muted); font-size:13px; margin-top:2px}
+    .field{display:flex; flex-direction:column; gap:6px}
+    .field > span{font-size:12px; color:var(--muted); font-weight:800}
+    input, select{
+      width:100%;
+      padding:12px 12px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:var(--card2);
+      color:var(--text);
+      outline:none;
+      font-size:14px;
+    }
+    input:focus, select:focus{border-color: rgba(210,43,43,.55)}
+    .grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:12px}
+    .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
+    @media (max-width:760px){
+      .grid3{grid-template-columns:1fr}
+      .grid2{grid-template-columns:1fr}
+    }
+    .row{display:flex; gap:10px; margin-top:12px}
+    .btn{
+      padding:12px 14px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:var(--card2);
+      color:var(--text);
+      font-weight:900;
+      cursor:pointer;
+      flex:1;
+    }
+    .btn.primary{
+      background:linear-gradient(180deg, var(--red), var(--red2));
+      border-color:rgba(255,255,255,.10);
+      color:white;
+    }
+    .btn.danger{background:rgba(255,70,70,.10); border-color:rgba(255,70,70,.25)}
+    .btn:disabled{opacity:.45; cursor:not-allowed}
+    .chips3{display:flex; gap:10px; margin-top:12px}
+    .chip{
+      flex:1;
+      background:var(--card2);
+      border:1px solid var(--line);
+      border-radius:var(--radius2);
+      padding:10px 12px;
+      min-width:0;
+    }
+    .chipLabel{font-size:12px; color:var(--muted); font-weight:800; letter-spacing:.2px}
+    .chipValue{
+      margin-top:4px;
+      font-family:var(--mono);
+      font-size:18px;
+      font-weight:800;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .list{display:flex; flex-direction:column; gap:10px; margin-top:10px}
+    .item{
+      border:1px solid var(--line);
+      background:var(--card2);
+      border-radius:16px;
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .itemTop{display:flex; justify-content:space-between; gap:10px; align-items:flex-start}
+    .itemTitle{font-weight:900}
+    .itemMeta{font-family:var(--mono); color:var(--muted); font-size:12px}
+    .empty{
+      text-align:center;
+      color:var(--muted);
+      padding:18px 8px;
+      border:1px dashed var(--line);
+      border-radius:16px;
+      margin-top:10px;
+    }
+    .msg{
+      font-size:13px;
+      color:var(--muted);
+      margin-top:2px;
+      min-height:18px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.06);
+      line-height:1.35;
+    }
+    @media (prefers-color-scheme: light){
+      .msg{background:rgba(0,0,0,.03)}
+    }
+    .msg.ok{color:var(--good)}
+    .msg.err{color:#ff6b6b}
+    .hidden{display:none!important}
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">Timbratrice Admin</div>
+    <div class="right">
+      <div id="userPill" class="userPill">Non loggato</div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="loginCard" class="card">
+      <div class="h2">Accesso Admin</div>
+      <div class="sub">Solo per l’account autorizzato</div>
+      <div class="grid2">
+        <label class="field">
+          <span>Email</span>
+          <input id="emailInput" type="email" placeholder="tuo@email.com" autocomplete="email">
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input id="passInput" type="password" placeholder="password" autocomplete="current-password">
+        </label>
+      </div>
+      <div class="row">
+        <button id="btnLogin" class="btn primary">Login</button>
+        <button id="btnLogout" class="btn danger">Logout</button>
+      </div>
+      <div id="authMsg" class="msg"></div>
+    </section>
+
+    <section id="adminCard" class="card hidden">
+      <div class="h2">Controllo Orari</div>
+      <div class="sub">Filtra per utente, data e ordina i risultati</div>
+
+      <div class="grid3">
+        <label class="field">
+          <span>User ID</span>
+          <input id="userIdInput" type="text" placeholder="uuid utente">
+        </label>
+        <label class="field">
+          <span>Da</span>
+          <input id="fromDate" type="date" />
+        </label>
+        <label class="field">
+          <span>A</span>
+          <input id="toDate" type="date" />
+        </label>
+      </div>
+
+      <div class="grid3">
+        <label class="field">
+          <span>Ordina per</span>
+          <select id="sortField">
+            <option value="start_ts">Inizio</option>
+            <option value="end_ts">Fine</option>
+            <option value="updated_at">Aggiornato</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Direzione</span>
+          <select id="sortDir">
+            <option value="desc">Discendente</option>
+            <option value="asc">Ascendente</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>&nbsp;</span>
+          <button id="btnRefresh" class="btn">Aggiorna</button>
+        </label>
+      </div>
+
+      <div class="row">
+        <button id="btnExport" class="btn">Esporta CSV (filtro)</button>
+        <button id="btnClear" class="btn">Pulisci filtri</button>
+      </div>
+
+      <div class="chips3">
+        <div class="chip">
+          <div class="chipLabel">Record</div>
+          <div class="chipValue" id="sumRecords">0</div>
+        </div>
+        <div class="chip">
+          <div class="chipLabel">Ore nette</div>
+          <div class="chipValue" id="sumHours">0:00</div>
+        </div>
+        <div class="chip">
+          <div class="chipLabel">Km</div>
+          <div class="chipValue" id="sumKm">0</div>
+        </div>
+      </div>
+
+      <div id="actionMsg" class="msg"></div>
+      <div id="list" class="list"></div>
+      <div id="empty" class="empty hidden">Nessun record</div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL_RAW = "https://rvznuudatshqyzmnqrmd.supabase.co";
+    const SUPABASE_ANON_KEY_RAW = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2em51dWRhdHNocXl6bW5xcm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Njg5NTcsImV4cCI6MjA4MjM0NDk1N30.0_KKO88ExW4_WHXhR2fuVuLWNBmI3xXKMth4A2qqVr4";
+    const ADMIN_EMAIL = "mazzanti.giova@gmail.com";
+
+    const SUPABASE_URL = (SUPABASE_URL_RAW || "").trim();
+    const SUPABASE_ANON_KEY = (SUPABASE_ANON_KEY_RAW || "").trim();
+    const sb = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const $ = (id) => document.getElementById(id);
+    const pad2 = (n) => String(n).padStart(2, "0");
+    const fmtHM = (min) => {
+      const m = Math.max(0, Math.floor(Number(min || 0)));
+      const h = Math.floor(m / 60);
+      const mm = m % 60;
+      return `${h}:${pad2(mm)}`;
+    };
+    const toISO = (d) => new Date(d).toISOString();
+
+    let currentUser = null;
+    let records = [];
+
+    function withTimeout(promise, ms, label){
+      let timerId;
+      const timeout = new Promise((_, reject)=>{
+        timerId = setTimeout(()=>{
+          reject(new Error(`${label} non risponde. Riprova.`));
+        }, ms);
+      });
+      return Promise.race([promise, timeout]).finally(()=> clearTimeout(timerId));
+    }
+
+    async function getUser(){
+      if(!sb) return null;
+      const { data, error } = await sb.auth.getSession();
+      if(error) return null;
+      return data.session?.user || null;
+    }
+
+    function setAuthUI(user){
+      const pill = $("userPill");
+      currentUser = user || null;
+      if(user){
+        pill.textContent = user.email || "Loggato";
+      }else{
+        pill.textContent = "Non loggato";
+      }
+      const isAdmin = !!user && user.email === ADMIN_EMAIL;
+      $("adminCard").classList.toggle("hidden", !isAdmin);
+      $("loginCard").classList.toggle("hidden", isAdmin);
+      if(user && !isAdmin){
+        setAuthMsg("❌ Accesso negato: non sei admin.", "err");
+      }
+    }
+
+    function setAuthMsg(text, kind){
+      const el = $("authMsg");
+      el.textContent = text || "";
+      el.classList.remove("ok","err");
+      if(kind) el.classList.add(kind);
+    }
+
+    function setActionMsg(text, kind){
+      const el = $("actionMsg");
+      el.textContent = text || "";
+      el.classList.remove("ok","err");
+      if(kind) el.classList.add(kind);
+    }
+
+    function renderList(){
+      const list = $("list");
+      list.innerHTML = "";
+      if(records.length === 0){
+        $("empty").classList.remove("hidden");
+        return;
+      }
+      $("empty").classList.add("hidden");
+      for(const r of records){
+        const start = r.start_ts ? new Date(r.start_ts).toLocaleString("it-IT") : "";
+        const end = r.end_ts ? new Date(r.end_ts).toLocaleString("it-IT") : "";
+        const el = document.createElement("div");
+        el.className = "item";
+        el.innerHTML = `
+          <div class="itemTop">
+            <div>
+              <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
+              <div class="itemMeta">User ID: ${escapeHTML(r.user_id || "")}</div>
+              <div class="itemMeta">Inizio: ${escapeHTML(start)}  •  Fine: ${escapeHTML(end)}</div>
+              <div class="itemMeta">Ore: ${escapeHTML(fmtHM(r.work_min||0))}  •  Km: ${escapeHTML(String(r.km||0))}</div>
+            </div>
+          </div>
+        `;
+        list.appendChild(el);
+      }
+    }
+
+    function renderSummary(){
+      $("sumRecords").textContent = String(records.length);
+      const sumWork = records.reduce((a,r)=> a + Number(r.work_min||0), 0);
+      const sumKm = records.reduce((a,r)=> a + Number(r.km||0), 0);
+      $("sumHours").textContent = fmtHM(sumWork);
+      $("sumKm").textContent = String(sumKm);
+    }
+
+    function escapeHTML(s){
+      return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    }
+
+    async function refresh(){
+      const user = await getUser();
+      if(!user || user.email !== ADMIN_EMAIL){
+        setAuthUI(user);
+        return;
+      }
+
+      const userId = ($("userIdInput").value || "").trim();
+      const fromDate = $("fromDate").value;
+      const toDate = $("toDate").value;
+      const sortField = $("sortField").value;
+      const sortDir = $("sortDir").value === "asc";
+
+      try{
+        setActionMsg("⏳ Caricamento...", null);
+        let q = sb.from("work_records").select("*");
+        if(userId) q = q.eq("user_id", userId);
+        if(fromDate) q = q.gte("start_ts", toISO(new Date(fromDate + "T00:00:00")));
+        if(toDate) q = q.lte("start_ts", toISO(new Date(toDate + "T23:59:59")));
+        q = q.order(sortField, { ascending: sortDir });
+
+        const { data, error } = await withTimeout(q, 10000, "Caricamento");
+        if(error) throw error;
+        records = data || [];
+        renderSummary();
+        renderList();
+        setActionMsg(`✅ ${records.length} record`, "ok");
+      }catch(err){
+        setActionMsg("❌ " + (err.message || String(err)), "err");
+      }
+    }
+
+    function exportCSV(){
+      const sep = ";";
+      const rows = [...records];
+
+      const dt = (iso)=>{
+        if(!iso) return "";
+        const d = new Date(iso);
+        const yyyy = d.getFullYear();
+        const mm = pad2(d.getMonth()+1);
+        const dd = pad2(d.getDate());
+        const HH = pad2(d.getHours());
+        const MI = pad2(d.getMinutes());
+        return `${yyyy}/${mm}/${dd} ${HH}:${MI}`;
+      };
+
+      let csv = "\uFEFF";
+      csv += ["UserID","Titolo","DataOraInizio","DataOraFine","Ore_nette_hh:mm","Km"].join(sep) + "\r\n";
+
+      let sumWork = 0, sumKm = 0;
+      for(const r of rows){
+        sumWork += Number(r.work_min||0);
+        sumKm += Number(r.km||0);
+        csv += [
+          csvEscape(r.user_id||"", sep),
+          csvEscape(r.title||"", sep),
+          dt(r.start_ts),
+          dt(r.end_ts),
+          fmtHM(Number(r.work_min||0)),
+          String(Number(r.km||0))
+        ].join(sep) + "\r\n";
+      }
+
+      csv += ["TOTALE SELEZIONE","","","", fmtHM(sumWork), String(sumKm)].join(sep) + "\r\n";
+
+      const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `timbratrice-admin-${Date.now()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    function csvEscape(s, sep){
+      const t = String(s||"").trim();
+      if(t.includes(sep) || t.includes('"') || t.includes("\n") || t.includes("\r")){
+        return `"${t.replace(/"/g,'""')}"`;
+      }
+      return t;
+    }
+
+    $("btnLogin").addEventListener("click", async ()=>{
+      try{
+        setAuthMsg("⏳ Login...", null);
+        const email = ($("emailInput").value||"").trim();
+        const pass = ($("passInput").value||"").trim();
+        if(!email || !pass) throw new Error("Inserisci email e password.");
+        const { data, error } = await withTimeout(
+          sb.auth.signInWithPassword({ email, password: pass }),
+          10000,
+          "Login"
+        );
+        if(error) throw error;
+        if(!data?.session) throw new Error("Login non riuscito.");
+        setAuthMsg("✅ Login OK", "ok");
+      }catch(err){
+        setAuthMsg("❌ " + (err.message || String(err)), "err");
+      }
+    });
+
+    $("btnLogout").addEventListener("click", async ()=>{
+      try{
+        await sb.auth.signOut();
+        setAuthMsg("✅ Logout", "ok");
+      }catch(err){
+        setAuthMsg("❌ " + (err.message || String(err)), "err");
+      }
+    });
+
+    $("btnRefresh").addEventListener("click", refresh);
+    $("btnExport").addEventListener("click", exportCSV);
+    $("btnClear").addEventListener("click", ()=>{
+      $("userIdInput").value = "";
+      $("fromDate").value = "";
+      $("toDate").value = "";
+      $("sortField").value = "start_ts";
+      $("sortDir").value = "desc";
+      refresh();
+    });
+
+    sb?.auth.onAuthStateChange(async (_event, session)=>{
+      const user = session?.user || await getUser();
+      setAuthUI(user);
+      await refresh();
+    });
+
+    (async function boot(){
+      const user = await getUser();
+      setAuthUI(user);
+      await refresh();
+    })();
+  </script>
+</body>
+</html>
