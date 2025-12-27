@@ -762,6 +762,7 @@ function enforceAuthGate(){
     // --------- Supabase CRUD ---------
     async function refresh(){
       const user = await requireUser();
+      console.log("[refresh] start", { hasSb: !!sb, userId: user?.id || null });
       if(!sb){
         console.warn("Supabase non inizializzato: controlla connessione/CDN/config");
         active = null;
@@ -788,7 +789,9 @@ function enforceAuthGate(){
         q = q.gte("start_ts", fromISO).lte("start_ts", toISO);
       }
 
+      console.log("[refresh] executing query work_records", { fromISO, toISO });
       const { data, error } = await withTimeout(q, 17000, "Caricamento");
+      console.log("[refresh] query returned", { rows: (data||[]).length, hasError: !!error });
       if(error){
         console.error(error);
         setActionMsg("❌ " + error.message, "err");
@@ -1192,7 +1195,12 @@ $("btnSettings").addEventListener("click", ()=>{
         const data = await signIn(email, pass);
         // Update UI immediately (in case onAuthStateChange is delayed)
         setUserUI(data?.user || (await getUser()));
-        await refresh();
+        try{
+          await refresh();
+        }catch(e){
+          console.error("[btnLogin] refresh crashed:", e);
+          throw e;
+        }
         setSettingsMsg("✅ Login OK", "ok");
         // NON chiudere subito: l'utente deve vedere il messaggio
         setTimeout(()=>{ closeSettings(); }, 600);
