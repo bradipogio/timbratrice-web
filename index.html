@@ -552,9 +552,9 @@
     // --------- auth helpers ---------
     async function getUser(){
       if(!sb) return null;
-      const { data, error } = await sb.auth.getUser();
+      const { data, error } = await sb.auth.getSession();
       if(error) return null;
-      return data.user || null;
+      return data.session?.user || null;
     }
 
     function setUserUI(user){
@@ -598,8 +598,8 @@
     }
 
     if(sb){
-      sb.auth.onAuthStateChange(async () => {
-        const user = await getUser();
+      sb.auth.onAuthStateChange(async (_event, session) => {
+        const user = session?.user || await getUser();
         setUserUI(user);
         await refresh();
       });
