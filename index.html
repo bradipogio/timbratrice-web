@@ -655,7 +655,7 @@
 
     // --------- Supabase CRUD ---------
     async function refresh(){
-      const user = await getUser();
+      const user = await requireUser();
       if(!sb){
         console.warn("Supabase non inizializzato: controlla connessione/CDN/config");
         active = null;
@@ -710,7 +710,7 @@
 
     async function upsertRow(row){
       if(!sb) throw new Error("Supabase non inizializzato.");
-      const user = await getUser();
+      const user = await requireUser();
       if(!user) throw new Error("Fai login (⚙️) per salvare.");
 
       const payload = {
@@ -736,7 +736,7 @@
 
     async function deleteRow(id){
       if(!sb) throw new Error("Supabase non inizializzato.");
-      const user = await getUser();
+      const user = await requireUser();
       if(!user) throw new Error("Fai login (⚙️) per cancellare.");
 
       const { error } = await sb
@@ -762,7 +762,7 @@
     }
 
     async function startShift(){
-      const user = await getUser();
+      const user = await requireUser();
       if(!user){ alert("Fai login (⚙️) per iniziare e salvare."); return; }
       if(active) return;
 
@@ -799,7 +799,7 @@
     }
 
     async function toggleBreak(){
-      const user = await getUser();
+      const user = await requireUser();
       if(!user){ alert("Fai login (⚙️)."); return; }
       if(!active) return;
 
@@ -830,7 +830,7 @@
     }
 
     async function stopShift(){
-      const user = await getUser();
+      const user = await requireUser();
       if(!user){ alert("Fai login (⚙️)."); return; }
       if(!active) return;
 
@@ -1058,7 +1058,7 @@ $("btnSettings").addEventListener("click", ()=>{
   openSettings();
 
   // poi (in background) se sei loggato compila l’email
-  getUser().then(user => {
+  requireUser().then(user => {
     if(user) $("emailInput").value = user.email || "";
   }).catch(()=>{});
 });
@@ -1167,7 +1167,7 @@ $("btnCloseDlg").addEventListener("click", closeSettings);
         $("toDate").value = todayISODate();
         $("filterBox").classList.add("hidden");
 
-        const user = await getUser();
+        const user = await requireUser();
         setUserUI(user);
 
         // Segnale visivo che il JS è partito (se vedi questo, i bottoni sono collegati)
