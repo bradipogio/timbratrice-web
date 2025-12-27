@@ -267,7 +267,22 @@
     }
     .dlgInner{padding:16px; display:flex; flex-direction:column; gap:12px}
     .dlgTitle{font-weight:900; font-size:18px}
-    .msg{font-size:13px; color:var(--muted)}
+    .msg{
+      font-size:13px;
+      color:var(--muted);
+      margin-top:2px;
+      min-height:18px;
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.06);
+      line-height:1.35;
+    }
+    @media (prefers-color-scheme: light){
+      .msg{background:rgba(0,0,0,.03)}
+    }
+    .msg.ok{color:var(--good)}
+    .msg.err{color:#ff6b6b}
     .hint{
       font-size:12px;
       color:var(--muted);
@@ -986,6 +1001,12 @@
     const settingsMsg = $("settingsMsg");
     let settingsJustOpenedAt = 0;
 
+    function setSettingsMsg(text, kind){
+      settingsMsg.textContent = text || "";
+      settingsMsg.classList.remove("ok","err");
+      if(kind) settingsMsg.classList.add(kind);
+    }
+
     function openSettings(){
       settingsJustOpenedAt = Date.now();
       settingsDlg.classList.remove("hidden");
@@ -1005,10 +1026,10 @@
     });
 
 $("btnSettings").addEventListener("click", ()=>{
-  settingsMsg.textContent = "";
+  setSettingsMsg("", null);
   $("reportInput").value = cfg().report;
 
-  openSettings(); // apri SUBITO, senza async/timeout
+  openSettings();
 
   // poi (in background) se sei loggato compila l’email
   getUser().then(user => {
@@ -1017,33 +1038,34 @@ $("btnSettings").addEventListener("click", ()=>{
 });
 
 
-
     $("btnLogin").addEventListener("click", async (e)=>{
       e.preventDefault();
       try{
+        setSettingsMsg("⏳ Login...", null);
         const email = ($("emailInput").value||"").trim();
         const pass = ($("passInput").value||"").trim();
         if(!email || !pass) throw new Error("Inserisci email e password.");
         await signIn(email, pass);
-        settingsMsg.textContent = "✅ Login OK";
-        // chiudi dopo un attimo (l'onAuthStateChange aggiorna UI e dati)
-        setTimeout(closeSettings, 350);
+        setSettingsMsg("✅ Login OK", "ok");
+        // NON chiudere subito: l'utente deve vedere il messaggio
+        setTimeout(()=>{ /* opzionale: auto-close */ closeSettings(); }, 1200);
       }catch(err){
-        settingsMsg.textContent = "❌ " + (err.message || String(err));
+        setSettingsMsg("❌ " + (err.message || String(err)), "err");
       }
     });
 
     $("btnSignup").addEventListener("click", async (e)=>{
       e.preventDefault();
       try{
+        setSettingsMsg("⏳ Registrazione...", null);
         const email = ($("emailInput").value||"").trim();
         const pass = ($("passInput").value||"").trim();
         if(!email || !pass) throw new Error("Inserisci email e password.");
         if(pass.length < 6) throw new Error("Password troppo corta (min 6).");
         await signUp(email, pass);
-        settingsMsg.textContent = "✅ Registrazione OK. Controlla l’email e apri il link di conferma subito (i link vecchi possono scadere). Poi fai Login.";
+        setSettingsMsg("✅ Registrazione OK. Controlla l’email e apri il link di conferma subito. Poi torna qui e fai Login.", "ok");
       }catch(err){
-        settingsMsg.textContent = "❌ " + (err.message || String(err));
+        setSettingsMsg("❌ " + (err.message || String(err)), "err");
       }
     });
 
@@ -1051,10 +1073,10 @@ $("btnSettings").addEventListener("click", ()=>{
       e.preventDefault();
       try{
         await signOut();
-        settingsMsg.textContent = "✅ Logout";
-        setTimeout(closeSettings, 350);
+        setSettingsMsg("✅ Logout", "ok");
+        setTimeout(closeSettings, 600);
       }catch(err){
-        settingsMsg.textContent = "❌ " + (err.message || String(err));
+        setSettingsMsg("❌ " + (err.message || String(err)), "err");
       }
     });
 $("btnCloseDlg").addEventListener("click", closeSettings);
