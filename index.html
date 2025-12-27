@@ -975,37 +975,19 @@ document.addEventListener("click", (e)=>{
       }
     });
 
-$("btnSettings").addEventListener("click", async ()=>{
-  try{
-    showDebug("⚙️ Apro impostazioni...");
-    settingsMsg.textContent = "";
-    $("reportInput").value = cfg().report;
+$("btnSettings").addEventListener("click", ()=>{
+  settingsMsg.textContent = "";
+  $("reportInput").value = cfg().report;
 
-    const user = await getUser();
-    if(user){
-      $("emailInput").value = user.email || "";
-    }
+  openSettings(); // apri SUBITO, senza async/timeout
 
-    setTimeout(openSettings, 0);
-    setTimeout(()=>hideDebug(), 900);
-  }catch(err){
-    showDebug("❌ Settings: " + (err.message || String(err)));
-  }
+  // poi (in background) se sei loggato compila l’email
+  getUser().then(user => {
+    if(user) $("emailInput").value = user.email || "";
+  }).catch(()=>{});
 });
 
-    $("btnLogin").addEventListener("click", async (e)=>{
-      e.preventDefault();
-      try{
-        const email = ($("emailInput").value||"").trim();
-        const pass = ($("passInput").value||"").trim();
-        if(!email || !pass) throw new Error("Inserisci email e password.");
-        await signIn(email, pass);
-        settingsMsg.textContent = "✅ Login OK";
-        setTimeout(closeSettings, 350);
-      }catch(err){
-        settingsMsg.textContent = "❌ " + (err.message || String(err));
-      }
-    });
+
 
     $("btnSignup").addEventListener("click", async (e)=>{
       e.preventDefault();
