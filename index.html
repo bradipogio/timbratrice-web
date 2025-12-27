@@ -536,7 +536,19 @@
     }
 
     async function signUp(email, password){
-      const { error } = await sb.auth.signUp({ email, password });
+      if(!sb) throw new Error("Supabase non inizializzato.");
+
+      // Redirect di conferma: torna alla stessa cartella della webapp (GitHub Pages /timbratrice-web/)
+      // new URL('./', ...) rimuove hash e query e mantiene lo slash finale.
+      const redirectTo = new URL('./', window.location.href).toString();
+
+      const { error } = await sb.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectTo
+        }
+      });
       if(error) throw error;
     }
 
@@ -997,7 +1009,7 @@ $("btnSettings").addEventListener("click", ()=>{
         if(!email || !pass) throw new Error("Inserisci email e password.");
         if(pass.length < 6) throw new Error("Password troppo corta (min 6).");
         await signUp(email, pass);
-        settingsMsg.textContent = "✅ Registrazione OK (se richiesto, conferma via email). Ora fai Login.";
+        settingsMsg.textContent = "✅ Registrazione OK. Controlla l’email e apri il link di conferma subito (i link vecchi possono scadere). Poi fai Login.";
       }catch(err){
         settingsMsg.textContent = "❌ " + (err.message || String(err));
       }
