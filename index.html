@@ -351,6 +351,7 @@
       <div id="loginHint" class="hint" style="margin-top:12px">
         🔐 Per sincronizzare su Supabase: apri ⚙️, fai login (o registrati) e poi usa l’app normalmente.
       </div>
+      <div id="actionMsg" class="msg hidden" style="margin-top:10px"></div>
     </section>
 
     <section class="card">
@@ -588,6 +589,15 @@
       }
     }
 
+    function setActionMsg(text, kind){
+      const el = $("actionMsg");
+      if(!el) return;
+      el.textContent = text || "";
+      el.classList.remove("ok","err");
+      if(kind) el.classList.add(kind);
+      el.classList.toggle("hidden", !text);
+    }
+
     async function signUp(email, password){
       if(!sb) throw new Error("Supabase non inizializzato.");
 
@@ -682,10 +692,10 @@
         q = q.gte("start_ts", fromISO).lte("start_ts", toISO);
       }
 
-      const { data, error } = await q;
+      const { data, error } = await withTimeout(q, 10000, "Caricamento");
       if(error){
         console.error(error);
-        alert(error.message);
+        setActionMsg("❌ " + error.message, "err");
         return;
       }
 
@@ -727,9 +737,11 @@
         updated_at: new Date().toISOString()
       };
 
-      const { error } = await sb
-        .from("work_records")
-        .upsert(payload, { onConflict: "id" });
+      const { error } = await withTimeout(
+        sb.from("work_records").upsert(payload, { onConflict: "id" }),
+        10000,
+        "Salvataggio"
+      );
 
       if(error) throw error;
     }
@@ -739,11 +751,11 @@
       const user = await requireUser();
       if(!user) throw new Error("Fai login (⚙️) per cancellare.");
 
-      const { error } = await sb
-        .from("work_records")
-        .delete()
-        .eq("id", id)
-        .eq("user_id", user.id);
+      const { error } = await withTimeout(
+        sb.from("work_records").delete().eq("id", id).eq("user_id", user.id),
+        10000,
+        "Eliminazione"
+      );
 
       if(error) throw error;
     }
@@ -763,7 +775,7 @@
 
     async function startShift(){
       const user = await requireUser();
-      if(!user){ alert("Fai login (⚙️) per iniziare e salvare."); return; }
+      if(!user){ setActionMsg("❌ Fai login (⚙️) per iniziare e salvare.", "err"); return; }
       if(active) return;
 
       const titleRaw = ($("titleInput").value || "").trim();
@@ -791,16 +803,18 @@
       active = row;
       syncInputsWithState();
       try{
+        setActionMsg("⏳ Avvio turno...", null);
         await upsertRow(row);
         await refresh();
+        setActionMsg("✅ Turno avviato", "ok");
       }catch(e){
-        alert(e.message || String(e));
+        setActionMsg("❌ " + (e.message || String(e)), "err");
       }
     }
 
     async function toggleBreak(){
       const user = await requireUser();
-      if(!user){ alert("Fai login (⚙️)."); return; }
+      if(!user){ setActionMsg("❌ Fai login (⚙️).", "err"); return; }
       if(!active) return;
 
       const nowISO = toISO(new Date());
@@ -809,8 +823,10 @@
       if(!active.breakStartISO){
         active.breakStartISO = nowISO;
         try{
+          setActionMsg("⏳ Pausa...", null);
           await upsertRow(active);
           await refresh();
+          setActionMsg("✅ Pausa avviata", "ok");
         }catch(e){ alert(e.message || String(e)); }
         return;
       }
@@ -824,14 +840,16 @@
       active.workMin = computeWorkMin(active, nowISO);
 
       try{
+        setActionMsg("⏳ Fine pausa...", null);
         await upsertRow(active);
         await refresh();
+        setActionMsg("✅ Pausa chiusa", "ok");
       }catch(e){ alert(e.message || String(e)); }
     }
 
     async function stopShift(){
       const user = await requireUser();
-      if(!user){ alert("Fai login (⚙️)."); return; }
+      if(!user){ setActionMsg("❌ Fai login (⚙️).", "err"); return; }
       if(!active) return;
 
       const nowISO = toISO(new Date());
@@ -849,12 +867,14 @@
       active.workMin = computeWorkMin(active, nowISO);
 
       try{
+        setActionMsg("⏳ Chiusura turno...", null);
         await upsertRow(active);
         active = null;
         syncInputsWithState();
         await refresh();
+        setActionMsg("✅ Turno chiuso", "ok");
       }catch(e){
-        alert(e.message || String(e));
+        setActionMsg("❌ " + (e.message || String(e)), "err");
       }
     }
 
