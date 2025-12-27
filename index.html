@@ -955,19 +955,25 @@ document.addEventListener("click", (e)=>{
 }, true);
     const settingsDlg = $("settingsDlg");
     const settingsMsg = $("settingsMsg");
-    function openSettings(){
-  settingsDlg.classList.remove("hidden");
-}
-function closeSettings(){
-  // salva nome report quando chiudi
-  LS.set(KEYS.report, ($("reportInput").value || "Report").trim());
-  settingsDlg.classList.add("hidden");
-}
+    let settingsJustOpenedAt = 0;
 
-// click fuori dalla card = chiudi
-settingsDlg.addEventListener("click", (e)=>{
-  if(e.target === settingsDlg) closeSettings();
-});
+    function openSettings(){
+      settingsJustOpenedAt = Date.now();
+      settingsDlg.classList.remove("hidden");
+    }
+    function closeSettings(){
+      // salva nome report quando chiudi
+      LS.set(KEYS.report, ($("reportInput").value || "Report").trim());
+      settingsDlg.classList.add("hidden");
+    }
+
+    // click fuori dalla card = chiudi (ma evita il tap che ha aperto il modal su iOS)
+    settingsDlg.addEventListener("click", (e)=>{
+      if(e.target === settingsDlg){
+        if(Date.now() - settingsJustOpenedAt < 250) return; // evita chiusura immediata
+        closeSettings();
+      }
+    });
 
 $("btnSettings").addEventListener("click", async ()=>{
   try{
@@ -980,7 +986,7 @@ $("btnSettings").addEventListener("click", async ()=>{
       $("emailInput").value = user.email || "";
     }
 
-    openSettings();
+    setTimeout(openSettings, 0);
     setTimeout(()=>hideDebug(), 900);
   }catch(err){
     showDebug("❌ Settings: " + (err.message || String(err)));
