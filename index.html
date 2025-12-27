@@ -560,6 +560,8 @@
       return Promise.race([promise, timeout]).finally(()=> clearTimeout(timerId));
     }
 
+    let currentUser = null;
+
     async function getUser(){
       if(!sb) return null;
       const { data, error } = await sb.auth.getSession();
@@ -567,9 +569,16 @@
       return data.session?.user || null;
     }
 
+    async function requireUser(){
+      if(currentUser) return currentUser;
+      currentUser = await getUser();
+      return currentUser;
+    }
+
     function setUserUI(user){
       const pill = $("userPill");
       const hint = $("loginHint");
+      currentUser = user || null;
       if(user){
         pill.textContent = user.email || "Loggato";
         hint.classList.add("hidden");
@@ -616,7 +625,7 @@
 
     if(sb){
       sb.auth.onAuthStateChange(async (_event, session) => {
-        const user = session?.user || await getUser();
+        const user = session?.user || null;
         setUserUI(user);
         await refresh();
       });
