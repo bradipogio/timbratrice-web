@@ -267,6 +267,7 @@
       <button id="btnSettings" class="iconBtn" aria-label="Account">⚙️</button>
     </div>
   </header>
+  <div id="debugBar" class="hidden" style="max-width:720px;margin:8px auto 0;padding:10px 16px;color:#fff;background:#b21f1f;border-radius:14px"></div>
 
   <main class="wrap">
     <section class="card punch">
@@ -411,10 +412,45 @@
     // =========================================================
     // ===== SUPABASE CONFIG (INC0LLA QUI) ======================
     // =========================================================
-    const SUPABASE_URL = "https://rvznuudatshqyzmnqrmd.supabase.co";   // es: https://xxxxx.supabase.co
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2em51dWRhdHNocXl6bW5xcm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Njg5NTcsImV4cCI6MjA4MjM0NDk1N30.0_KKO88ExW4_WHXhR2fuVuLWNBmI3xXKMth4A2qqVr4"; // Settings -> API -> anon public
+    const SUPABASE_URL_RAW = "https://rvznuudatshqyzmnqrmd.supabase.co";   // es: https://xxxxx.supabase.co
+    const SUPABASE_ANON_KEY_RAW = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2em51dWRhdHNocXl6bW5xcm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Njg5NTcsImV4cCI6MjA4MjM0NDk1N30.0_KKO88ExW4_WHXhR2fuVuLWNBmI3xXKMth4A2qqVr4"; // Settings -> API -> anon public
 
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // --- debug helpers (mostra errori a schermo, utile su iPhone) ---
+    function showDebug(msg){
+      const el = document.getElementById("debugBar");
+      if(!el) return;
+      el.classList.remove("hidden");
+      el.textContent = msg;
+    }
+    function hideDebug(){
+      const el = document.getElementById("debugBar");
+      if(!el) return;
+      el.classList.add("hidden");
+      el.textContent = "";
+    }
+    window.addEventListener("error", (e)=>{
+      showDebug("JS error: " + (e.message || String(e.error || e)));
+    });
+    window.addEventListener("unhandledrejection", (e)=>{
+      showDebug("Promise error: " + (e.reason?.message || String(e.reason)));
+    });
+
+    const SUPABASE_URL = (SUPABASE_URL_RAW || "").trim();
+    const SUPABASE_ANON_KEY = (SUPABASE_ANON_KEY_RAW || "").trim();
+
+    if(!/^https?:\/\//i.test(SUPABASE_URL)){
+      showDebug(`SUPABASE_URL non valido: "${SUPABASE_URL}"`);
+    }
+
+    let sb = null;
+    try{
+      if(!window.supabase || typeof window.supabase.createClient !== "function"){
+        throw new Error("Supabase SDK non caricato (CDN bloccato o offline)");
+      }
+      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    }catch(err){
+      showDebug("❌ Init Supabase: " + (err.message || String(err)));
+    }
 
     // --------- utilities ---------
     const $ = (id) => document.getElementById(id);
@@ -452,7 +488,9 @@
 
     // --------- auth helpers ---------
     async function getUser(){
-      const { data } = await sb.auth.getUser();
+      if(!sb) return null;
+      const { data, error } = await sb.auth.getUser();
+      if(error) return null;
       return data.user || null;
     }
 
@@ -483,11 +521,13 @@
       if(error) throw error;
     }
 
-    sb.auth.onAuthStateChange(async () => {
-      const user = await getUser();
-      setUserUI(user);
-      await refresh();
-    });
+    if(sb){
+      sb.auth.onAuthStateChange(async () => {
+        const user = await getUser();
+        setUserUI(user);
+        await refresh();
+      });
+    }
 
     // --------- core computations ---------
     function computeWorkMin(row, nowISO){
@@ -514,6 +554,13 @@
     // --------- Supabase CRUD ---------
     async function refresh(){
       const user = await getUser();
+      if(!sb){
+        showDebug("❌ Supabase non inizializzato: controlla connessione/CDN/config");
+        active = null;
+        history = [];
+        renderAll();
+        return;
+      }
       if(!user){
         active = null;
         history = [];
@@ -534,7 +581,14 @@
       }
 
       const { data, error } = await q;
-      if(error){ console.error(error); alert(error.message); return; }
+      if(error){
+        console.error(error);
+        showDebug("❌ Supabase: " + error.message);
+        alert(error.message);
+        return;
+      }else{
+        hideDebug();
+      }
 
       const rows = (data || []).map(r => ({
         id: r.id,
@@ -555,6 +609,7 @@
     }
 
     async function upsertRow(row){
+      if(!sb) throw new Error("Supabase non inizializzato.");
       const user = await getUser();
       if(!user) throw new Error("Fai login (⚙️) per salvare.");
 
@@ -580,6 +635,7 @@
     }
 
     async function deleteRow(id){
+      if(!sb) throw new Error("Supabase non inizializzato.");
       const user = await getUser();
       if(!user) throw new Error("Fai login (⚙️) per cancellare.");
 
@@ -949,13 +1005,21 @@ $("btnCloseDlg").addEventListener("click", ()=> settingsDlg.close());
 
     // init
     (async function boot(){
-      $("fromDate").value = todayISODate(new Date(new Date().setDate(new Date().getDate()-7)));
-      $("toDate").value = todayISODate();
-      $("filterBox").classList.add("hidden");
+      try{
+        $("fromDate").value = todayISODate(new Date(new Date().setDate(new Date().getDate()-7)));
+        $("toDate").value = todayISODate();
+        $("filterBox").classList.add("hidden");
 
-      const user = await getUser();
-      setUserUI(user);
-      await refresh();
+        const user = await getUser();
+        setUserUI(user);
+
+        // Segnale visivo che il JS è partito (se vedi questo, i bottoni sono collegati)
+        // hideDebug(); // lasciamo la barra nascosta di default
+
+        await refresh();
+      }catch(err){
+        showDebug("❌ Boot: " + (err.message || String(err)));
+      }
     })();
   </script>
 </body>
