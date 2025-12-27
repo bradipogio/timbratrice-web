@@ -612,10 +612,13 @@
         pill.textContent = "Non loggato";
         hint.classList.remove("hidden");
       }
+      // Always enforce gate after updating currentUser
+      if(typeof enforceAuthGate === "function") enforceAuthGate();
     }
 function enforceAuthGate(){
   const main = document.getElementById("appMain");
   const closeBtn = $("btnCloseDlg");
+  const dlg = document.getElementById("settingsDlg");
 
   const logged = !!currentUser;
 
@@ -625,7 +628,7 @@ function enforceAuthGate(){
   // Se non loggato: forza apertura impostazioni e blocca chiusura
   if(!logged){
     if(closeBtn) closeBtn.disabled = true;
-    if(settingsDlg) settingsDlg.classList.remove("hidden");
+    if(dlg) dlg.classList.remove("hidden");
     setSettingsMsg("🔐 Effettua il login per usare l’app.", null);
   }else{
     if(closeBtn) closeBtn.disabled = false;
@@ -701,9 +704,8 @@ function enforceAuthGate(){
     if(sb){
       sb.auth.onAuthStateChange(async (_event, session) => {
         const user = session?.user || null;
-       setUserUI(user);
-enforceAuthGate();
-await refresh();
+        setUserUI(user);
+        await refresh();
       });
     }
 
@@ -1257,9 +1259,8 @@ $("btnCloseDlg").addEventListener("click", closeSettings);
         $("toDate").value = todayISODate();
         $("filterBox").classList.add("hidden");
 
-const user = await requireUser();
-setUserUI(user);
-enforceAuthGate();
+        const user = await requireUser();
+        setUserUI(user);
         // Segnale visivo che il JS è partito (se vedi questo, i bottoni sono collegati)
         // hideDebug(); // lasciamo la barra nascosta di default
 
