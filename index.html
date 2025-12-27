@@ -572,6 +572,7 @@
     }
 
     async function signIn(email, password){
+      if(!sb) throw new Error("Supabase non inizializzato.");
       const { error } = await sb.auth.signInWithPassword({ email, password });
       if(error) throw error;
     }
@@ -1016,6 +1017,21 @@ $("btnSettings").addEventListener("click", ()=>{
 });
 
 
+
+    $("btnLogin").addEventListener("click", async (e)=>{
+      e.preventDefault();
+      try{
+        const email = ($("emailInput").value||"").trim();
+        const pass = ($("passInput").value||"").trim();
+        if(!email || !pass) throw new Error("Inserisci email e password.");
+        await signIn(email, pass);
+        settingsMsg.textContent = "✅ Login OK";
+        // chiudi dopo un attimo (l'onAuthStateChange aggiorna UI e dati)
+        setTimeout(closeSettings, 350);
+      }catch(err){
+        settingsMsg.textContent = "❌ " + (err.message || String(err));
+      }
+    });
 
     $("btnSignup").addEventListener("click", async (e)=>{
       e.preventDefault();
