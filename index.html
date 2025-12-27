@@ -477,15 +477,39 @@
       console.warn(`SUPABASE_URL non valido: "${SUPABASE_URL}"`);
     }
 
-    let sb = null;
-    try{
-      if(!window.supabase || typeof window.supabase.createClient !== "function"){
-        throw new Error("Supabase SDK non caricato (CDN bloccato o offline)");
-      }
-      sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    }catch(err){
-      showDebug("❌ Init Supabase: " + (err.message || String(err)));
+// Custom fetch with timeout + logging (helps diagnose pending/blocked requests)
+async function fetchWithTimeout(url, options={}){
+  const controller = new AbortController();
+  const t = setTimeout(()=> controller.abort(), 15000);
+  const merged = { ...options, signal: controller.signal };
+  try{
+    console.log("→ fetch", url);
+    const res = await fetch(url, merged);
+    console.log("← fetch", url, res.status);
+    return res;
+  }catch(err){
+    console.error("✖ fetch", url, err);
+    // Normalize abort message
+    if(err && (err.name === "AbortError" || String(err).toLowerCase().includes("abort"))){
+      throw new Error(`Richiesta bloccata o troppo lenta verso ${new URL(url).hostname}. Disattiva AdBlock/VPN o prova in Incognito.`);
     }
+    throw err;
+  }finally{
+    clearTimeout(t);
+  }
+}
+
+let sb = null;
+try{
+  if(!window.supabase || typeof window.supabase.createClient !== "function"){
+    throw new Error("Supabase SDK non caricato (CDN bloccato o offline)");
+  }
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { fetch: fetchWithTimeout }
+  });
+}catch(err){
+  showDebug("❌ Init Supabase: " + (err.message || String(err)));
+}
 
     // --------- utilities ---------
     const $ = (id) => document.getElementById(id);
@@ -677,7 +701,7 @@ function enforceAuthGate(){
       if(!sb) throw new Error("Supabase non inizializzato.");
       const { data, error } = await withTimeout(
         sb.auth.signInWithPassword({ email, password }),
-        20000,
+        17000,
         "Login"
       );
       if(error) throw error;
@@ -763,7 +787,7 @@ function enforceAuthGate(){
         q = q.gte("start_ts", fromISO).lte("start_ts", toISO);
       }
 
-      const { data, error } = await withTimeout(q, 10000, "Caricamento");
+      const { data, error } = await withTimeout(q, 17000, "Caricamento");
       if(error){
         console.error(error);
         setActionMsg("❌ " + error.message, "err");
@@ -810,7 +834,7 @@ function enforceAuthGate(){
 
       const { error } = await withTimeout(
         sb.from("work_records").upsert(payload, { onConflict: "id" }),
-        10000,
+        17000,
         "Salvataggio"
       );
 
@@ -824,7 +848,7 @@ function enforceAuthGate(){
 
       const { error } = await withTimeout(
         sb.from("work_records").delete().eq("id", id).eq("user_id", user.id),
-        10000,
+        17000,
         "Eliminazione"
       );
 
