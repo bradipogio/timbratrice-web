@@ -582,7 +582,8 @@
       if(low.includes("rate limit")){
         return "Troppi tentativi in poco tempo. Aspetta qualche minuto e riprova.";
       }
-      return msg;
+      const status = err.status || err.statusCode || err.code;
+      return status ? `${msg} (code ${status})` : msg;
     }
 // --------- auth helpers ---------
 
@@ -680,6 +681,7 @@ function enforceAuthGate(){
         "Login"
       );
       if(error) throw error;
+      console.log("Login OK:", data?.user?.id);
       if(!data?.session){
         throw new Error("Login non riuscito: sessione mancante.");
       }
@@ -694,6 +696,7 @@ function enforceAuthGate(){
         "Recupero password"
       );
       if(error) throw error;
+      console.log("Reset password requested for:", email);
     }
 
     async function signOut(){
@@ -1166,6 +1169,7 @@ $("btnSettings").addEventListener("click", ()=>{
         // NON chiudere subito: l'utente deve vedere il messaggio
         setTimeout(()=>{ /* opzionale: auto-close */ closeSettings(); }, 1200);
       }catch(err){
+        console.error("Login error:", err);
         setSettingsMsg("❌ " + prettyAuthError(err), "err");
       }
     });
@@ -1183,6 +1187,7 @@ $("btnSettings").addEventListener("click", ()=>{
         await resetPassword(email);
         setSettingsMsg("✅ Email inviata (se l'account esiste). Controlla la posta.", "ok");
       }catch(err){
+        console.error("Reset password error:", err);
         setSettingsMsg("❌ " + prettyAuthError(err), "err");
       }
     });
@@ -1194,6 +1199,7 @@ $("btnSettings").addEventListener("click", ()=>{
         setSettingsMsg("✅ Logout", "ok");
         setTimeout(closeSettings, 600);
       }catch(err){
+        console.error("Logout error:", err);
         setSettingsMsg("❌ " + (err.message || String(err)), "err");
       }
     });
