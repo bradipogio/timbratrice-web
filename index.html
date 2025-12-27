@@ -550,6 +550,16 @@
     }
 
     // --------- auth helpers ---------
+    function withTimeout(promise, ms, label){
+      let timerId;
+      const timeout = new Promise((_, reject)=>{
+        timerId = setTimeout(()=>{
+          reject(new Error(`${label} non risponde. Controlla connessione, Supabase URL/anon key e riprova.`));
+        }, ms);
+      });
+      return Promise.race([promise, timeout]).finally(()=> clearTimeout(timerId));
+    }
+
     async function getUser(){
       if(!sb) return null;
       const { data, error } = await sb.auth.getSession();
@@ -576,20 +586,27 @@
       // new URL('./', ...) rimuove hash e query e mantiene lo slash finale.
       const redirectTo = new URL('./', window.location.href).toString();
 
-      const { error } = await sb.auth.signUp({
+      const { error } = await withTimeout(sb.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: redirectTo
         }
-      });
+      }), 10000, "Registrazione");
       if(error) throw error;
     }
 
     async function signIn(email, password){
       if(!sb) throw new Error("Supabase non inizializzato.");
-      const { error } = await sb.auth.signInWithPassword({ email, password });
+      const { data, error } = await withTimeout(
+        sb.auth.signInWithPassword({ email, password }),
+        10000,
+        "Login"
+      );
       if(error) throw error;
+      if(!data?.session){
+        throw new Error("Login non riuscito: sessione mancante.");
+      }
     }
 
     async function signOut(){
