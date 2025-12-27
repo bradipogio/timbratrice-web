@@ -291,7 +291,6 @@
       <button id="btnSettings" class="iconBtn" aria-label="Account">⚙️</button>
     </div>
   </header>
-  <div id="debugBar" class="hidden" style="max-width:720px;margin:8px auto 0;padding:10px 16px;color:#fff;background:#b21f1f;border-radius:14px"></div>
 
   <main class="wrap">
     <section class="card punch">
@@ -441,34 +440,21 @@
     const SUPABASE_URL_RAW = "https://rvznuudatshqyzmnqrmd.supabase.co";   // es: https://xxxxx.supabase.co
     const SUPABASE_ANON_KEY_RAW = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2em51dWRhdHNocXl6bW5xcm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Njg5NTcsImV4cCI6MjA4MjM0NDk1N30.0_KKO88ExW4_WHXhR2fuVuLWNBmI3xXKMth4A2qqVr4"; // Settings -> API -> anon public
 
-    // --- debug helpers (mostra errori a schermo, utile su iPhone) ---
-    function showDebug(msg){
-      const el = document.getElementById("debugBar");
-      if(!el) return;
-      el.classList.remove("hidden");
-      el.textContent = msg;
-    }
-    function hideDebug(){
-      const el = document.getElementById("debugBar");
-      if(!el) return;
-      el.classList.add("hidden");
-      el.textContent = "";
-    }
+    // --- debug helpers (DISABILITATI: niente barra rossa) ---
+    function showDebug(_msg){}
+    function hideDebug(){}
     window.addEventListener("error", (e)=>{
-      showDebug("JS error: " + (e.message || String(e.error || e)));
+      console.error("JS error:", e?.message || e);
     });
     window.addEventListener("unhandledrejection", (e)=>{
-      showDebug("Promise error: " + (e.reason?.message || String(e.reason)));
+      console.error("Promise error:", e?.reason || e);
     });
-    // ✅ indicatore: se vedi questo per 1s vuol dire che lo script sta girando
-    showDebug("✅ JS caricato");
-    setTimeout(()=>hideDebug(), 900);
 
     const SUPABASE_URL = (SUPABASE_URL_RAW || "").trim();
     const SUPABASE_ANON_KEY = (SUPABASE_ANON_KEY_RAW || "").trim();
 
     if(!/^https?:\/\//i.test(SUPABASE_URL)){
-      showDebug(`SUPABASE_URL non valido: "${SUPABASE_URL}"`);
+      console.warn(`SUPABASE_URL non valido: "${SUPABASE_URL}"`);
     }
 
     let sb = null;
@@ -514,6 +500,39 @@
     // --------- app state ---------
     let active = null;   // {id,title,startISO,endISO,pauseMin,workMin,km,notes,breakStartISO}
     let history = [];    // ended only
+
+    // Draft values for the NEXT shift (used only when no active shift)
+    let draftTitle = "";
+    let draftKm = "";
+
+    // Debounced save for live edits on the active record
+    let activeEditSaveTimer = null;
+    function saveActiveEditsDebounced(){
+      if(!active) return;
+      if(activeEditSaveTimer) clearTimeout(activeEditSaveTimer);
+      activeEditSaveTimer = setTimeout(async ()=>{
+        try{
+          await upsertRow(active);
+          // niente refresh mentre scrivi: evita "saltelli"
+        }catch(e){
+          console.error(e);
+        }
+      }, 450);
+    }
+
+    function syncInputsWithState(){
+      const t = $("titleInput");
+      const k = $("kmInput");
+      if(!t || !k) return;
+
+      if(active){
+        t.value = active.title || "";
+        k.value = (active.km ?? 0) === 0 ? "" : String(active.km);
+      }else{
+        t.value = draftTitle || "";
+        k.value = draftKm || "";
+      }
+    }
 
     // --------- auth helpers ---------
     async function getUser(){
@@ -596,7 +615,7 @@
     async function refresh(){
       const user = await getUser();
       if(!sb){
-        showDebug("❌ Supabase non inizializzato: controlla connessione/CDN/config");
+        console.warn("Supabase non inizializzato: controlla connessione/CDN/config");
         active = null;
         history = [];
         renderAll();
@@ -624,11 +643,8 @@
       const { data, error } = await q;
       if(error){
         console.error(error);
-        showDebug("❌ Supabase: " + error.message);
         alert(error.message);
         return;
-      }else{
-        hideDebug();
       }
 
       const rows = (data || []).map(r => ({
@@ -646,6 +662,7 @@
       active = rows.find(r => !r.endISO) || null;
       history = rows.filter(r => !!r.endISO);
 
+      syncInputsWithState();
       renderAll();
     }
 
@@ -707,8 +724,14 @@
       if(!user){ alert("Fai login (⚙️) per iniziare e salvare."); return; }
       if(active) return;
 
-      const title = ($("titleInput").value || "").trim() || `Turno ${new Date().toLocaleDateString("it-IT")}`;
-      const km = parseFloat(($("kmInput").value||"0").replace(",", ".")) || 0;
+      const titleRaw = ($("titleInput").value || "").trim();
+      const kmRaw = ($("kmInput").value || "").trim();
+
+      draftTitle = titleRaw;
+      draftKm = kmRaw;
+
+      const title = titleRaw || `Turno ${new Date().toLocaleDateString("it-IT")}`;
+      const km = parseFloat(kmRaw.replace(",", ".")) || 0;
 
       const now = new Date();
       const row = {
@@ -724,6 +747,7 @@
       };
 
       active = row;
+      syncInputsWithState();
       try{
         await upsertRow(row);
         await refresh();
@@ -785,6 +809,7 @@
       try{
         await upsertRow(active);
         active = null;
+        syncInputsWithState();
         await refresh();
       }catch(e){
         alert(e.message || String(e));
@@ -956,15 +981,6 @@
     }
 
     // --------- events ---------
-    // Debug: conferma che i click arrivano ai bottoni (utile se sembra "non cliccare")
-// Debug: conferma che i click arrivano ai bottoni (anche se il target è un nodo testo)
-document.addEventListener("click", (e)=>{
-  const path = (typeof e.composedPath === "function") ? e.composedPath() : [];
-  const btn = path.find(x => x && x.tagName === "BUTTON") || (e.target?.closest?.("button")) || null;
-  const label = btn ? (btn.id || (btn.textContent||"").trim() || "(button)") : (e.target?.id || e.target?.tagName || "click");
-  showDebug("🖱️ Click: " + label);
-  setTimeout(()=>hideDebug(), 1800);
-}, true);
     const settingsDlg = $("settingsDlg");
     const settingsMsg = $("settingsMsg");
     let settingsJustOpenedAt = 0;
@@ -1029,6 +1045,28 @@ $("btnCloseDlg").addEventListener("click", closeSettings);
 
     $("btnStart").addEventListener("click", startShift);
     $("btnBreak").addEventListener("click", toggleBreak);
+
+    // Live edit bindings for Titolo / Km
+    $("titleInput").addEventListener("input", ()=>{
+      const v = $("titleInput").value || "";
+      if(active){
+        active.title = v;
+        saveActiveEditsDebounced();
+      }else{
+        draftTitle = v;
+      }
+    });
+
+    $("kmInput").addEventListener("input", ()=>{
+      const raw = ($("kmInput").value || "").trim();
+      if(active){
+        const km = parseFloat(raw.replace(",","."));
+        active.km = isFinite(km) ? km : 0;
+        saveActiveEditsDebounced();
+      }else{
+        draftKm = raw;
+      }
+    });
     $("btnStop").addEventListener("click", ()=>{
       if(confirm("Finire il turno?")) stopShift();
     });
@@ -1071,6 +1109,7 @@ $("btnCloseDlg").addEventListener("click", closeSettings);
         // Segnale visivo che il JS è partito (se vedi questo, i bottoni sono collegati)
         // hideDebug(); // lasciamo la barra nascosta di default
 
+        syncInputsWithState();
         await refresh();
       }catch(err){
         showDebug("❌ Boot: " + (err.message || String(err)));
