@@ -709,6 +709,7 @@ function enforceAuthGate(){
       if(!data?.session){
         throw new Error("Login non riuscito: sessione mancante.");
       }
+      return data; // { user, session }
     }
 
     async function resetPassword(email){
@@ -1188,10 +1189,13 @@ $("btnSettings").addEventListener("click", ()=>{
         const email = ($("emailInput").value||"").trim();
         const pass = ($("passInput").value||"").trim();
         if(!email || !pass) throw new Error("Inserisci email e password.");
-        await signIn(email, pass);
+        const data = await signIn(email, pass);
+        // Update UI immediately (in case onAuthStateChange is delayed)
+        setUserUI(data?.user || (await getUser()));
+        await refresh();
         setSettingsMsg("✅ Login OK", "ok");
         // NON chiudere subito: l'utente deve vedere il messaggio
-        setTimeout(()=>{ /* opzionale: auto-close */ closeSettings(); }, 1200);
+        setTimeout(()=>{ closeSettings(); }, 600);
       }catch(err){
         console.error("Login error:", err);
         setSettingsMsg("❌ " + prettyAuthError(err), "err");
