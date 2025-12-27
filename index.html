@@ -6,6 +6,30 @@
   <title>Timbratrice Web</title>
 
   <style>
+    /* Modal (div-based, no <dialog>) */
+.modalOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  backdrop-filter: blur(10px);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:14px;
+  z-index:9999;
+}
+@media (prefers-color-scheme: light){
+  .modalOverlay{background:rgba(0,0,0,.25)}
+}
+.modalCard{
+  width:min(560px, calc(100% - 28px));
+  background:var(--card);
+  color:var(--text);
+  border:1px solid var(--line);
+  border-radius:18px;
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
     :root{
       --bg:#0b0b0c;
       --card:#141417;
@@ -367,7 +391,8 @@
     </section>
   </main>
 
-  <dialog id="settingsDlg" class="dlg">
+<div id="settingsDlg" class="modalOverlay hidden" role="dialog" aria-modal="true" aria-label="Account e impostazioni">
+  <div class="modalCard">
     <form class="dlgInner" onsubmit="return false;">
       <div class="dlgTitle">Account & Impostazioni</div>
 
@@ -391,19 +416,20 @@
         <input id="reportInput" type="text" placeholder="Report di Giovanni">
       </label>
 
-<div class="row">
-  <button id="btnLogin" type="button" class="btn primary">Login</button>
-  <button id="btnSignup" type="button" class="btn">Registrati</button>
-</div>
+      <div class="row">
+        <button id="btnLogin" type="button" class="btn primary">Login</button>
+        <button id="btnSignup" type="button" class="btn">Registrati</button>
+      </div>
 
-<div class="row">
-  <button id="btnLogout" type="button" class="btn danger">Logout</button>
-  <button id="btnCloseDlg" type="button" class="btn">Chiudi</button>
-</div>
+      <div class="row">
+        <button id="btnLogout" type="button" class="btn danger">Logout</button>
+        <button id="btnCloseDlg" type="button" class="btn">Chiudi</button>
+      </div>
 
       <div id="settingsMsg" class="msg"></div>
     </form>
-  </dialog>
+  </div>
+</div>
 
   <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -929,6 +955,19 @@ document.addEventListener("click", (e)=>{
 }, true);
     const settingsDlg = $("settingsDlg");
     const settingsMsg = $("settingsMsg");
+    function openSettings(){
+  settingsDlg.classList.remove("hidden");
+}
+function closeSettings(){
+  // salva nome report quando chiudi
+  LS.set(KEYS.report, ($("reportInput").value || "Report").trim());
+  settingsDlg.classList.add("hidden");
+}
+
+// click fuori dalla card = chiudi
+settingsDlg.addEventListener("click", (e)=>{
+  if(e.target === settingsDlg) closeSettings();
+});
 
 $("btnSettings").addEventListener("click", async ()=>{
   try{
@@ -941,21 +980,12 @@ $("btnSettings").addEventListener("click", async ()=>{
       $("emailInput").value = user.email || "";
     }
 
-    if (typeof settingsDlg.showModal === "function") {
-      settingsDlg.showModal();
-    } else {
-      // fallback se <dialog> non è supportato
-      settingsDlg.setAttribute("open", "");
-    }
-
+    openSettings();
     setTimeout(()=>hideDebug(), 900);
-  } catch (err) {
+  }catch(err){
     showDebug("❌ Settings: " + (err.message || String(err)));
   }
 });
-    $("settingsDlg").addEventListener("close", ()=>{
-      LS.set(KEYS.report, ($("reportInput").value||"Report").trim());
-    });
 
     $("btnLogin").addEventListener("click", async (e)=>{
       e.preventDefault();
@@ -965,7 +995,7 @@ $("btnSettings").addEventListener("click", async ()=>{
         if(!email || !pass) throw new Error("Inserisci email e password.");
         await signIn(email, pass);
         settingsMsg.textContent = "✅ Login OK";
-        setTimeout(()=>settingsDlg.close(), 350);
+        setTimeout(closeSettings, 350);
       }catch(err){
         settingsMsg.textContent = "❌ " + (err.message || String(err));
       }
@@ -990,11 +1020,12 @@ $("btnSettings").addEventListener("click", async ()=>{
       try{
         await signOut();
         settingsMsg.textContent = "✅ Logout";
+        setTimeout(closeSettings, 350);
       }catch(err){
         settingsMsg.textContent = "❌ " + (err.message || String(err));
       }
     });
-$("btnCloseDlg").addEventListener("click", ()=> settingsDlg.close());
+$("btnCloseDlg").addEventListener("click", closeSettings);
 
     $("btnStart").addEventListener("click", startShift);
     $("btnBreak").addEventListener("click", toggleBreak);
