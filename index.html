@@ -594,7 +594,15 @@
 
     // --------- actions ---------
     function newId(){
-      return crypto.randomUUID(); // uuid puro (compatibile col tipo uuid in db)
+      if (typeof crypto !== "undefined" && crypto.randomUUID) {
+        return crypto.randomUUID(); // uuid puro (compatibile col tipo uuid in db)
+      }
+      // Ultimo fallback (non crittografico) — ma in formato UUID v4 valido
+      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+        const r = Math.random() * 16 | 0;
+        const v = (c === "x") ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
     }
 
     async function startShift(){
