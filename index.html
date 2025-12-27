@@ -437,6 +437,10 @@
       </div>
 
       <div class="row">
+        <button id="btnReset" type="button" class="btn">Recupera password</button>
+      </div>
+
+      <div class="row">
         <button id="btnLogout" type="button" class="btn danger">Logout</button>
         <button id="btnCloseDlg" type="button" class="btn">Chiudi</button>
       </div>
@@ -454,7 +458,7 @@
     // ===== SUPABASE CONFIG (INC0LLA QUI) ======================
     // =========================================================
     const SUPABASE_URL_RAW = "https://rvznuudatshqyzmnqrmd.supabase.co";   // es: https://xxxxx.supabase.co
-    const SUPABASE_ANON_KEY_RAW = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2em51dWRhdHNocXl6bW5xcm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Njg5NTcsImV4cCI6MjA4MjM0NDk1N30.0_KKO88ExW4_WHXhR2fuVuLWNBmI3xXKMth4A2qqVr4"; // Settings -> API -> anon public
+    const SUPABASE_ANON_KEY_RAW = "sb_publishable_n8ZS_zPmPqm7mLeFMmt7sw_sN4_3fza"; // Settings -> API -> anon public
 
     // --- debug helpers (DISABILITATI: niente barra rossa) ---
     function showDebug(_msg){}
@@ -555,11 +559,32 @@
       let timerId;
       const timeout = new Promise((_, reject)=>{
         timerId = setTimeout(()=>{
-          reject(new Error(`${label} non risponde. Controlla connessione, Supabase URL/anon key e riprova.`));
+          reject(new Error(`${label} non risponde. Controlla connessione, Supabase URL/anon key, AdBlock/VPN e la scheda Network del browser. Riprova.`));
         }, ms);
       });
       return Promise.race([promise, timeout]).finally(()=> clearTimeout(timerId));
     }
+    function prettyAuthError(err){
+      if(!err) return "Errore sconosciuto";
+      // supabase-js error shape often has: message, status, name
+      const msg = (err.message || String(err)).trim();
+      const low = msg.toLowerCase();
+
+      if(low.includes("user already") || low.includes("already registered") || low.includes("already exists")){
+        return "Questa email risulta già registrata. Premi Login oppure usa Recupera password.";
+      }
+      if(low.includes("invalid login") || low.includes("invalid credentials")){
+        return "Credenziali non valide. Controlla email/password oppure usa Recupera password.";
+      }
+      if(low.includes("email not confirmed")){
+        return "Email non confermata. Apri la mail di conferma e poi fai Login.";
+      }
+      if(low.includes("rate limit")){
+        return "Troppi tentativi in poco tempo. Aspetta qualche minuto e riprova.";
+      }
+      return msg;
+    }
+// --------- auth helpers ---------
 
     let currentUser = null;
 
@@ -602,30 +627,53 @@
       if(!sb) throw new Error("Supabase non inizializzato.");
 
       // Redirect di conferma: torna alla stessa cartella della webapp (GitHub Pages /timbratrice-web/)
-      // new URL('./', ...) rimuove hash e query e mantiene lo slash finale.
       const redirectTo = new URL('./', window.location.href).toString();
 
-      const { error } = await withTimeout(sb.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectTo
+      const { error } = await withTimeout(
+        sb.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: redirectTo
+          }
+        }),
+        20000,
+        "Registrazione"
+      );
+
+      if(error){
+        const msg = (error.message || "").toLowerCase();
+        // Se già registrato, proviamo direttamente il login
+        if(msg.includes("already") || msg.includes("registered") || msg.includes("exists")){
+          await signIn(email, password);
+          return;
         }
-      }), 10000, "Registrazione");
-      if(error) throw error;
+        throw error;
+      }
     }
 
     async function signIn(email, password){
       if(!sb) throw new Error("Supabase non inizializzato.");
       const { data, error } = await withTimeout(
         sb.auth.signInWithPassword({ email, password }),
-        10000,
+        20000,
         "Login"
       );
       if(error) throw error;
       if(!data?.session){
         throw new Error("Login non riuscito: sessione mancante.");
       }
+    }
+
+    async function resetPassword(email){
+      if(!sb) throw new Error("Supabase non inizializzato.");
+      const redirectTo = new URL('./', window.location.href).toString();
+      const { error } = await withTimeout(
+        sb.auth.resetPasswordForEmail(email, { redirectTo }),
+        20000,
+        "Recupero password"
+      );
+      if(error) throw error;
     }
 
     async function signOut(){
@@ -1096,7 +1144,7 @@ $("btnSettings").addEventListener("click", ()=>{
         // NON chiudere subito: l'utente deve vedere il messaggio
         setTimeout(()=>{ /* opzionale: auto-close */ closeSettings(); }, 1200);
       }catch(err){
-        setSettingsMsg("❌ " + (err.message || String(err)), "err");
+        setSettingsMsg("❌ " + prettyAuthError(err), "err");
       }
     });
 
@@ -1109,9 +1157,21 @@ $("btnSettings").addEventListener("click", ()=>{
         if(!email || !pass) throw new Error("Inserisci email e password.");
         if(pass.length < 6) throw new Error("Password troppo corta (min 6).");
         await signUp(email, pass);
-        setSettingsMsg("✅ Registrazione OK. Controlla l’email e apri il link di conferma subito. Poi torna qui e fai Login.", "ok");
+        setSettingsMsg("✅ OK. Se l’email era nuova riceverai una conferma. Se era già registrata, ho provato automaticamente il Login.", "ok");
       }catch(err){
-        setSettingsMsg("❌ " + (err.message || String(err)), "err");
+        setSettingsMsg("❌ " + prettyAuthError(err), "err");
+      }
+    });
+    $("btnReset").addEventListener("click", async (e)=>{
+      e.preventDefault();
+      try{
+        setSettingsMsg("⏳ Invio email di recupero...", null);
+        const email = ($("emailInput").value||"").trim();
+        if(!email) throw new Error("Inserisci l'email.");
+        await resetPassword(email);
+        setSettingsMsg("✅ Email inviata (se l'account esiste). Controlla la posta.", "ok");
+      }catch(err){
+        setSettingsMsg("❌ " + prettyAuthError(err), "err");
       }
     });
 
