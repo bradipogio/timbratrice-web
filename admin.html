@@ -206,11 +206,18 @@
       <div class="h2">Controllo Orari</div>
       <div class="sub">Filtra per utente, data e ordina i risultati</div>
 
-      <div class="grid3">
+      <div class="grid2">
+        <label class="field">
+          <span>Email utente</span>
+          <input id="emailFilterInput" type="text" placeholder="nome@email.com">
+        </label>
         <label class="field">
           <span>User ID</span>
           <input id="userIdInput" type="text" placeholder="uuid utente">
         </label>
+      </div>
+
+      <div class="grid2">
         <label class="field">
           <span>Da</span>
           <input id="fromDate" type="date" />
@@ -356,9 +363,10 @@
           <div class="itemTop">
             <div>
               <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
+              <div class="itemMeta">Email: ${escapeHTML(r.user_email || "")}</div>
               <div class="itemMeta">User ID: ${escapeHTML(r.user_id || "")}</div>
               <div class="itemMeta">Inizio: ${escapeHTML(start)}  •  Fine: ${escapeHTML(end)}</div>
-              <div class="itemMeta">Ore: ${escapeHTML(fmtHM(r.work_min||0))}  •  Km: ${escapeHTML(String(r.km||0))}</div>
+              <div class="itemMeta">Ore: ${escapeHTML(fmtHM(r.work_min||0))}  •  Pausa: ${escapeHTML(String(r.pause_min||0))}m  •  Km: ${escapeHTML(String(r.km||0))}</div>
             </div>
           </div>
         `;
@@ -385,6 +393,7 @@
         return;
       }
 
+      const emailFilter = ($("emailFilterInput").value || "").trim();
       const userId = ($("userIdInput").value || "").trim();
       const fromDate = $("fromDate").value;
       const toDate = $("toDate").value;
@@ -393,7 +402,8 @@
 
       try{
         setActionMsg("⏳ Caricamento...", null);
-        let q = sb.from("work_records").select("*");
+        let q = sb.from("work_records_admin_view").select("*");
+        if(emailFilter) q = q.ilike("user_email", `%${emailFilter}%`);
         if(userId) q = q.eq("user_id", userId);
         if(fromDate) q = q.gte("start_ts", toISO(new Date(fromDate + "T00:00:00")));
         if(toDate) q = q.lte("start_ts", toISO(new Date(toDate + "T23:59:59")));
@@ -426,17 +436,19 @@
       };
 
       let csv = "\uFEFF";
-      csv += ["UserID","Titolo","DataOraInizio","DataOraFine","Ore_nette_hh:mm","Km"].join(sep) + "\r\n";
+      csv += ["Email","UserID","Titolo","DataOraInizio","DataOraFine","Pausa_min","Ore_nette_hh:mm","Km"].join(sep) + "\r\n";
 
       let sumWork = 0, sumKm = 0;
       for(const r of rows){
         sumWork += Number(r.work_min||0);
         sumKm += Number(r.km||0);
         csv += [
+          csvEscape(r.user_email||"", sep),
           csvEscape(r.user_id||"", sep),
           csvEscape(r.title||"", sep),
           dt(r.start_ts),
           dt(r.end_ts),
+          String(Number(r.pause_min||0)),
           fmtHM(Number(r.work_min||0)),
           String(Number(r.km||0))
         ].join(sep) + "\r\n";
@@ -492,6 +504,7 @@
     $("btnRefresh").addEventListener("click", refresh);
     $("btnExport").addEventListener("click", exportCSV);
     $("btnClear").addEventListener("click", ()=>{
+      $("emailFilterInput").value = "";
       $("userIdInput").value = "";
       $("fromDate").value = "";
       $("toDate").value = "";
