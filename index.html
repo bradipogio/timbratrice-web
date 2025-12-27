@@ -434,6 +434,9 @@
     window.addEventListener("unhandledrejection", (e)=>{
       showDebug("Promise error: " + (e.reason?.message || String(e.reason)));
     });
+    // ✅ indicatore: se vedi questo per 1s vuol dire che lo script sta girando
+    showDebug("✅ JS caricato");
+    setTimeout(()=>hideDebug(), 900);
 
     const SUPABASE_URL = (SUPABASE_URL_RAW || "").trim();
     const SUPABASE_ANON_KEY = (SUPABASE_ANON_KEY_RAW || "").trim();
@@ -915,6 +918,14 @@
     }
 
     // --------- events ---------
+    // Debug: conferma che i click arrivano ai bottoni (utile se sembra "non cliccare")
+    document.addEventListener("click", (e)=>{
+      const t = e.target;
+      if(t && t.tagName === "BUTTON"){
+        showDebug("🖱️ Click: " + (t.id ? t.id : (t.textContent||"").trim()));
+        setTimeout(()=>hideDebug(), 700);
+      }
+    }, true);
     const settingsDlg = $("settingsDlg");
     const settingsMsg = $("settingsMsg");
 
