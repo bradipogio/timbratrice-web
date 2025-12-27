@@ -919,27 +919,40 @@
 
     // --------- events ---------
     // Debug: conferma che i click arrivano ai bottoni (utile se sembra "non cliccare")
-    document.addEventListener("click", (e)=>{
-      const t = e.target;
-      if(t && t.tagName === "BUTTON"){
-        showDebug("🖱️ Click: " + (t.id ? t.id : (t.textContent||"").trim()));
-        setTimeout(()=>hideDebug(), 700);
-      }
-    }, true);
+// Debug: conferma che i click arrivano ai bottoni (anche se il target è un nodo testo)
+document.addEventListener("click", (e)=>{
+  const path = (typeof e.composedPath === "function") ? e.composedPath() : [];
+  const btn = path.find(x => x && x.tagName === "BUTTON") || (e.target?.closest?.("button")) || null;
+  const label = btn ? (btn.id || (btn.textContent||"").trim() || "(button)") : (e.target?.id || e.target?.tagName || "click");
+  showDebug("🖱️ Click: " + label);
+  setTimeout(()=>hideDebug(), 1800);
+}, true);
     const settingsDlg = $("settingsDlg");
     const settingsMsg = $("settingsMsg");
 
-    $("btnSettings").addEventListener("click", async ()=>{
-      settingsMsg.textContent = "";
-      $("reportInput").value = cfg().report;
+$("btnSettings").addEventListener("click", async ()=>{
+  try{
+    showDebug("⚙️ Apro impostazioni...");
+    settingsMsg.textContent = "";
+    $("reportInput").value = cfg().report;
 
-      const user = await getUser();
-      if(user){
-        $("emailInput").value = user.email || "";
-      }
+    const user = await getUser();
+    if(user){
+      $("emailInput").value = user.email || "";
+    }
+
+    if (typeof settingsDlg.showModal === "function") {
       settingsDlg.showModal();
-    });
+    } else {
+      // fallback se <dialog> non è supportato
+      settingsDlg.setAttribute("open", "");
+    }
 
+    setTimeout(()=>hideDebug(), 900);
+  } catch (err) {
+    showDebug("❌ Settings: " + (err.message || String(err)));
+  }
+});
     $("settingsDlg").addEventListener("close", ()=>{
       LS.set(KEYS.report, ($("reportInput").value||"Report").trim());
     });
