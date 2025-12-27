@@ -206,10 +206,17 @@
       <div class="h2">Controllo Orari</div>
       <div class="sub">Filtra per utente, data e ordina i risultati</div>
 
-      <div class="grid2">
+      <div class="grid3">
         <label class="field">
           <span>Email utente</span>
-          <input id="emailFilterInput" type="text" placeholder="nome@email.com">
+          <input id="emailFilterInput" type="text" placeholder="nome@email.com" list="emailOptions">
+          <datalist id="emailOptions"></datalist>
+        </label>
+        <label class="field">
+          <span>Seleziona email</span>
+          <select id="emailSelect">
+            <option value="">Tutte</option>
+          </select>
         </label>
         <label class="field">
           <span>User ID</span>
@@ -386,6 +393,39 @@
       return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     }
 
+    async function loadUsers(){
+      if(!sb) return;
+      const user = await getUser();
+      if(!user || user.email !== ADMIN_EMAIL) return;
+      try{
+        const { data, error } = await withTimeout(
+          sb.from("work_records_admin_view").select("user_email").not("user_email","is",null).limit(1000),
+          10000,
+          "Caricamento utenti"
+        );
+        if(error) throw error;
+        const unique = Array.from(new Set((data || []).map(r => String(r.user_email || "").trim()).filter(Boolean)));
+        unique.sort((a,b)=> a.localeCompare(b, "it"));
+
+        const dl = $("emailOptions");
+        const sel = $("emailSelect");
+        dl.innerHTML = "";
+        sel.innerHTML = '<option value="">Tutte</option>';
+        for(const email of unique){
+          const opt = document.createElement("option");
+          opt.value = email;
+          dl.appendChild(opt);
+          const opt2 = document.createElement("option");
+          opt2.value = email;
+          opt2.textContent = email;
+          sel.appendChild(opt2);
+        }
+      }catch(err){
+        // Non bloccare la pagina admin se la lista utenti fallisce.
+        console.warn("Lista utenti non disponibile", err);
+      }
+    }
+
     async function refresh(){
       const user = await getUser();
       if(!user || user.email !== ADMIN_EMAIL){
@@ -487,6 +527,9 @@
         if(error) throw error;
         if(!data?.session) throw new Error("Login non riuscito.");
         setAuthMsg("✅ Login OK", "ok");
+        setAuthUI(data.session.user);
+        await loadUsers();
+        await refresh();
       }catch(err){
         setAuthMsg("❌ " + (err.message || String(err)), "err");
       }
@@ -505,6 +548,7 @@
     $("btnExport").addEventListener("click", exportCSV);
     $("btnClear").addEventListener("click", ()=>{
       $("emailFilterInput").value = "";
+      $("emailSelect").value = "";
       $("userIdInput").value = "";
       $("fromDate").value = "";
       $("toDate").value = "";
@@ -513,15 +557,22 @@
       refresh();
     });
 
+    $("emailSelect").addEventListener("change", (e)=>{
+      $("emailFilterInput").value = e.target.value || "";
+      refresh();
+    });
+
     sb?.auth.onAuthStateChange(async (_event, session)=>{
       const user = session?.user || await getUser();
       setAuthUI(user);
+      await loadUsers();
       await refresh();
     });
 
     (async function boot(){
       const user = await getUser();
       setAuthUI(user);
+      await loadUsers();
       await refresh();
     })();
   </script>
