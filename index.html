@@ -307,7 +307,7 @@
     </div>
   </header>
 
-  <main class="wrap">
+<main id="appMain" class="wrap">
     <section class="card punch">
       <div class="punchHead">
         <div class="punchTitle">Timbratrice</div>
@@ -349,7 +349,7 @@
       </div>
 
       <div id="loginHint" class="hint" style="margin-top:12px">
-        🔐 Per sincronizzare su Supabase: apri ⚙️, fai login (o registrati) e poi usa l’app normalmente.
+        🔐 Per sincronizzare su Supabase: apri ⚙️, fai login (l’admin crea gli utenti) e poi usa l’app normalmente.
       </div>
       <div id="actionMsg" class="msg hidden" style="margin-top:10px"></div>
     </section>
@@ -412,7 +412,7 @@
       <div class="dlgTitle">Account & Impostazioni</div>
 
       <div class="hint">
-        ✅ Hai già fatto Supabase. Qui devi solo inserire email/password per login o registrazione.
+        ✅ Gli utenti li crea l’admin in Supabase. Qui fai solo Login o Recupera password.
         <br>Il nome report serve per il file CSV.
       </div>
 
@@ -433,7 +433,7 @@
 
       <div class="row">
         <button id="btnLogin" type="button" class="btn primary">Login</button>
-        <button id="btnSignup" type="button" class="btn">Registrati</button>
+        <button id="btnSignup" type="button" class="btn hidden" disabled>Registrati</button>
       </div>
 
       <div class="row">
@@ -613,7 +613,24 @@
         hint.classList.remove("hidden");
       }
     }
+function enforceAuthGate(){
+  const main = document.getElementById("appMain");
+  const closeBtn = $("btnCloseDlg");
 
+  const logged = !!currentUser;
+
+  // Nascondi tutta l'app se non loggato
+  if(main) main.classList.toggle("hidden", !logged);
+
+  // Se non loggato: forza apertura impostazioni e blocca chiusura
+  if(!logged){
+    if(closeBtn) closeBtn.disabled = true;
+    if(settingsDlg) settingsDlg.classList.remove("hidden");
+    setSettingsMsg("🔐 Effettua il login per usare l’app.", null);
+  }else{
+    if(closeBtn) closeBtn.disabled = false;
+  }
+}
     function setActionMsg(text, kind){
       const el = $("actionMsg");
       if(!el) return;
@@ -684,8 +701,9 @@
     if(sb){
       sb.auth.onAuthStateChange(async (_event, session) => {
         const user = session?.user || null;
-        setUserUI(user);
-        await refresh();
+       setUserUI(user);
+enforceAuthGate();
+await refresh();
       });
     }
 
@@ -1105,20 +1123,22 @@
       settingsJustOpenedAt = Date.now();
       settingsDlg.classList.remove("hidden");
     }
-    function closeSettings(){
-      // salva nome report quando chiudi
-      LS.set(KEYS.report, ($("reportInput").value || "Report").trim());
-      settingsDlg.classList.add("hidden");
-    }
-
-    // click fuori dalla card = chiudi (ma evita il tap che ha aperto il modal su iOS)
-    settingsDlg.addEventListener("click", (e)=>{
-      if(e.target === settingsDlg){
-        if(Date.now() - settingsJustOpenedAt < 250) return; // evita chiusura immediata
-        closeSettings();
-      }
-    });
-
+function closeSettings(){
+  if(!currentUser){
+    setSettingsMsg("🔐 Devi fare login per continuare.", "err");
+    return;
+  }
+  // salva nome report quando chiudi
+  LS.set(KEYS.report, ($("reportInput").value || "Report").trim());
+  settingsDlg.classList.add("hidden");
+}
+settingsDlg.addEventListener("click", (e)=>{
+  if(e.target === settingsDlg){
+    if(!currentUser) return; // non permettere chiusura se non loggato
+    if(Date.now() - settingsJustOpenedAt < 250) return; // evita chiusura immediata
+    closeSettings();
+  }
+});
 $("btnSettings").addEventListener("click", ()=>{
   setSettingsMsg("", null);
   $("reportInput").value = cfg().report;
@@ -1148,19 +1168,9 @@ $("btnSettings").addEventListener("click", ()=>{
       }
     });
 
-    $("btnSignup").addEventListener("click", async (e)=>{
+    $("btnSignup").addEventListener("click", (e)=>{
       e.preventDefault();
-      try{
-        setSettingsMsg("⏳ Registrazione...", null);
-        const email = ($("emailInput").value||"").trim();
-        const pass = ($("passInput").value||"").trim();
-        if(!email || !pass) throw new Error("Inserisci email e password.");
-        if(pass.length < 6) throw new Error("Password troppo corta (min 6).");
-        await signUp(email, pass);
-        setSettingsMsg("✅ OK. Se l’email era nuova riceverai una conferma. Se era già registrata, ho provato automaticamente il Login.", "ok");
-      }catch(err){
-        setSettingsMsg("❌ " + prettyAuthError(err), "err");
-      }
+      setSettingsMsg("ℹ️ Registrazione disattivata: l’admin crea gli utenti in Supabase. Usa Login oppure Recupera password.", null);
     });
     $("btnReset").addEventListener("click", async (e)=>{
       e.preventDefault();
@@ -1247,9 +1257,9 @@ $("btnCloseDlg").addEventListener("click", closeSettings);
         $("toDate").value = todayISODate();
         $("filterBox").classList.add("hidden");
 
-        const user = await requireUser();
-        setUserUI(user);
-
+const user = await requireUser();
+setUserUI(user);
+enforceAuthGate();
         // Segnale visivo che il JS è partito (se vedi questo, i bottoni sono collegati)
         // hideDebug(); // lasciamo la barra nascosta di default
 
