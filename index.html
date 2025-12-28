@@ -6,6 +6,7 @@
   <title>Timbratrice Web</title>
 
   <style>
+    @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&display=swap");
     /* Modal (div-based, no <dialog>) */
 .modalOverlay{
   position:fixed;
@@ -45,6 +46,7 @@
       --radius:18px;
       --radius2:14px;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --time: "Space Grotesk", "Avenir Next", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
       --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
     }
     @media (prefers-color-scheme: light){
@@ -139,7 +141,8 @@
 
     .netRow{display:flex; align-items:center; justify-content:space-between; margin-top:10px; gap:10px}
     .netTime{
-      font-family:var(--mono);
+      font-family:var(--time);
+      font-variant-numeric: tabular-nums;
       font-size:54px;
       font-weight:900;
       letter-spacing:-.5px;
@@ -169,7 +172,8 @@
     .chipLabel{font-size:12px; color:var(--muted); font-weight:800; letter-spacing:.2px}
     .chipValue{
       margin-top:4px;
-      font-family:var(--mono);
+      font-family:var(--time);
+      font-variant-numeric: tabular-nums;
       font-size:18px;
       font-weight:800;
       white-space:nowrap;
@@ -750,24 +754,24 @@ try{
     const $ = (id) => document.getElementById(id);
     const pad2 = (n) => String(n).padStart(2, "0");
     const fmtHM = (min) => {
-      const fmtHHMM = (min)=>{
-  const m = Math.max(0, Math.floor(Number(min||0)));
-  const h = Math.floor(m/60);
-  const mm = m%60;
-  return `${pad2(h)}:${pad2(mm)}`;
-};
-const hhmmToMin = (hhmm)=>{
-  const s = (hhmm||"").trim();
-  if(!s || !s.includes(":")) return 0;
-  const [H,M] = s.split(":");
-  const h = Math.max(0, parseInt(H,10)||0);
-  const m = Math.max(0, parseInt(M,10)||0);
-  return h*60 + m;
-};
       const m = Math.max(0, Math.floor(Number(min || 0)));
       const h = Math.floor(m / 60);
       const mm = m % 60;
       return `${h}:${pad2(mm)}`;
+    };
+    const fmtHHMM = (min) => {
+      const m = Math.max(0, Math.floor(Number(min || 0)));
+      const h = Math.floor(m / 60);
+      const mm = m % 60;
+      return `${pad2(h)}:${pad2(mm)}`;
+    };
+    const hhmmToMin = (hhmm) => {
+      const s = (hhmm || "").trim();
+      if(!s || !s.includes(":")) return 0;
+      const [H, M] = s.split(":");
+      const h = Math.max(0, parseInt(H, 10) || 0);
+      const m = Math.max(0, parseInt(M, 10) || 0);
+      return h * 60 + m;
     };
     const toISO = (d) => new Date(d).toISOString();
 
