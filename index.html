@@ -272,6 +272,39 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     .itemTop{display:flex; justify-content:space-between; gap:10px; align-items:flex-start}
     .itemTitle{font-weight:900}
     .itemMeta{font-family:var(--mono); color:var(--muted); font-size:12px}
+    .itemMetaGrid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+      margin-top:8px;
+    }
+    @media (min-width:680px){.itemMetaGrid{grid-template-columns:repeat(4,1fr)}}
+    .metaBox{
+      border:1px solid var(--line);
+      background:var(--card);
+      border-radius:12px;
+      padding:8px 10px;
+      min-width:0;
+    }
+    .metaLabel{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-size:11px;
+      color:var(--muted);
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+    .metaValue{
+      margin-top:3px;
+      font-family:var(--time);
+      font-variant-numeric: tabular-nums;
+      font-size:13px;
+      font-weight:800;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
     .itemBtns{display:flex; gap:10px}
     .miniBtn{
       padding:10px 12px;
@@ -507,6 +540,14 @@ body{
   justify-content:center;
 }
 .punch.is-editing .actions{
+  display:none;
+}
+.punch.is-active .chips,
+.punch.is-active .iosDetails,
+.punch.is-active #endRow{
+  display:none;
+}
+.punch.is-active #btnStart{
   display:none;
 }
 
@@ -759,10 +800,7 @@ body{
       </div>
 
       <div class="row">
-        <button id="btnRefresh" class="btn">Aggiorna</button>
         <button id="btnExport" class="btn">Esporta CSV</button>
-      </div>
-      <div class="row">
         <button id="btnExportPdf" class="btn">Esporta PDF</button>
       </div>
     </section>
@@ -858,6 +896,8 @@ body{
 
     const SUPABASE_URL = (SUPABASE_URL_RAW || "").trim();
     const SUPABASE_ANON_KEY = (SUPABASE_ANON_KEY_RAW || "").trim();
+    const ADMIN_EMAIL = "mazzanti.giova@gmail.com";
+    const ADMIN_EMAIL_NORM = ADMIN_EMAIL.trim().toLowerCase();
 
     if(!/^https?:\/\//i.test(SUPABASE_URL)){
       console.warn(`SUPABASE_URL non valido: "${SUPABASE_URL}"`);
@@ -1169,6 +1209,15 @@ if(ph) ph.value = "00:00";
       return currentUser;
     }
 
+    function isAdminUser(user = currentUser){
+      const email = (user?.email || "").trim().toLowerCase();
+      return !!email && email === ADMIN_EMAIL_NORM;
+    }
+    function updateAdminOnlyUI(){
+      const isAdmin = isAdminUser();
+      const btnDiag = $("btnDiag");
+      if(btnDiag) btnDiag.classList.toggle("hidden", !isAdmin);
+    }
     function setUserUI(user){
       const pill = $("userPill");
       const hint = $("loginHint");
@@ -1181,6 +1230,7 @@ if(ph) ph.value = "00:00";
         hint.classList.remove("hidden");
       }
       updateAuthButtons();
+      updateAdminOnlyUI();
       // Always enforce gate after updating currentUser
       if(typeof enforceAuthGate === "function") enforceAuthGate();
     }
@@ -1748,13 +1798,13 @@ function stopEditEndedRecord(){
 const list = $("list");
 list.innerHTML = "";
 
-const q = ($("searchInput")?.value || "").trim().toLowerCase();
-const filtered = q
-  ? history.filter(r =>
-      (r.title||"").toLowerCase().includes(q) ||
-      (r.notes||"").toLowerCase().includes(q)
-    )
-  : history;
+  const q = ($("searchInput")?.value || "").trim().toLowerCase();
+  const filtered = q
+    ? history.filter(r =>
+        (r.title||"").toLowerCase().includes(q) ||
+        (r.notes||"").toLowerCase().includes(q)
+      )
+    : history;
 
 if(filtered.length === 0){
   $("empty").classList.remove("hidden");
@@ -1763,20 +1813,34 @@ if(filtered.length === 0){
   $("empty").classList.add("hidden");
   const sorted = [...filtered].sort((a,b)=> (b.startISO||"").localeCompare(a.startISO||""));
   for(const r of sorted){
-          const start = r.startISO ? new Date(r.startISO).toLocaleString("it-IT") : "";
-          const end = r.endISO ? new Date(r.endISO).toLocaleString("it-IT") : "";
+          const start = r.startISO ? new Date(r.startISO).toLocaleString("it-IT") : "—";
+          const end = r.endISO ? new Date(r.endISO).toLocaleString("it-IT") : "—";
           const el = document.createElement("div");
           el.className = "item";
           el.innerHTML = `
             <div class="itemTop">
-              <div>
-                <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
-                <div class="itemMeta">Inizio: ${escapeHTML(start)}  •  Fine: ${escapeHTML(end)}</div>
-                <div class="itemMeta">Ore: ${escapeHTML(fmtHM(r.workMin||0))}  •  Km: ${escapeHTML(String(r.km||0))}</div>
-              </div>
+              <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
               <div class="itemBtns">
                 <button class="miniBtn" data-edit="${r.id}">Modifica</button>
 <button class="miniBtn d" data-del="${r.id}">Elimina</button>
+              </div>
+            </div>
+            <div class="itemMetaGrid">
+              <div class="metaBox">
+                <div class="metaLabel">${iconSvg("i-calendar","icon xs")}Inizio</div>
+                <div class="metaValue">${escapeHTML(start)}</div>
+              </div>
+              <div class="metaBox">
+                <div class="metaLabel">${iconSvg("i-calendar","icon xs")}Fine</div>
+                <div class="metaValue">${escapeHTML(end)}</div>
+              </div>
+              <div class="metaBox">
+                <div class="metaLabel">${iconSvg("i-clock","icon xs")}Ore</div>
+                <div class="metaValue">${escapeHTML(fmtHM(r.workMin||0))}</div>
+              </div>
+              <div class="metaBox">
+                <div class="metaLabel">${iconSvg("i-car","icon xs")}Km</div>
+                <div class="metaValue">${escapeHTML(String(r.km||0))}</div>
               </div>
             </div>
           `;
@@ -2039,6 +2103,7 @@ if(filtered.length === 0){
     function openSettings(){
       settingsJustOpenedAt = Date.now();
       updateAuthButtons();
+      updateAdminOnlyUI();
       settingsDlg.classList.remove("hidden");
     }
 function closeSettings(){
@@ -2338,7 +2403,6 @@ $("endInput").addEventListener("change", async ()=>{
       if(confirm("Finire il turno?")) stopShift();
     });
 
-    $("btnRefresh").addEventListener("click", refresh);
     $("btnExport").addEventListener("click", exportCSV);
     $("btnExportPdf").addEventListener("click", exportPDF);
     $("searchInput").addEventListener("input", ()=> renderAll());
