@@ -2,8 +2,6 @@ name: Supabase Keep Alive
 
 on:
   schedule:
-    # GitHub usa cron in UTC.
-    # Lunedì e Giovedì alle 08:00 UTC (in Italia ~09:00 inverno / ~10:00 estate)
     - cron: "0 8 * * 1,4"
   workflow_dispatch:
 
