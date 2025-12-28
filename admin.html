@@ -304,27 +304,65 @@
     };
     const toISO = (d) => new Date(d).toISOString();
 
-    let currentUser = null;
-    let records = [];
+let currentUser = null;
+let currentSession = null; // cache in-memory session (access_token)
+let records = [];
 
-    function withTimeout(promise, ms, label){
-      let timerId;
-      const timeout = new Promise((_, reject)=>{
-        timerId = setTimeout(()=>{
-          reject(new Error(`${label} non risponde. Riprova.`));
-        }, ms);
-      });
-      return Promise.race([promise, timeout]).finally(()=> clearTimeout(timerId));
-    }
+function withTimeout(promise, ms, label){
+  let timerId;
+  const timeout = new Promise((_, reject)=>{
+    timerId = setTimeout(()=>{
+      reject(new Error(`${label} non risponde. Riprova.`));
+    }, ms);
+  });
+  return Promise.race([promise, timeout]).finally(()=> clearTimeout(timerId));
+}
+
+async function fetchWithTimeout(url, options, ms=12000, label="Richiesta"){
+  return withTimeout(fetch(url, options), ms, label);
+}
+
+function buildRestHeaders(token){
+  return {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${token || SUPABASE_ANON_KEY}`,
+    "Content-Type": "application/json",
+  };
+}
+
+async function restGet(path, token, ms=12000, label="Caricamento"){
+  const url = `${SUPABASE_URL}${path}`;
+  const res = await fetchWithTimeout(url, { method: "GET", headers: buildRestHeaders(token) }, ms, label);
+  const text = await res.text();
+  let json = null;
+  try{ json = text ? JSON.parse(text) : null; }catch{ json = null; }
+  if(!res.ok){
+    const msg = (json && (json.message || json.error || json.error_description)) || text || `HTTP ${res.status}`;
+    const err = new Error(msg);
+    err.status = res.status;
+    err.body = json || text;
+    throw err;
+  }
+  return json;
+}
+
+function getToken(){
+  return currentSession?.access_token || "";
+}
 
 async function getUser(){
-  // usa l'utente già noto dall'evento auth
   if(currentUser) return currentUser;
-
-  // fallback leggero, senza blocchi
+  if(currentSession?.user){
+    currentUser = currentSession.user;
+    return currentUser;
+  }
+  // bounded fallback (best effort)
   try{
-    const { data } = await sb.auth.getSession();
-    return data?.session?.user || null;
+    const { data } = await withTimeout(sb.auth.getSession(), 4000, "Sessione");
+    const u = data?.session?.user || null;
+    if(u) currentUser = u;
+    if(data?.session) currentSession = data.session;
+    return u;
   }catch{
     return null;
   }
@@ -412,81 +450,91 @@ async function getUser(){
       return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     }
 
-    async function loadUsers(){
-      if(!sb) return;
-      const user = await getUser();
-      const userEmailNorm = (user?.email || "").trim().toLowerCase();
-      if(!user || userEmailNorm !== ADMIN_EMAIL_NORM) return;
-      try{
-        const { data, error } = await withTimeout(
-          sb.from("work_records_admin_view").select("user_email").not("user_email","is",null).limit(1000),
-          10000,
-          "Caricamento utenti"
-        );
-        if(error) throw error;
-        const unique = Array.from(new Set((data || []).map(r => String(r.user_email || "").trim()).filter(Boolean)));
-        unique.sort((a,b)=> a.localeCompare(b, "it"));
+async function loadUsers(){
+  const user = await getUser();
+  const userEmailNorm = (user?.email || "").trim().toLowerCase();
+  if(!user || userEmailNorm !== ADMIN_EMAIL_NORM) return;
 
-        const dl = $("emailOptions");
-        const sel = $("emailSelect");
-        dl.innerHTML = "";
-        sel.innerHTML = '<option value="">Tutte</option>';
-        for(const email of unique){
-          const opt = document.createElement("option");
-          opt.value = email;
-          dl.appendChild(opt);
-          const opt2 = document.createElement("option");
-          opt2.value = email;
-          opt2.textContent = email;
-          sel.appendChild(opt2);
-        }
-      }catch(err){
-        // Non bloccare la pagina admin se la lista utenti fallisce.
-        console.warn("Lista utenti non disponibile", err);
-      }
+  try{
+    const token = getToken();
+    // distinct emails via client-side unique
+    const data = await restGet(
+      "/rest/v1/work_records_admin_view?select=user_email&user_email=not.is.null&limit=1000",
+      token,
+      12000,
+      "Caricamento utenti"
+    );
+    const unique = Array.from(new Set((data || []).map(r => String(r.user_email || "").trim()).filter(Boolean)));
+    unique.sort((a,b)=> a.localeCompare(b, "it"));
+
+    const dl = $("emailOptions");
+    const sel = $("emailSelect");
+    dl.innerHTML = "";
+    sel.innerHTML = '<option value="">Tutte</option>';
+    for(const email of unique){
+      const opt = document.createElement("option");
+      opt.value = email;
+      dl.appendChild(opt);
+      const opt2 = document.createElement("option");
+      opt2.value = email;
+      opt2.textContent = email;
+      sel.appendChild(opt2);
     }
+  }catch(err){
+    console.warn("Lista utenti non disponibile", err);
+  }
+}
 
-    async function refresh(){
-      const user = await getUser();
-      const userEmailNorm = (user?.email || "").trim().toLowerCase();
-      if(!user || userEmailNorm !== ADMIN_EMAIL_NORM){
-        setAuthUI(user);
-        return;
-      }
+async function refresh(){
+  const user = await getUser();
+  const userEmailNorm = (user?.email || "").trim().toLowerCase();
+  if(!user || userEmailNorm !== ADMIN_EMAIL_NORM){
+    setAuthUI(user);
+    return;
+  }
 
-      const emailFilter = ($("emailFilterInput").value || "").trim();
-      const userId = ($("userIdInput").value || "").trim();
-      const fromDate = $("fromDate").value;
-      const toDate = $("toDate").value;
-      const sortField = $("sortField").value;
-      const sortDir = $("sortDir").value === "asc";
+  const token = getToken();
+  if(!token){
+    setActionMsg("❌ Nessuna sessione/token. Rifai Login.", "err");
+    return;
+  }
 
-      try{
-        setActionMsg("⏳ Caricamento...", null);
-        let q = sb.from("work_records_admin_view").select("*");
-        if(emailFilter) q = q.ilike("user_email", `%${emailFilter}%`);
-        if(userId) q = q.eq("user_id", userId);
-        if(fromDate) q = q.gte("start_ts", toISO(new Date(fromDate + "T00:00:00")));
-        if(toDate) q = q.lte("start_ts", toISO(new Date(toDate + "T23:59:59")));
-        q = q.order(sortField, { ascending: sortDir });
+  const emailFilter = ($("emailFilterInput").value || "").trim();
+  const userId = ($("userIdInput").value || "").trim();
+  const fromDate = $("fromDate").value;
+  const toDate = $("toDate").value;
+  const sortField = $("sortField").value;
+  const sortAsc = $("sortDir").value === "asc";
 
-        const { data, error } = await withTimeout(q, 10000, "Caricamento");
-        if(error) throw error;
-        records = data || [];
-        renderSummary();
-        renderList();
-        if(records.length === 0){
-          setActionMsg(
-            "⚠️ Nessun record trovato. Se ti aspetti dei dati, quasi sicuramente è un problema di RLS sulla tabella public.users (join della view).",
-            "err"
-          );
-        }else{
-          setActionMsg(`✅ ${records.length} record`, "ok");
-        }
-      }catch(err){
-        setActionMsg("❌ " + (err.message || String(err)), "err");
-      }
+  try{
+    setActionMsg("⏳ Caricamento...", null);
+
+    // Build PostgREST querystring
+    const params = [];
+    params.push("select=*");
+    if(emailFilter) params.push(`user_email=ilike.*${encodeURIComponent(emailFilter)}*`);
+    if(userId) params.push(`user_id=eq.${encodeURIComponent(userId)}`);
+    if(fromDate) params.push(`start_ts=gte.${encodeURIComponent(new Date(fromDate + "T00:00:00").toISOString())}`);
+    if(toDate) params.push(`start_ts=lte.${encodeURIComponent(new Date(toDate + "T23:59:59").toISOString())}`);
+    params.push(`order=${encodeURIComponent(sortField)}.${sortAsc ? "asc" : "desc"}`);
+
+    const path = `/rest/v1/work_records_admin_view?${params.join("&")}`;
+    const data = await restGet(path, token, 12000, "Caricamento");
+
+    records = data || [];
+    renderSummary();
+    renderList();
+
+    if(records.length === 0){
+      setActionMsg("⚠️ Nessun record trovato (filtri troppo stretti o dati assenti).", "err");
+    }else{
+      setActionMsg(`✅ ${records.length} record`, "ok");
     }
+  }catch(err){
+    console.error(err);
+    setActionMsg(`❌ ${err.message || String(err)}${err.status ? ` (HTTP ${err.status})` : ""}`, "err");
+  }
+}
 
     function exportCSV(){
       const sep = ";";
@@ -541,36 +589,41 @@ async function getUser(){
       return t;
     }
 
-    $("btnLogin").addEventListener("click", async ()=>{
-      try{
-        setAuthMsg("⏳ Login...", null);
-        const email = ($("emailInput").value||"").trim();
-        const pass = ($("passInput").value||"").trim();
-        if(!email || !pass) throw new Error("Inserisci email e password.");
-        const { data, error } = await withTimeout(
-          sb.auth.signInWithPassword({ email, password: pass }),
-          10000,
-          "Login"
-        );
-        if(error) throw error;
-        if(!data?.session) throw new Error("Login non riuscito.");
-        setAuthMsg("✅ Login OK", "ok");
-        setAuthUI(data.session.user);
-        await loadUsers();
-        await refresh();
-      }catch(err){
-        setAuthMsg("❌ " + (err.message || String(err)), "err");
-      }
-    });
+$("btnLogin").addEventListener("click", async ()=>{
+  try{
+    setAuthMsg("⏳ Login...", null);
+    const email = ($("emailInput").value||"").trim();
+    const pass = ($("passInput").value||"").trim();
+    if(!email || !pass) throw new Error("Inserisci email e password.");
+    const { data, error } = await withTimeout(
+      sb.auth.signInWithPassword({ email, password: pass }),
+      10000,
+      "Login"
+    );
+    if(error) throw error;
+    if(!data?.session) throw new Error("Login non riuscito.");
+    currentSession = data.session;
+    setAuthMsg("✅ Login OK", "ok");
+    setAuthUI(data.session.user);
+    await loadUsers();
+    await refresh();
+  }catch(err){
+    setAuthMsg("❌ " + (err.message || String(err)), "err");
+  }
+});
 
-    $("btnLogout").addEventListener("click", async ()=>{
-      try{
-        await sb.auth.signOut();
-        setAuthMsg("✅ Logout", "ok");
-      }catch(err){
-        setAuthMsg("❌ " + (err.message || String(err)), "err");
-      }
-    });
+$("btnLogout").addEventListener("click", async ()=>{
+  try{
+    await sb.auth.signOut();
+  }catch(err){
+    console.warn("Logout error:", err);
+  }
+  currentSession = null;
+  currentUser = null;
+  records = [];
+  setAuthUI(null);
+  setAuthMsg("✅ Logout", "ok");
+});
 
     $("btnRefresh").addEventListener("click", refresh);
     $("btnExport").addEventListener("click", exportCSV);
@@ -591,12 +644,13 @@ async function getUser(){
       refresh();
     });
 
-    sb?.auth.onAuthStateChange(async (_event, session)=>{
-      const user = session?.user || null;
-      setAuthUI(user);
-      await loadUsers();
-      await refresh();
-    });
+sb?.auth.onAuthStateChange(async (_event, session)=>{
+  currentSession = session || null;
+  const user = session?.user || null;
+  setAuthUI(user);
+  await loadUsers();
+  await refresh();
+});
 
     (async function boot(){
       const user = await getUser();
