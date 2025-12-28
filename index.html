@@ -438,6 +438,7 @@
 
       <div class="row">
         <button id="btnReset" type="button" class="btn">Recupera password</button>
+        <button id="btnDiag" type="button" class="btn">Diagnostica</button>
       </div>
 
       <div class="row">
@@ -727,6 +728,38 @@ function enforceAuthGate(){
     async function signOut(){
       const { error } = await sb.auth.signOut();
       if(error) throw error;
+    }
+
+    async function runDiagnostics(){
+      if(!sb) throw new Error("Supabase non inizializzato.");
+
+      const { data: sessData, error: sessErr } = await sb.auth.getSession();
+      if(sessErr) throw sessErr;
+      const session = sessData?.session || null;
+      const user = session?.user || null;
+
+      // Test a simple select with current auth context
+      let qStatus = "";
+      try{
+        const { data, error } = await sb.from("work_records").select("id").limit(1);
+        if(error) throw error;
+        qStatus = `Query OK (rows: ${(data||[]).length})`;
+      }catch(e){
+        qStatus = `Query ERROR: ${e.message || String(e)}`;
+      }
+
+      const tokenInfo = session?.access_token ? `token ${session.access_token.length} chars` : "no token";
+      const email = user?.email || "(no user)";
+      const uid = user?.id || "(no id)";
+
+      return {
+        hasSession: !!session,
+        email,
+        uid,
+        tokenInfo,
+        qStatus,
+        expiresAt: session?.expires_at || null
+      };
     }
 
     if(sb){
@@ -1214,6 +1247,7 @@ $("btnSettings").addEventListener("click", ()=>{
       e.preventDefault();
       setSettingsMsg("ℹ️ Registrazione disattivata: l’admin crea gli utenti in Supabase. Usa Login oppure Recupera password.", null);
     });
+
     $("btnReset").addEventListener("click", async (e)=>{
       e.preventDefault();
       try{
@@ -1224,6 +1258,22 @@ $("btnSettings").addEventListener("click", ()=>{
         setSettingsMsg("✅ Email inviata (se l'account esiste). Controlla la posta.", "ok");
       }catch(err){
         console.error("Reset password error:", err);
+        setSettingsMsg("❌ " + prettyAuthError(err), "err");
+      }
+    });
+
+    $("btnDiag").addEventListener("click", async (e)=>{
+      e.preventDefault();
+      try{
+        setSettingsMsg("⏳ Diagnostica in corso...", null);
+        const d = await runDiagnostics();
+        const exp = d.expiresAt ? new Date(d.expiresAt * 1000).toLocaleString("it-IT") : "(n/a)";
+        setSettingsMsg(
+          `🧪 Session: ${d.hasSession ? "SI" : "NO"}\n👤 ${d.email}\n🆔 ${d.uid}\n🔑 ${d.tokenInfo}\n⏰ exp: ${exp}\n📡 ${d.qStatus}`,
+          d.hasSession && d.qStatus.startsWith("Query OK") ? "ok" : "err"
+        );
+      }catch(err){
+        console.error("Diagnostics error:", err);
         setSettingsMsg("❌ " + prettyAuthError(err), "err");
       }
     });
