@@ -500,6 +500,39 @@ async function fetchWithTimeout(url, options={}){
   }
 }
 
+// --------- Direct REST (bypass supabase-js PostgREST) ---------
+async function getAccessToken(){
+  if(!sb) return "";
+  const { data, error } = await sb.auth.getSession();
+  if(error) return "";
+  return data.session?.access_token || "";
+}
+
+async function restJSON(method, path, token, body){
+  const url = `${SUPABASE_URL}${path}`;
+  const headers = {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${token || SUPABASE_ANON_KEY}`,
+    "Content-Type": "application/json",
+  };
+  const res = await fetchWithTimeout(url, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  let json = null;
+  try{ json = text ? JSON.parse(text) : null; }catch{ json = null; }
+  if(!res.ok){
+    const msg = (json && (json.message || json.error || json.error_description)) || text || `HTTP ${res.status}`;
+    const err = new Error(msg);
+    err.status = res.status;
+    err.body = json || text;
+    throw err;
+  }
+  return json;
+}
+
 let sb = null;
 try{
   if(!window.supabase || typeof window.supabase.createClient !== "function"){
@@ -738,19 +771,23 @@ function enforceAuthGate(){
       const session = sessData?.session || null;
       const user = session?.user || null;
 
-      // Test a simple select with current auth context
-      let qStatus = "";
-      try{
-        const { data, error } = await sb.from("work_records").select("id").limit(1);
-        if(error) throw error;
-        qStatus = `Query OK (rows: ${(data||[]).length})`;
-      }catch(e){
-        qStatus = `Query ERROR: ${e.message || String(e)}`;
-      }
-
       const tokenInfo = session?.access_token ? `token ${session.access_token.length} chars` : "no token";
       const email = user?.email || "(no user)";
       const uid = user?.id || "(no id)";
+
+      let qStatus = "";
+      try{
+        const token = session?.access_token || "";
+        // direct REST query (RLS applies via JWT)
+        const rows = await withTimeout(
+          restJSON("GET", "/rest/v1/work_records?select=id&limit=1", token),
+          12000,
+          "Diagnostica query"
+        );
+        qStatus = `Query OK (rows: ${(rows||[]).length})`;
+      }catch(e){
+        qStatus = `Query ERROR: ${(e.message || String(e))}${e?.status ? ` (code ${e.status})` : ""}`;
+      }
 
       return {
         hasSession: !!session,
@@ -796,6 +833,7 @@ function enforceAuthGate(){
     async function refresh(){
       const user = await requireUser();
       console.log("[refresh] start", { hasSb: !!sb, userId: user?.id || null });
+
       if(!sb){
         console.warn("Supabase non inizializzato: controlla connessione/CDN/config");
         active = null;
@@ -810,26 +848,40 @@ function enforceAuthGate(){
         return;
       }
 
-      let q = sb
-        .from("work_records")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("start_ts", { ascending: false });
-
-      const fromISO = getFilterFromISO();
-      const toISO = getFilterToISO();
-      if(fromISO && toISO){
-        q = q.gte("start_ts", fromISO).lte("start_ts", toISO);
-      }
-
-      console.log("[refresh] executing query work_records", { fromISO, toISO });
-      const { data, error } = await withTimeout(q, 17000, "Caricamento");
-      console.log("[refresh] query returned", { rows: (data||[]).length, hasError: !!error });
-      if(error){
-        console.error(error);
-        setActionMsg("❌ " + error.message, "err");
+      const token = await getAccessToken();
+      if(!token){
+        console.warn("[refresh] no access token");
+        active = null;
+        history = [];
+        renderAll();
         return;
       }
+
+      // Build query (RLS already restricts by auth.uid(), but we also filter by user_id)
+      const fromISO = getFilterFromISO();
+      const toISO = getFilterToISO();
+
+      let qs = `select=*&user_id=eq.${encodeURIComponent(user.id)}&order=start_ts.desc`;
+      if(fromISO && toISO){
+        qs += `&start_ts=gte.${encodeURIComponent(fromISO)}&start_ts=lte.${encodeURIComponent(toISO)}`;
+      }
+
+      console.log("[refresh] executing REST", { fromISO, toISO });
+
+      let data;
+      try{
+        data = await withTimeout(
+          restJSON("GET", `/rest/v1/work_records?${qs}`, token),
+          17000,
+          "Caricamento"
+        );
+      }catch(e){
+        console.error(e);
+        setActionMsg("❌ " + (e.message || String(e)), "err");
+        return;
+      }
+
+      console.log("[refresh] REST returned", { rows: (data||[]).length });
 
       const rows = (data || []).map(r => ({
         id: r.id,
@@ -854,9 +906,11 @@ function enforceAuthGate(){
       if(!sb) throw new Error("Supabase non inizializzato.");
       const user = await requireUser();
       if(!user) throw new Error("Fai login (⚙️) per salvare.");
+      const token = await getAccessToken();
+      if(!token) throw new Error("Sessione non valida: rifai login.");
 
       const payload = {
-        id: row.id,                 // uuid
+        id: row.id,
         user_id: user.id,
         title: row.title || "",
         start_ts: row.startISO || null,
@@ -869,27 +923,57 @@ function enforceAuthGate(){
         updated_at: new Date().toISOString()
       };
 
-      const { error } = await withTimeout(
-        sb.from("work_records").upsert(payload, { onConflict: "id" }),
+      // PostgREST upsert via POST + Prefer resolution=merge-duplicates
+      const url = `${SUPABASE_URL}/rest/v1/work_records`;
+      const headers = {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates,return=minimal"
+      };
+
+      const res = await withTimeout(
+        fetchWithTimeout(url, { method: "POST", headers, body: JSON.stringify(payload) }),
         17000,
         "Salvataggio"
       );
-
-      if(error) throw error;
+      if(!res.ok){
+        const text = await res.text();
+        let j=null; try{ j = text ? JSON.parse(text) : null; }catch{}
+        const msg = (j && (j.message || j.error)) || text || `HTTP ${res.status}`;
+        const err = new Error(msg);
+        err.status = res.status;
+        throw err;
+      }
     }
 
     async function deleteRow(id){
       if(!sb) throw new Error("Supabase non inizializzato.");
       const user = await requireUser();
       if(!user) throw new Error("Fai login (⚙️) per cancellare.");
+      const token = await getAccessToken();
+      if(!token) throw new Error("Sessione non valida: rifai login.");
 
-      const { error } = await withTimeout(
-        sb.from("work_records").delete().eq("id", id).eq("user_id", user.id),
+      const url = `${SUPABASE_URL}/rest/v1/work_records?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(user.id)}`;
+      const headers = {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`,
+        Prefer: "return=minimal"
+      };
+
+      const res = await withTimeout(
+        fetchWithTimeout(url, { method: "DELETE", headers }),
         17000,
         "Eliminazione"
       );
-
-      if(error) throw error;
+      if(!res.ok){
+        const text = await res.text();
+        let j=null; try{ j = text ? JSON.parse(text) : null; }catch{}
+        const msg = (j && (j.message || j.error)) || text || `HTTP ${res.status}`;
+        const err = new Error(msg);
+        err.status = res.status;
+        throw err;
+      }
     }
 
     // --------- actions ---------
