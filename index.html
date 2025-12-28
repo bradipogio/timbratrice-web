@@ -507,13 +507,13 @@ body{
   .iosTitleInput{background:rgba(255,255,255,.06); border:1px solid var(--line)}
 }
 
-.iosRow{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  margin-top:12px
-}
+    .iosRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-top:12px
+    }
 .iosLabel{font-weight:900; color:var(--muted)}
 .iosRight{display:flex; gap:10px; align-items:center}
 .iosBox{
@@ -608,6 +608,33 @@ body{
 .punch.is-editing #btnStart{
   display:none;
 }
+.filterBox .field{
+  background:var(--card2);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:10px 12px;
+}
+.filterBox .field > span{
+  color:var(--muted);
+  font-weight:800;
+}
+.filterBox input{
+  background:transparent;
+  border:none;
+  padding:6px 0 2px;
+  font-size:15px;
+}
+.filterBox input:focus{
+  border:none;
+}
+.btn.exportBtn{
+  padding:10px 12px;
+  font-size:15px;
+  border-radius:14px;
+  flex:0 0 auto;
+  min-width:0;
+}
+.btn.exportBtn{opacity:.9}
 @media (max-width:520px){
   .topbar{padding:8px 10px}
   .wrap{padding:8px 10px; gap:10px}
@@ -831,18 +858,24 @@ body{
 
       <div id="filterBox" class="filterBox hidden">
         <label class="field">
-          <span>Da</span>
+          <span class="iconLabel">
+            <svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>
+            Da
+          </span>
           <input id="fromDate" type="date" />
         </label>
         <label class="field">
-          <span>A</span>
+          <span class="iconLabel">
+            <svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>
+            A
+          </span>
           <input id="toDate" type="date" />
         </label>
       </div>
 
       <div class="row">
-        <button id="btnExport" class="btn">Esporta CSV</button>
-        <button id="btnExportPdf" class="btn">Esporta PDF</button>
+        <button id="btnExport" class="btn exportBtn">Esporta CSV</button>
+        <button id="btnExportPdf" class="btn exportBtn">Esporta PDF</button>
       </div>
     </section>
 

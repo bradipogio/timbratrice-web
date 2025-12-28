@@ -370,10 +370,10 @@
 
       <div class="row">
         <button id="btnExport" class="btn">Esporta CSV (filtro)</button>
-        <button id="btnClear" class="btn">Pulisci filtri</button>
+        <button id="btnExportPdf" class="btn">Esporta PDF</button>
       </div>
       <div class="row">
-        <button id="btnExportPdf" class="btn">Esporta PDF</button>
+        <button id="btnClear" class="btn">Pulisci filtri</button>
       </div>
 
       <div class="chips3">
@@ -875,7 +875,10 @@ async function refresh(){
       win.document.close();
       win.document.title = `timbratrice-admin-${Date.now()}`;
       win.focus();
-      win.onload = () => win.print();
+      win.onload = () => {
+        win.print();
+        setTimeout(()=>{ try{ win.close(); }catch{} }, 300);
+      };
     }
 
     function csvEscape(s, sep){
