@@ -579,6 +579,10 @@ try{
     let active = null;   // {id,title,startISO,endISO,pauseMin,workMin,km,notes,breakStartISO}
     let history = [];    // ended only
 
+    // Prevent concurrent network actions (can cause hangs / UI confusion)
+    let refreshBusy = false;
+    let diagBusy = false;
+
     // Draft values for the NEXT shift (used only when no active shift)
     let draftTitle = "";
     let draftKm = "";
@@ -764,6 +768,8 @@ function enforceAuthGate(){
     }
 
     async function runDiagnostics(){
+      if(diagBusy) throw new Error("Diagnostica già in corso. Attendi qualche secondo...");
+      diagBusy = true;
       if(!sb) throw new Error("Supabase non inizializzato.");
 
       const { data: sessData, error: sessErr } = await sb.auth.getSession();
@@ -775,35 +781,40 @@ function enforceAuthGate(){
       const email = user?.email || "(no user)";
       const uid = user?.id || "(no id)";
 
-      let qStatus = "";
       try{
-        const token = session?.access_token || "";
-        // direct REST query (RLS applies via JWT)
-        const rows = await withTimeout(
-          restJSON("GET", "/rest/v1/work_records?select=id&limit=1", token),
-          12000,
-          "Diagnostica query"
-        );
-        qStatus = `Query OK (rows: ${(rows||[]).length})`;
-      }catch(e){
-        qStatus = `Query ERROR: ${(e.message || String(e))}${e?.status ? ` (code ${e.status})` : ""}`;
-      }
+        let qStatus = "";
+        try{
+          const token = session?.access_token || "";
+          // direct REST query (RLS applies via JWT)
+          const rows = await withTimeout(
+            restJSON("GET", "/rest/v1/work_records?select=id&limit=1", token),
+            12000,
+            "Diagnostica query"
+          );
+          qStatus = `Query OK (rows: ${(rows||[]).length})`;
+        }catch(e){
+          qStatus = `Query ERROR: ${(e.message || String(e))}${e?.status ? ` (code ${e.status})` : ""}`;
+        }
 
-      return {
-        hasSession: !!session,
-        email,
-        uid,
-        tokenInfo,
-        qStatus,
-        expiresAt: session?.expires_at || null
-      };
+        return {
+          hasSession: !!session,
+          email,
+          uid,
+          tokenInfo,
+          qStatus,
+          expiresAt: session?.expires_at || null
+        };
+      }finally{
+        diagBusy = false;
+      }
     }
 
     if(sb){
       sb.auth.onAuthStateChange(async (_event, session) => {
         const user = session?.user || null;
         setUserUI(user);
-        await refresh();
+        // don't await: avoid blocking auth callback; refresh has its own busy guard
+        refresh();
       });
     }
 
@@ -831,6 +842,11 @@ function enforceAuthGate(){
 
     // --------- Supabase CRUD ---------
     async function refresh(){
+      if(refreshBusy){
+        console.log("[refresh] skip (busy)");
+        return;
+      }
+      refreshBusy = true;
       const user = await requireUser();
       console.log("[refresh] start", { hasSb: !!sb, userId: user?.id || null });
 
@@ -839,12 +855,16 @@ function enforceAuthGate(){
         active = null;
         history = [];
         renderAll();
+        // always release lock
+        refreshBusy = false;
         return;
       }
       if(!user){
         active = null;
         history = [];
         renderAll();
+        // always release lock
+        refreshBusy = false;
         return;
       }
 
@@ -854,6 +874,8 @@ function enforceAuthGate(){
         active = null;
         history = [];
         renderAll();
+        // always release lock
+        refreshBusy = false;
         return;
       }
 
@@ -878,6 +900,8 @@ function enforceAuthGate(){
       }catch(e){
         console.error(e);
         setActionMsg("❌ " + (e.message || String(e)), "err");
+        // always release lock
+        refreshBusy = false;
         return;
       }
 
@@ -900,6 +924,9 @@ function enforceAuthGate(){
 
       syncInputsWithState();
       renderAll();
+
+      // always release lock
+      refreshBusy = false;
     }
 
     async function upsertRow(row){
