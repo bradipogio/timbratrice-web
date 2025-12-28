@@ -102,6 +102,20 @@
       border-radius:12px;
       cursor:pointer;
     }
+    .iconBtn{display:inline-flex; align-items:center; justify-content:center}
+    .iconSprite{position:absolute; width:0; height:0; overflow:hidden}
+    .icon{
+      width:18px; height:18px;
+      stroke:currentColor; fill:none; stroke-width:1.8;
+      stroke-linecap:round; stroke-linejoin:round;
+      flex:0 0 auto;
+    }
+    .icon.sm{width:16px; height:16px}
+    .icon.xs{width:14px; height:14px}
+    .icon.lg{width:28px; height:28px}
+    .iconLabel{display:inline-flex; align-items:center; gap:6px}
+    .pill .icon{width:16px; height:16px}
+    .bigIcon .icon{width:28px; height:28px}
 
     .wrap{max-width:720px; margin:0 auto; padding:16px; display:flex; flex-direction:column; gap:14px}
     .card{
@@ -157,7 +171,10 @@
       border:1px solid rgba(210,43,43,.25);
       font-size:26px;
       user-select:none;
+      color:var(--muted);
     }
+    .punch.is-active .bigIcon{color:var(--good)}
+    .punch.is-paused .bigIcon{color:var(--warn)}
 
     .chips{display:flex; gap:10px; margin-top:8px}
     .chips3{display:flex; gap:10px; margin-top:12px}
@@ -511,11 +528,57 @@ body{
 </head>
 
 <body>
+  <svg class="iconSprite" aria-hidden="true">
+    <symbol id="i-gear" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3.5"></circle>
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path>
+    </symbol>
+    <symbol id="i-check-circle" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9"></circle>
+      <path d="M8.5 12.5l2.5 2.5 4.5-5"></path>
+    </symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9"></circle>
+      <path d="M12 7v5l3 2"></path>
+    </symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24">
+      <path d="M9 6v12"></path>
+      <path d="M15 6v12"></path>
+    </symbol>
+    <symbol id="i-pause-circle" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9"></circle>
+      <path d="M10 8v8"></path>
+      <path d="M14 8v8"></path>
+    </symbol>
+    <symbol id="i-car" viewBox="0 0 24 24">
+      <path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"></path>
+      <path d="M3 13h18v5a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-1H7v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5z"></path>
+      <path d="M7 11h10"></path>
+      <circle cx="7.5" cy="16.5" r="1"></circle>
+      <circle cx="16.5" cy="16.5" r="1"></circle>
+    </symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24">
+      <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+      <path d="M16 3v4"></path>
+      <path d="M8 3v4"></path>
+      <path d="M3 9h18"></path>
+    </symbol>
+    <symbol id="i-list" viewBox="0 0 24 24">
+      <path d="M8 6h12"></path>
+      <path d="M8 12h12"></path>
+      <path d="M8 18h12"></path>
+      <circle cx="4" cy="6" r="1"></circle>
+      <circle cx="4" cy="12" r="1"></circle>
+      <circle cx="4" cy="18" r="1"></circle>
+    </symbol>
+  </svg>
   <header class="topbar">
     <div class="brand">Timbratrice</div>
     <div class="right">
       <div id="userPill" class="userPill">Non loggato</div>
-      <button id="btnSettings" class="iconBtn" aria-label="Account">⚙️</button>
+      <button id="btnSettings" class="iconBtn" aria-label="Account">
+        <svg class="icon" aria-hidden="true"><use href="#i-gear"></use></svg>
+      </button>
     </div>
   </header>
 
@@ -526,21 +589,36 @@ body{
     <section class="card punch">
       <div class="punchHead">
         <div class="punchTitle">Timbratrice</div>
-        <div id="statusPill" class="pill ready">✅ Pronto</div>
+        <div id="statusPill" class="pill ready">
+          <svg class="icon sm" aria-hidden="true"><use href="#i-check-circle"></use></svg>
+          <span>Pronto</span>
+        </div>
       </div>
 
       <div class="netRow">
         <div class="netTime" id="netTime">0:00</div>
-        <div class="bigIcon" id="bigIcon">✅</div>
+        <div class="bigIcon" id="bigIcon">
+          <svg class="icon lg" aria-hidden="true"><use href="#i-check-circle"></use></svg>
+        </div>
       </div>
 
       <div class="chips">
         <div class="chip">
-          <div class="chipLabel">Pausa</div>
+          <div class="chipLabel">
+            <span class="iconLabel">
+              <svg class="icon xs" aria-hidden="true"><use href="#i-pause"></use></svg>
+              Pausa
+            </span>
+          </div>
           <div class="chipValue" id="pauseVal">0:00</div>
         </div>
         <div class="chip">
-          <div class="chipLabel">Km</div>
+          <div class="chipLabel">
+            <span class="iconLabel">
+              <svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>
+              Km
+            </span>
+          </div>
           <div class="chipValue" id="kmVal">0</div>
         </div>
       </div>
@@ -550,7 +628,12 @@ body{
 </div>
 
 <div class="iosRow">
-  <div class="iosLabel">Inizio</div>
+  <div class="iosLabel">
+    <span class="iconLabel">
+      <svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>
+      Inizio
+    </span>
+  </div>
   <div class="iosRight">
     <input id="startDateUI" class="iosBox" type="date">
     <input id="startTimeUI" class="iosBox" type="time" step="60">
@@ -559,7 +642,12 @@ body{
 <input id="startInput" type="datetime-local" class="hidden">
 
 <div id="endRow" class="iosRow hidden">
-  <div class="iosLabel">Fine</div>
+  <div class="iosLabel">
+    <span class="iconLabel">
+      <svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>
+      Fine
+    </span>
+  </div>
   <div class="iosRight">
     <input id="endDateUI" class="iosBox" type="date">
     <input id="endTimeUI" class="iosBox" type="time" step="60">
@@ -568,7 +656,12 @@ body{
 <input id="endInput" type="datetime-local" class="hidden">
 
 <div class="iosRow">
-  <div class="iosLabel">Pausa (hh:mm)</div>
+  <div class="iosLabel">
+    <span class="iconLabel">
+      <svg class="icon xs" aria-hidden="true"><use href="#i-pause"></use></svg>
+      Pausa (hh:mm)
+    </span>
+  </div>
   <div class="iosRight">
     <input id="pauseHHMMUI" class="iosBox iosBoxSmall" type="time" step="60" value="00:00">
   </div>
@@ -576,7 +669,12 @@ body{
 <input id="pauseInput" inputmode="numeric" type="number" min="0" step="1" class="hidden" value="0">
 
 <div class="iosRow">
-  <div class="iosLabel">Km</div>
+  <div class="iosLabel">
+    <span class="iconLabel">
+      <svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>
+      Km
+    </span>
+  </div>
   <div class="iosRight">
     <input id="kmInput" class="iosBox iosBoxSmall" inputmode="numeric" type="text" placeholder="0">
   </div>
@@ -600,7 +698,7 @@ body{
 </div>
 
       <div id="loginHint" class="hint" style="margin-top:12px">
-        🔐 Per sincronizzare su Supabase: apri ⚙️, fai login (l’admin crea gli utenti) e poi usa l’app normalmente.
+        🔐 Per sincronizzare su Supabase: apri Impostazioni, fai login (l’admin crea gli utenti) e poi usa l’app normalmente.
       </div>
       <div id="actionMsg" class="msg hidden" style="margin-top:10px"></div>
     </section>
@@ -620,15 +718,30 @@ body{
 
       <div class="chips3">
         <div class="chip">
-          <div class="chipLabel">Turni</div>
+          <div class="chipLabel">
+            <span class="iconLabel">
+              <svg class="icon xs" aria-hidden="true"><use href="#i-list"></use></svg>
+              Turni
+            </span>
+          </div>
           <div class="chipValue" id="sumTurns">0</div>
         </div>
         <div class="chip">
-          <div class="chipLabel">Ore</div>
+          <div class="chipLabel">
+            <span class="iconLabel">
+              <svg class="icon xs" aria-hidden="true"><use href="#i-clock"></use></svg>
+              Ore
+            </span>
+          </div>
           <div class="chipValue" id="sumHours">0:00</div>
         </div>
         <div class="chip">
-          <div class="chipLabel">Km</div>
+          <div class="chipLabel">
+            <span class="iconLabel">
+              <svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>
+              Km
+            </span>
+          </div>
           <div class="chipValue" id="sumKm">0</div>
         </div>
       </div>
@@ -827,6 +940,7 @@ try{
     // --------- utilities ---------
     const $ = (id) => document.getElementById(id);
     const pad2 = (n) => String(n).padStart(2, "0");
+    const iconSvg = (id, cls="icon") => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"></use></svg>`;
     const fmtHM = (min) => {
       const m = Math.max(0, Math.floor(Number(min || 0)));
       const h = Math.floor(m / 60);
@@ -1328,7 +1442,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
     async function upsertRow(row){
       if(!sb) throw new Error("Supabase non inizializzato.");
       const user = await requireUser();
-      if(!user) throw new Error("Fai login (⚙️) per salvare.");
+      if(!user) throw new Error("Fai login (Impostazioni) per salvare.");
       const token = await getAccessToken();
       if(!token) throw new Error("Sessione non valida: rifai login.");
 
@@ -1373,7 +1487,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
     async function deleteRow(id){
       if(!sb) throw new Error("Supabase non inizializzato.");
       const user = await requireUser();
-      if(!user) throw new Error("Fai login (⚙️) per cancellare.");
+      if(!user) throw new Error("Fai login (Impostazioni) per cancellare.");
       const token = await getAccessToken();
       if(!token) throw new Error("Sessione non valida: rifai login.");
 
@@ -1414,7 +1528,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
 
     async function startShift(){
       const user = await requireUser();
-      if(!user){ setActionMsg("❌ Fai login (⚙️) per iniziare e salvare.", "err"); return; }
+      if(!user){ setActionMsg("❌ Fai login (Impostazioni) per iniziare e salvare.", "err"); return; }
       if(active) return;
 
       const titleRaw = ($("titleInput").value || "").trim();
@@ -1453,7 +1567,7 @@ startISO: localInputToISO($("startInput").value) || toISO(now),
 
     async function toggleBreak(){
       const user = await requireUser();
-      if(!user){ setActionMsg("❌ Fai login (⚙️).", "err"); return; }
+      if(!user){ setActionMsg("❌ Fai login (Impostazioni).", "err"); return; }
       if(!active) return;
 
       const nowISO = toISO(new Date());
@@ -1488,7 +1602,7 @@ startISO: localInputToISO($("startInput").value) || toISO(now),
 
     async function stopShift(){
       const user = await requireUser();
-      if(!user){ setActionMsg("❌ Fai login (⚙️).", "err"); return; }
+      if(!user){ setActionMsg("❌ Fai login (Impostazioni).", "err"); return; }
       if(!active) return;
 
       const nowISO = toISO(new Date());
@@ -1559,8 +1673,8 @@ function stopEditEndedRecord(){
 
       if(!active){
         pill.className = "pill ready";
-        pill.textContent = "✅ Pronto";
-        bigIcon.textContent = "✅";
+        pill.innerHTML = `${iconSvg("i-check-circle","icon sm")}<span>Pronto</span>`;
+        bigIcon.innerHTML = iconSvg("i-check-circle","icon lg");
         $("btnStart").disabled = false;
         $("btnBreak").disabled = true;
         $("btnStop").disabled = true;
@@ -1570,8 +1684,10 @@ function stopEditEndedRecord(){
         isPause = !!active.breakStartISO;
 
         pill.className = "pill " + (isPause ? "pause" : "run");
-        pill.innerHTML = isPause ? `⏸︎ Pausa` : `<span class="spinner"></span> In corso`;
-        bigIcon.textContent = isPause ? "⏸︎" : "🕒";
+        pill.innerHTML = isPause
+          ? `${iconSvg("i-pause","icon sm")}<span>Pausa</span>`
+          : `<span class="spinner"></span><span>In corso</span>`;
+        bigIcon.innerHTML = isPause ? iconSvg("i-pause-circle","icon lg") : iconSvg("i-clock","icon lg");
 
         $("btnStart").disabled = true;
         $("btnBreak").disabled = false;
