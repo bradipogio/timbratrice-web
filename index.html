@@ -191,6 +191,22 @@
       outline:none;
       font-size:16px;
     }
+    textarea{
+  width:100%;
+  padding:12px 12px;
+  border-radius:14px;
+  border:1px solid var(--line);
+  background:var(--card2);
+  color:var(--text);
+  outline:none;
+  font-size:16px;
+  resize:vertical;
+  min-height:92px;
+}
+textarea:focus{border-color: rgba(210,43,43,.55)}
+
+.grid1{display:grid; grid-template-columns:1fr; gap:10px; margin-top:12px}
+@media (max-width:520px){.grid1{grid-template-columns:1fr}}
     input:focus{border-color: rgba(210,43,43,.55)}
     .actions{display:flex; gap:10px; margin-top:14px}
     .btn{
@@ -341,7 +357,36 @@
           <input id="kmInput" inputmode="numeric" type="text" placeholder="0">
         </label>
       </div>
+<div class="grid2">
+  <label class="field">
+    <span>Inizio (data/ora)</span>
+    <input id="startInput" type="datetime-local">
+  </label>
 
+  <label class="field">
+    <span>Fine (data/ora)</span>
+    <input id="endInput" type="datetime-local">
+  </label>
+</div>
+
+<div class="grid2">
+  <label class="field">
+    <span>Pausa (minuti)</span>
+    <input id="pauseInput" inputmode="numeric" type="number" min="0" step="1" placeholder="0">
+  </label>
+
+  <label class="field">
+    <span>&nbsp;</span>
+    <input type="text" disabled value="">
+  </label>
+</div>
+
+<div class="grid1">
+  <label class="field">
+    <span>Note</span>
+    <textarea id="notesInput" placeholder="Opzionale"></textarea>
+  </label>
+</div>
       <div class="actions">
         <button id="btnStart" class="btn primary">Inizia turno</button>
         <button id="btnBreak" class="btn">Inizia pausa</button>
@@ -581,7 +626,25 @@ try{
       const dd = pad2(d.getDate());
       return `${yyyy}-${mm}-${dd}`;
     }
+function isoToLocalInput(iso){
+  if(!iso) return "";
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return "";
+  const yyyy = d.getFullYear();
+  const mm = pad2(d.getMonth()+1);
+  const dd = pad2(d.getDate());
+  const HH = pad2(d.getHours());
+  const MI = pad2(d.getMinutes());
+  return `${yyyy}-${mm}-${dd}T${HH}:${MI}`;
+}
 
+function localInputToISO(v){
+  const s = (v || "").trim();
+  if(!s) return "";
+  const d = new Date(s); // datetime-local => interpretato come ora LOCALE
+  if(isNaN(d.getTime())) return "";
+  return d.toISOString();
+}
     // --------- local settings ---------
     const LS = {
       get(key, def=""){ try{ return localStorage.getItem(key) ?? def; }catch{ return def; } },
@@ -624,6 +687,39 @@ let editRow = null; // record finito che sto modificando (titolo/km)
 
 function syncInputsWithState(){
   const t = $("titleInput");
+  const k = $("kmInput");
+  const s = $("startInput");
+  const e = $("endInput");
+  const p = $("pauseInput");
+  const n = $("notesInput");
+  if(!t || !k) return;
+
+  if(editRow){
+    t.value = editRow.title || "";
+    k.value = (editRow.km ?? 0) === 0 ? "" : String(editRow.km);
+    if(s) s.value = isoToLocalInput(editRow.startISO);
+    if(e) e.value = isoToLocalInput(editRow.endISO);
+    if(p) p.value = String(Number(editRow.pauseMin||0));
+    if(n) n.value = editRow.notes || "";
+    return;
+  }
+
+  if(active){
+    t.value = active.title || "";
+    k.value = (active.km ?? 0) === 0 ? "" : String(active.km);
+    if(s) s.value = isoToLocalInput(active.startISO);
+    if(e) e.value = isoToLocalInput(active.endISO);
+    if(p) p.value = String(Number(active.pauseMin||0));
+    if(n) n.value = active.notes || "";
+  }else{
+    t.value = draftTitle || "";
+    k.value = draftKm || "";
+    if(s) s.value = "";
+    if(e) e.value = "";
+    if(p) p.value = "0";
+    if(n) n.value = "";
+  }
+}  const t = $("titleInput");
   const k = $("kmInput");
   if(!t || !k) return;
 
@@ -1069,7 +1165,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
       const row = {
         id: newId(),
         title,
-        startISO: toISO(now),
+startISO: localInputToISO($("startInput").value) || toISO(now),
         endISO: "",
         pauseMin: 0,
         workMin: 0,
@@ -1515,6 +1611,113 @@ $("kmInput").addEventListener("input", ()=>{
     draftKm = raw;
   }
 });
+$("notesInput").addEventListener("input", ()=>{
+  const v = $("notesInput").value || "";
+  if(editRow){
+    editRow.notes = v;
+    return;
+  }
+  if(active){
+    active.notes = v;
+    saveActiveEditsDebounced();
+  }
+});
+$("pauseInput").addEventListener("input", ()=>{
+  const raw = ($("pauseInput").value || "0").trim();
+  const v = Math.max(0, parseInt(raw, 10) || 0);
+
+  if(editRow){
+    editRow.pauseMin = v;
+    if(editRow.endISO) editRow.workMin = computeWorkMin(editRow, editRow.endISO);
+    renderAll();
+    return;
+  }
+
+  if(active){
+    // se è in pausa, la chiudo “a forza” così non conteggia doppio
+    if(active.breakStartISO){
+      const bs = new Date(active.breakStartISO);
+      const now = new Date();
+      const addMin = Math.max(0, Math.floor((now - bs)/60000));
+      active.pauseMin = Number(active.pauseMin||0) + addMin;
+      active.breakStartISO = "";
+    }
+    active.pauseMin = v;
+    active.workMin = computeWorkMin(active, toISO(new Date()));
+    saveActiveEditsDebounced();
+    renderAll();
+  }
+});
+$("startInput").addEventListener("change", ()=>{
+  const iso = localInputToISO($("startInput").value || "");
+  if(!iso){
+    setActionMsg("❌ Data/ora inizio non valida", "err");
+    return;
+  }
+
+  if(editRow){
+    editRow.startISO = iso;
+    if(editRow.endISO) editRow.workMin = computeWorkMin(editRow, editRow.endISO);
+    renderAll();
+    return;
+  }
+
+  if(active){
+    active.startISO = iso;
+    active.workMin = computeWorkMin(active, toISO(new Date()));
+    saveActiveEditsDebounced();
+    renderAll();
+  }
+});
+$("endInput").addEventListener("change", async ()=>{
+  const v = $("endInput").value || "";
+  const iso = v ? localInputToISO(v) : "";
+  if(v && !iso){
+    setActionMsg("❌ Data/ora fine non valida", "err");
+    return;
+  }
+
+  if(editRow){
+    editRow.endISO = iso;
+    if(editRow.endISO) editRow.workMin = computeWorkMin(editRow, editRow.endISO);
+    renderAll();
+    return;
+  }
+
+  if(active){
+    // se metti una fine, chiudi il turno a quell'ora
+    if(!iso){
+      active.endISO = "";
+      saveActiveEditsDebounced();
+      renderAll();
+      return;
+    }
+
+    // chiudi eventuale break usando come riferimento la fine scelta
+    if(active.breakStartISO){
+      const bs = new Date(active.breakStartISO);
+      const endD = new Date(iso);
+      const addMin = Math.max(0, Math.floor((endD - bs)/60000));
+      active.pauseMin = Number(active.pauseMin||0) + addMin;
+      active.breakStartISO = "";
+    }
+
+    active.endISO = iso;
+    active.workMin = computeWorkMin(active, active.endISO);
+
+    try{
+      setActionMsg("⏳ Chiusura turno...", null);
+      await upsertRow(active);
+      active = null;
+      syncInputsWithState();
+      await refresh();
+      setActionMsg("✅ Turno chiuso", "ok");
+    }catch(err){
+      console.error(err);
+      setActionMsg("❌ " + (err.message || String(err)), "err");
+    }
+  }
+});
     $("btnStop").addEventListener("click", ()=>{
       if(confirm("Finire il turno?")) stopShift();
     });
@@ -1532,6 +1735,7 @@ $("btnSaveEdit").addEventListener("click", async (e)=>{
 
   try{
     setActionMsg("⏳ Salvataggio modifiche...", null);
+    if(editRow.endISO) editRow.workMin = computeWorkMin(editRow, editRow.endISO);
     await upsertRow(editRow);      // stesso id => aggiorna
     stopEditEndedRecord();
     await refresh();
