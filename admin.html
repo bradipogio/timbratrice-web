@@ -139,15 +139,28 @@
       background:var(--card2);
       border:1px solid var(--line);
       border-radius:12px;
-      padding:10px 12px;
+      padding:8px 10px;
     }
     .adminFilters .field > span{color:var(--muted)}
     .adminFilters .field input,
     .adminFilters .field select{
       background:transparent;
       border:none;
-      padding:8px 0 4px;
-      font-size:15px;
+      padding:6px 0 2px;
+      font-size:14px;
+    }
+    .adminFilters .grid1,
+    .adminFilters .grid2,
+    .adminFilters .grid3{
+      margin-top:8px;
+      gap:8px;
+    }
+    @media (max-width:760px){
+      .adminFilters .grid2{grid-template-columns:1fr 1fr}
+    }
+    @media (max-width:520px){
+      .adminFilters .grid2{grid-template-columns:1fr 1fr}
+      .adminFilters .grid1{grid-template-columns:1fr}
     }
     .adminFilters .field input:focus,
     .adminFilters .field select:focus{
