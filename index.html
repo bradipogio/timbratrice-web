@@ -274,7 +274,7 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     .toggle input{width:18px; height:18px}
 
     .filterBox{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
-    @media (max-width:520px){.filterBox{grid-template-columns:1fr}}
+    @media (max-width:520px){.filterBox{grid-template-columns:1fr 1fr}}
     .row{display:flex; gap:10px; margin-top:12px}
 
     .list{display:flex; flex-direction:column; gap:10px; margin-top:10px}
@@ -552,7 +552,12 @@ body{
 
 .actions{gap:12px}
 .btn{border-radius:22px; font-size:18px; padding:16px 16px}
-.btn.primary{background:linear-gradient(180deg, var(--accent), var(--accent2)); border:none; color:white}
+.btn.primary{
+  background:linear-gradient(180deg, var(--accent), var(--accent2));
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18);
+  color:white;
+}
 .btn.danger{background:rgba(255,70,70,.12); border-color:rgba(255,70,70,.18)}
 
 .btn, .miniBtn, .iconBtn{
@@ -609,6 +614,10 @@ body{
   display:none;
 }
 .filterBox .field{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
   background:var(--card2);
   border:1px solid var(--line);
   border-radius:16px;
@@ -619,13 +628,19 @@ body{
   font-weight:800;
 }
 .filterBox input{
-  background:transparent;
-  border:none;
-  padding:6px 0 2px;
+  width:auto;
+  min-width:120px;
+  text-align:right;
+  background:var(--card2);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:8px 10px;
   font-size:15px;
+  color:var(--text);
+  -webkit-text-fill-color: var(--text);
 }
 .filterBox input:focus{
-  border:none;
+  border-color: rgba(210,43,43,.55);
 }
 .btn.exportBtn{
   padding:10px 12px;
