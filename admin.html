@@ -293,6 +293,9 @@
         <button id="btnExport" class="btn">Esporta CSV (filtro)</button>
         <button id="btnClear" class="btn">Pulisci filtri</button>
       </div>
+      <div class="row">
+        <button id="btnExportPdf" class="btn">Esporta PDF</button>
+      </div>
 
       <div class="chips3">
         <div class="chip">
@@ -655,6 +658,130 @@ async function refresh(){
       a.remove();
     }
 
+    function exportPDF(){
+      const rows = [...records];
+      if(rows.length === 0){
+        setActionMsg("Nessun record da esportare.", "err");
+        return;
+      }
+
+      const dt = (iso)=>{
+        if(!iso) return "";
+        const d = new Date(iso);
+        const yyyy = d.getFullYear();
+        const mm = pad2(d.getMonth()+1);
+        const dd = pad2(d.getDate());
+        const HH = pad2(d.getHours());
+        const MI = pad2(d.getMinutes());
+        return `${yyyy}/${mm}/${dd} ${HH}:${MI}`;
+      };
+
+      let sumWork = 0;
+      let sumKm = 0;
+      let sumPause = 0;
+      for(const r of rows){
+        sumWork += Number(r.work_min||0);
+        sumKm += Number(r.km||0);
+        sumPause += Number(r.pause_min||0);
+      }
+
+      const emailFilter = ($("emailSelect").value || "").trim();
+      const fromDate = $("fromDate").value;
+      const toDate = $("toDate").value;
+      const sortField = $("sortField").value;
+      const sortDir = $("sortDir").value;
+      const nowText = new Date().toLocaleString("it-IT");
+
+      const rowsHtml = rows.map((r, i)=>{
+        const email = escapeHTML(r.user_email || "");
+        const t = escapeHTML(r.title || "Senza titolo");
+        const start = escapeHTML(dt(r.start_ts));
+        const end = escapeHTML(dt(r.end_ts));
+        const pause = escapeHTML(fmtHM(Number(r.pause_min||0)));
+        const work = escapeHTML(fmtHM(Number(r.work_min||0)));
+        const km = escapeHTML(String(Number(r.km||0)));
+        const zebra = i % 2 ? " class=\"alt\"" : "";
+        return `<tr${zebra}>
+  <td>${email}</td>
+  <td>${t}</td>
+  <td class="nowrap">${start}</td>
+  <td class="nowrap">${end}</td>
+  <td class="center">${pause}</td>
+  <td class="center">${work}</td>
+  <td class="right">${km}</td>
+</tr>`;
+      }).join("");
+
+      const meta = [
+        emailFilter ? `Email: ${escapeHTML(emailFilter)}` : "",
+        (fromDate || toDate) ? `Intervallo: ${escapeHTML(fromDate || "")} ${toDate ? "-> " + escapeHTML(toDate) : ""}` : "",
+        `Ordinamento: ${escapeHTML(sortField)} ${escapeHTML(sortDir)}`,
+        `Generato: ${escapeHTML(nowText)}`
+      ].filter(Boolean);
+
+      const metaLines = meta.map(line => `<div class="meta">${line}</div>`).join("");
+
+      const html = `<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Timbratrice-Admin-PDF</title>
+  <style>
+    @page { size: A4; margin: 18mm 14mm; }
+    body{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color:#111; }
+    h1{ font-size:20px; margin:0 0 6px; }
+    .meta{ font-size:12px; color:#555; margin-bottom:3px; }
+    table{ width:100%; border-collapse:collapse; margin-top:12px; }
+    th, td{ font-size:10px; padding:6px 6px; border-bottom:1px solid #ddd; vertical-align:top; }
+    th{ background:#f2f2f2; text-align:left; }
+    tr.alt td{ background:#fafafa; }
+    .right{ text-align:right; }
+    .center{ text-align:center; }
+    .nowrap{ white-space:nowrap; }
+    .totals{ margin-top:12px; font-size:12px; }
+  </style>
+</head>
+<body>
+  <h1>Timbratrice Admin</h1>
+  ${metaLines}
+  <table>
+    <thead>
+      <tr>
+        <th>Email</th>
+        <th>Titolo</th>
+        <th>Inizio</th>
+        <th>Fine</th>
+        <th>Pausa</th>
+        <th>Ore</th>
+        <th class="right">Km</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml}
+    </tbody>
+  </table>
+  <div class="totals">
+    Tot ore: ${escapeHTML(fmtHM(sumWork))} &nbsp;•&nbsp;
+    Tot pausa: ${escapeHTML(fmtHM(sumPause))} &nbsp;•&nbsp;
+    Tot km: ${escapeHTML(String(sumKm))} &nbsp;•&nbsp;
+    Record: ${rows.length}
+  </div>
+</body>
+</html>`;
+
+      const win = window.open("", "_blank");
+      if(!win){
+        setActionMsg("Popup bloccato: abilita per esportare PDF.", "err");
+        return;
+      }
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+      win.document.title = `timbratrice-admin-${Date.now()}`;
+      win.focus();
+      win.onload = () => win.print();
+    }
+
     function csvEscape(s, sep){
       const t = String(s||"").trim();
       if(t.includes(sep) || t.includes('"') || t.includes("\n") || t.includes("\r")){
@@ -700,6 +827,7 @@ $("btnLogout").addEventListener("click", async ()=>{
 });
 
     $("btnExport").addEventListener("click", exportCSV);
+    $("btnExportPdf").addEventListener("click", exportPDF);
     $("btnClear").addEventListener("click", ()=>{
       $("emailSelect").value = "";
       $("fromDate").value = "";
