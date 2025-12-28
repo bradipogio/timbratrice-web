@@ -2,8 +2,6 @@ name: Supabase Keep Alive
 
 on:
   schedule:
-    # GitHub usa cron in UTC.
-    # Lunedì e Giovedì alle 08:00 UTC (in Italia ~09:00 inverno / ~10:00 estate)
     - cron: "0 8 * * 1,4"
   workflow_dispatch:
 
@@ -13,14 +11,14 @@ jobs:
     steps:
       - name: Ping Supabase REST (PostgREST)
         env:
-          SUPABASE_URL: ${{ secrets.https://rvznuudatshqyzmnqrmd.supabase.co }}
-          SUPABASE_ANON_KEY: ${{ secrets.sb_publishable_n8ZS_zPmPqm7mLeFMmt7sw_sN4_3fza }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           set -e
           echo "Pinging Supabase..."
           curl -sS --fail \
-            -H "apikey: ${sb_publishable_n8ZS_zPmPqm7mLeFMmt7sw_sN4_3fza}" \
-            -H "Authorization: Bearer ${sb_publishable_n8ZS_zPmPqm7mLeFMmt7sw_sN4_3fza}" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
             -H "Accept: application/json" \
             "${SUPABASE_URL}/rest/v1/work_records?select=id&limit=1" \
             > /dev/null
