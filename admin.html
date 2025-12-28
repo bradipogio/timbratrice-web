@@ -317,12 +317,18 @@
       return Promise.race([promise, timeout]).finally(()=> clearTimeout(timerId));
     }
 
-    async function getUser(){
-      if(!sb) return null;
-      const { data, error } = await sb.auth.getSession();
-      if(error) return null;
-      return data.session?.user || null;
-    }
+async function getUser(){
+  // usa l'utente già noto dall'evento auth
+  if(currentUser) return currentUser;
+
+  // fallback leggero, senza blocchi
+  try{
+    const { data } = await sb.auth.getSession();
+    return data?.session?.user || null;
+  }catch{
+    return null;
+  }
+}
 
     function setAuthUI(user){
       const pill = $("userPill");
