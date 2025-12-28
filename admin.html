@@ -206,12 +206,7 @@
       <div class="h2">Controllo Orari</div>
       <div class="sub">Filtra per utente, data e ordina i risultati</div>
 
-      <div class="grid3">
-        <label class="field">
-          <span>Email utente</span>
-          <input id="emailFilterInput" type="text" placeholder="nome@email.com" list="emailOptions">
-          <datalist id="emailOptions"></datalist>
-        </label>
+      <div class="grid2">
         <label class="field">
           <span>Seleziona email</span>
           <select id="emailSelect">
@@ -307,6 +302,41 @@
 let currentUser = null;
 let currentSession = null; // cache in-memory session (access_token)
 let records = [];
+let autoDateInitialized = false;
+
+function isoDate(isoTs){
+  if(!isoTs) return "";
+  const d = new Date(isoTs);
+  const yyyy = d.getFullYear();
+  const mm = pad2(d.getMonth()+1);
+  const dd = pad2(d.getDate());
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function initDateRangeFromRecordsOnce(){
+  if(autoDateInitialized) return;
+  if(!records || records.length === 0) return;
+
+  const dates = records
+    .map(r => r.start_ts)
+    .filter(Boolean)
+    .map(ts => new Date(ts))
+    .filter(d => !isNaN(d.getTime()));
+
+  if(dates.length === 0) return;
+
+  dates.sort((a,b)=> a.getTime() - b.getTime());
+  const minD = dates[0];
+  const maxD = dates[dates.length-1];
+
+  // Only set if user hasn't already picked dates
+  const fromEl = $("fromDate");
+  const toEl = $("toDate");
+  if(!fromEl.value) fromEl.value = isoDate(minD.toISOString());
+  if(!toEl.value) toEl.value = isoDate(maxD.toISOString());
+
+  autoDateInitialized = true;
+}
 
 function withTimeout(promise, ms, label){
   let timerId;
@@ -467,14 +497,9 @@ async function loadUsers(){
     const unique = Array.from(new Set((data || []).map(r => String(r.user_email || "").trim()).filter(Boolean)));
     unique.sort((a,b)=> a.localeCompare(b, "it"));
 
-    const dl = $("emailOptions");
     const sel = $("emailSelect");
-    dl.innerHTML = "";
     sel.innerHTML = '<option value="">Tutte</option>';
     for(const email of unique){
-      const opt = document.createElement("option");
-      opt.value = email;
-      dl.appendChild(opt);
       const opt2 = document.createElement("option");
       opt2.value = email;
       opt2.textContent = email;
@@ -499,7 +524,7 @@ async function refresh(){
     return;
   }
 
-  const emailFilter = ($("emailFilterInput").value || "").trim();
+  const emailFilter = ($("emailSelect").value || "").trim();
   const userId = ($("userIdInput").value || "").trim();
   const fromDate = $("fromDate").value;
   const toDate = $("toDate").value;
@@ -524,6 +549,7 @@ async function refresh(){
     records = data || [];
     renderSummary();
     renderList();
+    initDateRangeFromRecordsOnce();
 
     if(records.length === 0){
       setActionMsg("⚠️ Nessun record trovato (filtri troppo stretti o dati assenti).", "err");
@@ -628,19 +654,17 @@ $("btnLogout").addEventListener("click", async ()=>{
     $("btnRefresh").addEventListener("click", refresh);
     $("btnExport").addEventListener("click", exportCSV);
     $("btnClear").addEventListener("click", ()=>{
-      $("emailFilterInput").value = "";
       $("emailSelect").value = "";
       $("userIdInput").value = "";
       $("fromDate").value = "";
       $("toDate").value = "";
       $("sortField").value = "start_ts";
       $("sortDir").value = "desc";
+      autoDateInitialized = false;
       refresh();
     });
 
-    $("emailSelect").addEventListener("change", (e)=>{
-      $("emailFilterInput").value = e.target.value || "";
-      // keep userId empty unless user typed it
+    $("emailSelect").addEventListener("change", ()=>{
       refresh();
     });
 
