@@ -529,9 +529,12 @@ body{
 }
 .punch.is-active .iosRow .iosRight input,
 .punch.is-editing .iosRow .iosRight input{
-  background:transparent;
-  border:none;
-  padding:6px 0;
+  background:var(--card2);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:8px 10px;
+  color:var(--text);
+  -webkit-text-fill-color: var(--text);
 }
 
 .iosDetails{margin-top:12px}
@@ -588,8 +591,7 @@ body{
 .punch.is-active #endRow{
   display:none;
 }
-.punch.is-editing .iosDetails,
-.punch.is-editing #endRow{
+.punch.is-editing .iosDetails{
   display:none;
 }
 .punch.is-active #btnStart{
