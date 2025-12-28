@@ -109,6 +109,14 @@
       .grid2{grid-template-columns:1fr}
       .grid1{grid-template-columns:1fr}
     }
+    @media (max-width:520px){
+      .topbar{padding:10px 12px}
+      .wrap{padding:10px 12px; gap:10px}
+      .card{padding:12px; border-radius:18px}
+      .item{padding:10px}
+      .metaBox{padding:6px 8px}
+      .chips3{gap:8px}
+    }
     .row{display:flex; gap:10px; margin-top:12px}
     .btn{
       padding:12px 14px;
@@ -127,6 +135,24 @@
     }
     .btn.danger{background:rgba(255,70,70,.10); border-color:rgba(255,70,70,.25)}
     .btn:disabled{opacity:.45; cursor:not-allowed}
+    .adminFilters .field{
+      background:var(--card2);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px 12px;
+    }
+    .adminFilters .field > span{color:var(--muted)}
+    .adminFilters .field input,
+    .adminFilters .field select{
+      background:transparent;
+      border:none;
+      padding:8px 0 4px;
+      font-size:15px;
+    }
+    .adminFilters .field input:focus,
+    .adminFilters .field select:focus{
+      border:none;
+    }
     .chips3{display:flex; gap:10px; margin-top:12px}
     .chip{
       flex:1;
@@ -281,7 +307,7 @@
       <div id="authMsg" class="msg"></div>
     </section>
 
-    <section id="adminCard" class="card hidden">
+    <section id="adminCard" class="card hidden adminFilters">
       <div class="h2">Controllo Orari</div>
       <div class="sub">Filtra per utente, data e ordina i risultati</div>
 
