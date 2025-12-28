@@ -450,6 +450,25 @@ body{
 .btn{border-radius:22px; font-size:18px; padding:16px 16px}
 .btn.primary{background:linear-gradient(180deg, var(--accent), var(--accent2)); border:none; color:white}
 .btn.danger{background:rgba(255,70,70,.12); border-color:rgba(255,70,70,.18)}
+
+.btn, .miniBtn, .iconBtn{
+  transition: transform .06s ease, filter .06s ease, box-shadow .06s ease;
+}
+.btn:active:not(:disabled),
+.miniBtn:active,
+.iconBtn:active{
+  transform: translateY(1px) scale(0.98);
+  filter: brightness(0.95);
+}
+.btn:active:not(:disabled){
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.25);
+}
+.btn:focus-visible,
+.miniBtn:focus-visible,
+.iconBtn:focus-visible{
+  outline:2px solid rgba(210,43,43,.55);
+  outline-offset:2px;
+}
   </style>
 </head>
 
