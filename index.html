@@ -463,6 +463,14 @@ body{
   color:var(--text);
   font-size:16px;
 }
+.searchBarInline{
+  width:auto;
+  min-width:180px;
+  max-width:52%;
+}
+@media (max-width:520px){
+  .searchBarInline{max-width:48%}
+}
 
 .card{border-radius:26px; box-shadow:var(--shadow)}
 .punch{background:var(--punchBg); border:1px solid var(--punchLine)}
@@ -684,9 +692,7 @@ body{
   </header>
 
 <main id="appMain" class="wrap">
-    <div class="searchWrap">
-    <input id="searchInput" class="searchBar" type="search" placeholder="Cerca titolo o note" autocomplete="off" />
-  </div>
+
     <section class="card punch collapsed">
       <div class="punchHead">
         <div class="punchTitle">Timbratrice</div>
@@ -841,7 +847,10 @@ body{
     </section>
 
     <section class="card">
-      <div class="h2">Storico</div>
+      <div class="summaryHead">
+        <div class="h2">Storico</div>
+        <input id="searchInput" class="searchBar searchBarInline" type="search" placeholder="Cerca titolo o note" autocomplete="off" />
+      </div>
       <div id="list" class="list"></div>
       <div id="empty" class="empty hidden">Nessun record</div>
     </section>
@@ -1718,6 +1727,7 @@ function startEditEndedRecord(id){
   syncInputsWithState();
   renderAll();
   setActionMsg("", null);
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function stopEditEndedRecord(){
