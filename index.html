@@ -719,24 +719,9 @@ function syncInputsWithState(){
     if(p) p.value = "0";
     if(n) n.value = "";
   }
-}  const t = $("titleInput");
-  const k = $("kmInput");
-  if(!t || !k) return;
-
-  if(editRow){
-    t.value = editRow.title || "";
-    k.value = (editRow.km ?? 0) === 0 ? "" : String(editRow.km);
-    return;
-  }
-
-  if(active){
-    t.value = active.title || "";
-    k.value = (active.km ?? 0) === 0 ? "" : String(active.km);
-  }else{
-    t.value = draftTitle || "";
-    k.value = draftKm || "";
-  }
 }
+
+
 
     // --------- auth helpers ---------
     function withTimeout(promise, ms, label){
