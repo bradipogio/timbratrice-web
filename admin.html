@@ -288,6 +288,7 @@
     const SUPABASE_URL_RAW = "https://rvznuudatshqyzmnqrmd.supabase.co";
     const SUPABASE_ANON_KEY_RAW = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2em51dWRhdHNocXl6bW5xcm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Njg5NTcsImV4cCI6MjA4MjM0NDk1N30.0_KKO88ExW4_WHXhR2fuVuLWNBmI3xXKMth4A2qqVr4";
     const ADMIN_EMAIL = "mazzanti.giova@gmail.com";
+    const ADMIN_EMAIL_NORM = ADMIN_EMAIL.trim().toLowerCase();
 
     const SUPABASE_URL = (SUPABASE_URL_RAW || "").trim();
     const SUPABASE_ANON_KEY = (SUPABASE_ANON_KEY_RAW || "").trim();
@@ -326,16 +327,28 @@
     function setAuthUI(user){
       const pill = $("userPill");
       currentUser = user || null;
+
+      const userEmailNorm = (user?.email || "").trim().toLowerCase();
       if(user){
         pill.textContent = user.email || "Loggato";
       }else{
         pill.textContent = "Non loggato";
       }
-      const isAdmin = !!user && user.email === ADMIN_EMAIL;
+
+      const isAdmin = !!user && userEmailNorm === ADMIN_EMAIL_NORM;
       $("adminCard").classList.toggle("hidden", !isAdmin);
       $("loginCard").classList.toggle("hidden", isAdmin);
+
       if(user && !isAdmin){
-        setAuthMsg("❌ Accesso negato: non sei admin.", "err");
+        setAuthMsg("❌ Accesso negato: questo account non è admin.", "err");
+      }
+
+      if(!user){
+        setAuthMsg("", null);
+        setActionMsg("", null);
+        records = [];
+        renderSummary();
+        renderList();
       }
     }
 
@@ -396,7 +409,8 @@
     async function loadUsers(){
       if(!sb) return;
       const user = await getUser();
-      if(!user || user.email !== ADMIN_EMAIL) return;
+      const userEmailNorm = (user?.email || "").trim().toLowerCase();
+      if(!user || userEmailNorm !== ADMIN_EMAIL_NORM) return;
       try{
         const { data, error } = await withTimeout(
           sb.from("work_records_admin_view").select("user_email").not("user_email","is",null).limit(1000),
@@ -428,7 +442,8 @@
 
     async function refresh(){
       const user = await getUser();
-      if(!user || user.email !== ADMIN_EMAIL){
+      const userEmailNorm = (user?.email || "").trim().toLowerCase();
+      if(!user || userEmailNorm !== ADMIN_EMAIL_NORM){
         setAuthUI(user);
         return;
       }
@@ -454,7 +469,14 @@
         records = data || [];
         renderSummary();
         renderList();
-        setActionMsg(`✅ ${records.length} record`, "ok");
+        if(records.length === 0){
+          setActionMsg(
+            "⚠️ Nessun record trovato. Se ti aspetti dei dati, quasi sicuramente è un problema di RLS sulla tabella public.users (join della view).",
+            "err"
+          );
+        }else{
+          setActionMsg(`✅ ${records.length} record`, "ok");
+        }
       }catch(err){
         setActionMsg("❌ " + (err.message || String(err)), "err");
       }
@@ -559,11 +581,12 @@
 
     $("emailSelect").addEventListener("change", (e)=>{
       $("emailFilterInput").value = e.target.value || "";
+      // keep userId empty unless user typed it
       refresh();
     });
 
     sb?.auth.onAuthStateChange(async (_event, session)=>{
-      const user = session?.user || await getUser();
+      const user = session?.user || null;
       setAuthUI(user);
       await loadUsers();
       await refresh();
