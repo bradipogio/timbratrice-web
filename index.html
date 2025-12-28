@@ -347,6 +347,14 @@
         <button id="btnBreak" class="btn">Inizia pausa</button>
         <button id="btnStop" class="btn danger">Stop</button>
       </div>
+      <div id="editBanner" class="msg hidden" style="margin-top:12px">
+  ✏️ Stai modificando un record dello storico. Cambia Titolo/Km e premi “Salva modifiche”.
+</div>
+
+<div class="row">
+  <button id="btnSaveEdit" type="button" class="btn primary hidden">Salva modifiche</button>
+  <button id="btnCancelEdit" type="button" class="btn hidden">Annulla</button>
+</div>
 
       <div id="loginHint" class="hint" style="margin-top:12px">
         🔐 Per sincronizzare su Supabase: apri ⚙️, fai login (l’admin crea gli utenti) e poi usa l’app normalmente.
@@ -589,6 +597,7 @@ try{
     // --------- app state ---------
     let active = null;   // {id,title,startISO,endISO,pauseMin,workMin,km,notes,breakStartISO}
     let history = [];    // ended only
+let editRow = null; // record finito che sto modificando (titolo/km)
 
     // Prevent concurrent network actions (can cause hangs / UI confusion)
     let refreshBusy = false;
@@ -613,19 +622,25 @@ try{
       }, 450);
     }
 
-    function syncInputsWithState(){
-      const t = $("titleInput");
-      const k = $("kmInput");
-      if(!t || !k) return;
+function syncInputsWithState(){
+  const t = $("titleInput");
+  const k = $("kmInput");
+  if(!t || !k) return;
 
-      if(active){
-        t.value = active.title || "";
-        k.value = (active.km ?? 0) === 0 ? "" : String(active.km);
-      }else{
-        t.value = draftTitle || "";
-        k.value = draftKm || "";
-      }
-    }
+  if(editRow){
+    t.value = editRow.title || "";
+    k.value = (editRow.km ?? 0) === 0 ? "" : String(editRow.km);
+    return;
+  }
+
+  if(active){
+    t.value = active.title || "";
+    k.value = (active.km ?? 0) === 0 ? "" : String(active.km);
+  }else{
+    t.value = draftTitle || "";
+    k.value = draftKm || "";
+  }
+}
 
     // --------- auth helpers ---------
     function withTimeout(promise, ms, label){
@@ -1140,7 +1155,36 @@ sb.auth.onAuthStateChange(async (_event, session) => {
         setActionMsg("❌ " + (e.message || String(e)), "err");
       }
     }
+function startEditEndedRecord(id){
+  if(active){
+    setActionMsg("⚠️ Termina prima il turno attivo (Stop) prima di modificare lo storico.", "err");
+    return;
+  }
+  const row = history.find(r => r.id === id);
+  if(!row){
+    setActionMsg("❌ Record non trovato.", "err");
+    return;
+  }
 
+  editRow = { ...row };
+  $("editBanner").classList.remove("hidden");
+  $("btnSaveEdit").classList.remove("hidden");
+  $("btnCancelEdit").classList.remove("hidden");
+
+  syncInputsWithState();
+  renderAll();
+  setActionMsg("✏️ Modifica attiva: cambia Titolo/Km e premi Salva.", "ok");
+}
+
+function stopEditEndedRecord(){
+  editRow = null;
+  $("editBanner").classList.add("hidden");
+  $("btnSaveEdit").classList.add("hidden");
+  $("btnCancelEdit").classList.add("hidden");
+  syncInputsWithState();
+  renderAll();
+  setActionMsg("", null);
+}
     // --------- UI rendering ---------
     function renderAll(){
       const now = new Date();
@@ -1221,7 +1265,8 @@ sb.auth.onAuthStateChange(async (_event, session) => {
                 <div class="itemMeta">Ore: ${escapeHTML(fmtHM(r.workMin||0))}  •  Km: ${escapeHTML(String(r.km||0))}</div>
               </div>
               <div class="itemBtns">
-                <button class="miniBtn d" data-del="${r.id}">Elimina</button>
+                <button class="miniBtn" data-edit="${r.id}">Modifica</button>
+<button class="miniBtn d" data-del="${r.id}">Elimina</button>
               </div>
             </div>
           `;
@@ -1239,6 +1284,12 @@ sb.auth.onAuthStateChange(async (_event, session) => {
             }
           });
         });
+        list.querySelectorAll("[data-edit]").forEach(btn=>{
+  btn.addEventListener("click", (e)=>{
+    const id = e.currentTarget.getAttribute("data-edit");
+    startEditEndedRecord(id);
+  });
+});
       }
     }
 
@@ -1434,32 +1485,62 @@ $("btnCloseDlg").addEventListener("click", closeSettings);
     $("btnBreak").addEventListener("click", toggleBreak);
 
     // Live edit bindings for Titolo / Km
-    $("titleInput").addEventListener("input", ()=>{
-      const v = $("titleInput").value || "";
-      if(active){
-        active.title = v;
-        saveActiveEditsDebounced();
-      }else{
-        draftTitle = v;
-      }
-    });
+$("titleInput").addEventListener("input", ()=>{
+  const v = $("titleInput").value || "";
+  if(editRow){
+    editRow.title = v;
+    return;
+  }
+  if(active){
+    active.title = v;
+    saveActiveEditsDebounced();
+  }else{
+    draftTitle = v;
+  }
+});
 
-    $("kmInput").addEventListener("input", ()=>{
-      const raw = ($("kmInput").value || "").trim();
-      if(active){
-        const km = parseFloat(raw.replace(",","."));
-        active.km = isFinite(km) ? km : 0;
-        saveActiveEditsDebounced();
-      }else{
-        draftKm = raw;
-      }
-    });
+$("kmInput").addEventListener("input", ()=>{
+  const raw = ($("kmInput").value || "").trim();
+  const km = parseFloat(raw.replace(",", "."));
+
+  if(editRow){
+    editRow.km = isFinite(km) ? km : 0;
+    return;
+  }
+
+  if(active){
+    active.km = isFinite(km) ? km : 0;
+    saveActiveEditsDebounced();
+  }else{
+    draftKm = raw;
+  }
+});
     $("btnStop").addEventListener("click", ()=>{
       if(confirm("Finire il turno?")) stopShift();
     });
 
     $("btnRefresh").addEventListener("click", refresh);
     $("btnExport").addEventListener("click", exportCSV);
+    $("btnCancelEdit").addEventListener("click", (e)=>{
+  e.preventDefault();
+  stopEditEndedRecord();
+});
+
+$("btnSaveEdit").addEventListener("click", async (e)=>{
+  e.preventDefault();
+  if(!editRow) return;
+
+  try{
+    setActionMsg("⏳ Salvataggio modifiche...", null);
+    await upsertRow(editRow);      // stesso id => aggiorna
+    stopEditEndedRecord();
+    await refresh();
+    setActionMsg("✅ Modifiche salvate", "ok");
+  }catch(err){
+    console.error(err);
+    setActionMsg("❌ " + (err.message || String(err)), "err");
+  }
+});
 
     $("filterToggle").addEventListener("change", async ()=>{
       const on = $("filterToggle").checked;
