@@ -1,0 +1,27 @@
+name: Supabase Keep Alive
+
+on:
+  schedule:
+    # GitHub usa cron in UTC.
+    # Lunedì e Giovedì alle 08:00 UTC (in Italia ~09:00 inverno / ~10:00 estate)
+    - cron: "0 8 * * 1,4"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST (PostgREST)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -e
+          echo "Pinging Supabase..."
+          curl -sS --fail \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "Accept: application/json" \
+            "${SUPABASE_URL}/rest/v1/work_records?select=id&limit=1" \
+            > /dev/null
+          echo "OK"
