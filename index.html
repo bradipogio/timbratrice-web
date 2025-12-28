@@ -30,6 +30,8 @@
   border-radius:18px;
   box-shadow:var(--shadow);
   overflow:hidden;
+  max-height:calc(100vh - 28px);
+  max-height:calc(100dvh - 28px);
 }
     :root{
       --bg:#0b0b0c;
@@ -61,7 +63,7 @@
       }
     }
     *{box-sizing:border-box}
-    html,body{height:100%; overflow-x:hidden}
+    html,body{min-height:100%; width:100%; overflow-x:hidden}
     body{
       margin:0;
       font-family:var(--sans);
@@ -338,7 +340,16 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       border:1px solid var(--line);
       box-shadow:var(--shadow);
     }
-    .dlgInner{padding:16px; display:flex; flex-direction:column; gap:12px}
+    .dlgInner{
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      overflow:auto;
+      -webkit-overflow-scrolling:touch;
+      max-height:calc(100vh - 28px);
+      max-height:calc(100dvh - 28px);
+    }
     .dlgTitle{font-weight:900; font-size:18px}
     .msg{
       font-size:13px;
@@ -639,7 +650,7 @@ body{
     <div class="searchWrap">
     <input id="searchInput" class="searchBar" type="search" placeholder="Cerca titolo o note" autocomplete="off" />
   </div>
-    <section class="card punch">
+    <section class="card punch collapsed">
       <div class="punchHead">
         <div class="punchTitle">Timbratrice</div>
         <div id="statusPill" class="pill ready">
@@ -828,11 +839,6 @@ body{
     <form class="dlgInner" onsubmit="return false;">
       <div class="dlgTitle">Account & Impostazioni</div>
 
-      <div class="hint">
-        ✅ Gli utenti li crea l’admin in Supabase. Qui fai solo Login o Recupera password.
-        <br>Il nome report serve per il file CSV.
-      </div>
-
       <div id="authFields">
         <label class="field">
           <span>Email</span>
@@ -859,11 +865,6 @@ body{
           <button id="btnSetPassword" type="button" class="btn primary">Imposta nuova password</button>
         </div>
       </div>
-
-      <label class="field">
-        <span>Nome report (export)</span>
-        <input id="reportInput" type="text" placeholder="Report di Giovanni">
-      </label>
 
       <div id="loginRow" class="row">
         <button id="btnLogin" type="button" class="btn primary">Login</button>
@@ -1051,17 +1052,6 @@ function localInputToISO(v){
   if(isNaN(d.getTime())) return "";
   return d.toISOString();
 }
-    // --------- local settings ---------
-    const LS = {
-      get(key, def=""){ try{ return localStorage.getItem(key) ?? def; }catch{ return def; } },
-      set(key, val){ try{ localStorage.setItem(key, val); }catch{} },
-    };
-    const KEYS = { report: "tw_report" };
-
-    function cfg(){
-      const report = (LS.get(KEYS.report,"Report")||"Report").trim();
-      return { report };
-    }
 
     // --------- app state ---------
     let active = null;   // {id,title,startISO,endISO,pauseMin,workMin,km,notes,breakStartISO}
@@ -1890,6 +1880,14 @@ if(filtered.length === 0){
       return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     }
 
+    function getExportName(){
+      const email = (currentUser?.email || "").trim();
+      const fallback = email || "timbratrice";
+      const raw = prompt("Nome export (opzionale). Lascia vuoto per usare email.", "");
+      if(raw === null) return null;
+      return raw.trim() || fallback;
+    }
+
     function getVisibleHistory(){
       const q = ($("searchInput")?.value || "").trim().toLowerCase();
       const base = [...history];
@@ -1904,7 +1902,8 @@ if(filtered.length === 0){
 
     // --------- CSV export (turni + ore nette + km) ---------
     function exportCSV(){
-      const { report } = cfg();
+      const report = getExportName();
+      if(report === null) return;
       const sep = ";";
       const rows = getVisibleHistory();
 
@@ -1945,7 +1944,7 @@ if(filtered.length === 0){
 
       const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
       const a = document.createElement("a");
-      const safe = (report || "timbratrice").replace(/[^\w\-]+/g,"-");
+      const safe = report.replace(/[^\w\-]+/g,"-");
       a.href = URL.createObjectURL(blob);
       a.download = `${safe}-${Date.now()}.csv`;
       document.body.appendChild(a);
@@ -1955,7 +1954,8 @@ if(filtered.length === 0){
 
     // --------- PDF export (stampa -> salva PDF) ---------
     function exportPDF(){
-      const { report } = cfg();
+      const report = getExportName();
+      if(report === null) return;
       const rows = getVisibleHistory();
       if(rows.length === 0){
         setActionMsg("Nessun record da esportare.", "err");
@@ -1982,8 +1982,8 @@ if(filtered.length === 0){
         sumPause += Number(r.pauseMin||0);
       }
 
-      const title = (report || "Timbratrice").trim() || "Timbratrice";
-      const safeTitle = title.replace(/[^\w\-]+/g, "-");
+      const title = report.trim() || "Timbratrice";
+      const safeTitle = report.replace(/[^\w\-]+/g, "-");
       const rangeText = ($("rangeText")?.textContent || "").trim();
       const q = ($("searchInput")?.value || "").trim();
       const nowText = new Date().toLocaleString("it-IT");
@@ -2130,8 +2130,6 @@ function closeSettings(){
     setSettingsMsg("🔐 Devi fare login per continuare.", "err");
     return;
   }
-  // salva nome report quando chiudi
-  LS.set(KEYS.report, ($("reportInput").value || "Report").trim());
   settingsDlg.classList.add("hidden");
 }
 settingsDlg.addEventListener("click", (e)=>{
@@ -2143,7 +2141,6 @@ settingsDlg.addEventListener("click", (e)=>{
 });
 $("btnSettings").addEventListener("click", ()=>{
   setSettingsMsg("", null);
-  $("reportInput").value = cfg().report;
 
   openSettings();
 
