@@ -488,6 +488,9 @@ body{
 .punch.collapsed .actions{
   justify-content:center;
 }
+.punch.is-editing .actions{
+  display:none;
+}
 
 .netTime .timeColon{
   display:inline-block;
@@ -664,27 +667,44 @@ body{
         <br>Il nome report serve per il file CSV.
       </div>
 
-      <label class="field">
-        <span>Email</span>
-        <input id="emailInput" type="email" placeholder="tuo@email.com" autocomplete="email">
-      </label>
+      <div id="authFields">
+        <label class="field">
+          <span>Email</span>
+          <input id="emailInput" type="email" placeholder="tuo@email.com" autocomplete="email">
+        </label>
 
-      <label class="field">
-        <span>Password</span>
-        <input id="passInput" type="password" placeholder="min 6 caratteri" autocomplete="current-password">
-      </label>
+        <label class="field">
+          <span>Password</span>
+          <input id="passInput" type="password" placeholder="min 6 caratteri" autocomplete="current-password">
+        </label>
+      </div>
+
+      <div id="recoveryBox" class="hidden">
+        <div class="hint">Inserisci la nuova password per completare il recupero.</div>
+        <label class="field">
+          <span>Nuova password</span>
+          <input id="newPassInput" type="password" placeholder="min 6 caratteri" autocomplete="new-password">
+        </label>
+        <label class="field">
+          <span>Conferma nuova password</span>
+          <input id="newPassConfirm" type="password" placeholder="ripeti password" autocomplete="new-password">
+        </label>
+        <div class="row">
+          <button id="btnSetPassword" type="button" class="btn primary">Imposta nuova password</button>
+        </div>
+      </div>
 
       <label class="field">
         <span>Nome report (export)</span>
         <input id="reportInput" type="text" placeholder="Report di Giovanni">
       </label>
 
-      <div class="row">
+      <div id="loginRow" class="row">
         <button id="btnLogin" type="button" class="btn primary">Login</button>
         <button id="btnSignup" type="button" class="btn hidden" disabled>Registrati</button>
       </div>
 
-      <div class="row">
+      <div id="resetRow" class="row">
         <button id="btnReset" type="button" class="btn">Recupera password</button>
         <button id="btnDiag" type="button" class="btn">Diagnostica</button>
       </div>
@@ -1024,6 +1044,10 @@ if(ph) ph.value = "00:00";
     async function requireUser(){
       if(currentUser) return currentUser;
       currentUser = await getUser();
+      if(!currentUser){
+        setSettingsMsg("🔐 Effettua il login per continuare.", "err");
+        if(typeof openSettings === "function") openSettings();
+      }
       return currentUser;
     }
 
@@ -1038,9 +1062,21 @@ if(ph) ph.value = "00:00";
         pill.textContent = "Non loggato";
         hint.classList.remove("hidden");
       }
+      updateAuthButtons();
       // Always enforce gate after updating currentUser
       if(typeof enforceAuthGate === "function") enforceAuthGate();
     }
+function updateAuthButtons(){
+  const logged = !!currentUser;
+  const btnLogin = $("btnLogin");
+  const btnLogout = $("btnLogout");
+  if(btnLogin){
+    btnLogin.textContent = logged ? "Logout" : "Login";
+    btnLogin.classList.toggle("primary", !logged);
+    btnLogin.classList.toggle("danger", logged);
+  }
+  if(btnLogout) btnLogout.classList.add("hidden");
+}
 function enforceAuthGate(){
   const main = document.getElementById("appMain");
   const closeBtn = $("btnCloseDlg");
@@ -1171,6 +1207,9 @@ sb.auth.onAuthStateChange(async (_event, session) => {
   currentSession = session || null;
   const user = session?.user || null;
   setUserUI(user);
+  if(_event === "PASSWORD_RECOVERY"){
+    setRecoveryMode(true);
+  }
   refresh(); // non await
 });
     }
@@ -1554,6 +1593,7 @@ function stopEditEndedRecord(){
         punch.classList.toggle("collapsed", !active && !editRow);
         punch.classList.toggle("is-active", !!active);
         punch.classList.toggle("is-paused", !!active && isPause);
+        punch.classList.toggle("is-editing", !!editRow);
       }
 
       setNetTimeDisplay(netMin);
@@ -1701,15 +1741,44 @@ if(filtered.length === 0){
     const settingsDlg = $("settingsDlg");
     const settingsMsg = $("settingsMsg");
     let settingsJustOpenedAt = 0;
+    let recoveryMode = false;
 
     function setSettingsMsg(text, kind){
       settingsMsg.textContent = text || "";
       settingsMsg.classList.remove("ok","err");
       if(kind) settingsMsg.classList.add(kind);
     }
+    function setRecoveryMode(on){
+      recoveryMode = !!on;
+      settingsDlg.classList.toggle("is-recovery", recoveryMode);
+      $("recoveryBox")?.classList.toggle("hidden", !recoveryMode);
+      $("authFields")?.classList.toggle("hidden", recoveryMode);
+      $("loginRow")?.classList.toggle("hidden", recoveryMode);
+      $("resetRow")?.classList.toggle("hidden", recoveryMode);
+      if(recoveryMode){
+        openSettings();
+        setSettingsMsg("🔑 Inserisci una nuova password per completare il recupero.", null);
+      }
+    }
+    async function doLogout(){
+      try{
+        setSettingsMsg("⏳ Logout...", null);
+        await signOut();
+
+        // Clear local auth state immediately
+        currentSession = null;
+        setUserUI(null);
+
+        setSettingsMsg("✅ Logout", "ok");
+      }catch(err){
+        console.error("Logout error:", err);
+        setSettingsMsg("❌ " + (err.message || String(err)), "err");
+      }
+    }
 
     function openSettings(){
       settingsJustOpenedAt = Date.now();
+      updateAuthButtons();
       settingsDlg.classList.remove("hidden");
     }
 function closeSettings(){
@@ -1743,6 +1812,10 @@ $("btnSettings").addEventListener("click", ()=>{
 
     $("btnLogin").addEventListener("click", async (e)=>{
       e.preventDefault();
+      if(currentUser){
+        await doLogout();
+        return;
+      }
       try{
         setSettingsMsg("⏳ Login...", null);
         const email = ($("emailInput").value||"").trim();
@@ -1786,6 +1859,38 @@ $("btnSettings").addEventListener("click", ()=>{
       }
     });
 
+    $("btnSetPassword").addEventListener("click", async (e)=>{
+      e.preventDefault();
+      try{
+        if(!sb) throw new Error("Supabase non inizializzato.");
+        const p1 = ($("newPassInput").value || "").trim();
+        const p2 = ($("newPassConfirm").value || "").trim();
+        if(!p1 || p1.length < 6) throw new Error("La password deve avere almeno 6 caratteri.");
+        if(p1 !== p2) throw new Error("Le password non coincidono.");
+
+        setSettingsMsg("⏳ Aggiornamento password...", null);
+        const { error } = await withTimeout(
+          sb.auth.updateUser({ password: p1 }),
+          20000,
+          "Aggiornamento password"
+        );
+        if(error) throw error;
+        $("newPassInput").value = "";
+        $("newPassConfirm").value = "";
+        setSettingsMsg("✅ Password aggiornata. Ora puoi usare l'app.", "ok");
+        setRecoveryMode(false);
+        updateAuthButtons();
+
+        // remove recovery tokens from URL
+        if(window.location.hash){
+          history.replaceState(null, "", window.location.pathname + window.location.search);
+        }
+      }catch(err){
+        console.error("Update password error:", err);
+        setSettingsMsg("❌ " + prettyAuthError(err), "err");
+      }
+    });
+
     $("btnDiag").addEventListener("click", async (e)=>{
       e.preventDefault();
       try{
@@ -1804,21 +1909,7 @@ $("btnSettings").addEventListener("click", ()=>{
 
     $("btnLogout").addEventListener("click", async (e)=>{
       e.preventDefault();
-      try{
-        await signOut();
-
-        // Clear local auth state immediately
-        currentSession = null;
-        setUserUI(null);
-
-        setSettingsMsg("✅ Logout", "ok");
-
-        // closeSettings() refuses when not logged, so hide modal directly
-        setTimeout(()=>{ settingsDlg.classList.add("hidden"); }, 600);
-      }catch(err){
-        console.error("Logout error:", err);
-        setSettingsMsg("❌ " + (err.message || String(err)), "err");
-      }
+      await doLogout();
     });
 $("btnCloseDlg").addEventListener("click", closeSettings);
 
@@ -2040,6 +2131,10 @@ $("btnSaveEdit").addEventListener("click", async (e)=>{
         $("fromDate").value = todayISODate(new Date(new Date().setDate(new Date().getDate()-7)));
         $("toDate").value = todayISODate();
         $("filterBox").classList.add("hidden");
+
+        if(window.location.hash.includes("type=recovery")){
+          setRecoveryMode(true);
+        }
 
         const user = await requireUser();
         setUserUI(user);
