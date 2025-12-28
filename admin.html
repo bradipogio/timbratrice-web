@@ -92,9 +92,11 @@
     input:focus, select:focus{border-color: rgba(210,43,43,.55)}
     .grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-top:12px}
     .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
+    .grid1{display:grid; grid-template-columns:1fr; gap:10px; margin-top:12px}
     @media (max-width:760px){
       .grid3{grid-template-columns:1fr}
       .grid2{grid-template-columns:1fr}
+      .grid1{grid-template-columns:1fr}
     }
     .row{display:flex; gap:10px; margin-top:12px}
     .btn{
@@ -206,16 +208,12 @@
       <div class="h2">Controllo Orari</div>
       <div class="sub">Filtra per utente, data e ordina i risultati</div>
 
-      <div class="grid2">
+      <div class="grid1">
         <label class="field">
           <span>Seleziona email</span>
           <select id="emailSelect">
             <option value="">Tutte</option>
           </select>
-        </label>
-        <label class="field">
-          <span>User ID</span>
-          <input id="userIdInput" type="text" placeholder="uuid utente">
         </label>
       </div>
 
@@ -458,7 +456,6 @@ async function getUser(){
             <div>
               <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
               <div class="itemMeta">Email: ${escapeHTML(r.user_email || "")}</div>
-              <div class="itemMeta">User ID: ${escapeHTML(r.user_id || "")}</div>
               <div class="itemMeta">Inizio: ${escapeHTML(start)}  •  Fine: ${escapeHTML(end)}</div>
               <div class="itemMeta">Ore: ${escapeHTML(fmtHM(r.work_min||0))}  •  Pausa: ${escapeHTML(String(r.pause_min||0))}m  •  Km: ${escapeHTML(String(r.km||0))}</div>
             </div>
@@ -525,7 +522,6 @@ async function refresh(){
   }
 
   const emailFilter = ($("emailSelect").value || "").trim();
-  const userId = ($("userIdInput").value || "").trim();
   const fromDate = $("fromDate").value;
   const toDate = $("toDate").value;
   const sortField = $("sortField").value;
@@ -538,7 +534,6 @@ async function refresh(){
     const params = [];
     params.push("select=*");
     if(emailFilter) params.push(`user_email=ilike.*${encodeURIComponent(emailFilter)}*`);
-    if(userId) params.push(`user_id=eq.${encodeURIComponent(userId)}`);
     if(fromDate) params.push(`start_ts=gte.${encodeURIComponent(new Date(fromDate + "T00:00:00").toISOString())}`);
     if(toDate) params.push(`start_ts=lte.${encodeURIComponent(new Date(toDate + "T23:59:59").toISOString())}`);
     params.push(`order=${encodeURIComponent(sortField)}.${sortAsc ? "asc" : "desc"}`);
@@ -578,7 +573,7 @@ async function refresh(){
       };
 
       let csv = "\uFEFF";
-      csv += ["Email","UserID","Titolo","DataOraInizio","DataOraFine","Pausa_min","Ore_nette_hh:mm","Km"].join(sep) + "\r\n";
+      csv += ["Email","Titolo","DataOraInizio","DataOraFine","Pausa_min","Ore_nette_hh:mm","Km"].join(sep) + "\r\n";
 
       let sumWork = 0, sumKm = 0;
       for(const r of rows){
@@ -586,7 +581,6 @@ async function refresh(){
         sumKm += Number(r.km||0);
         csv += [
           csvEscape(r.user_email||"", sep),
-          csvEscape(r.user_id||"", sep),
           csvEscape(r.title||"", sep),
           dt(r.start_ts),
           dt(r.end_ts),
@@ -655,7 +649,6 @@ $("btnLogout").addEventListener("click", async ()=>{
     $("btnExport").addEventListener("click", exportCSV);
     $("btnClear").addEventListener("click", ()=>{
       $("emailSelect").value = "";
-      $("userIdInput").value = "";
       $("fromDate").value = "";
       $("toDate").value = "";
       $("sortField").value = "start_ts";
