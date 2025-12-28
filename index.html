@@ -932,6 +932,7 @@ body{
     const SUPABASE_ANON_KEY = (SUPABASE_ANON_KEY_RAW || "").trim();
     const ADMIN_EMAIL = "mazzanti.giova@gmail.com";
     const ADMIN_EMAIL_NORM = ADMIN_EMAIL.trim().toLowerCase();
+    const AUTH_SESSION_TIMEOUT_MS = 12000;
 
     if(!/^https?:\/\//i.test(SUPABASE_URL)){
       console.warn(`SUPABASE_URL non valido: "${SUPABASE_URL}"`);
@@ -960,23 +961,26 @@ async function fetchWithTimeout(url, options={}){
 }
 
 // --------- Direct REST (bypass supabase-js PostgREST) ---------
-async function getAccessToken(){
-  // usa prima cache (evita getSession che si può impallare)
-  if(currentSession?.access_token) return currentSession.access_token;
-  if(!sb) return "";
-
+async function getSessionSafe(){
+  if(!sb) return null;
   try{
     const p = sb.auth.getSession();
     const { data, error } = await Promise.race([
       p,
-      new Promise((_, reject)=> setTimeout(()=>reject(new Error("timeout")), 4000))
+      new Promise((_, reject)=> setTimeout(()=>reject(new Error("timeout")), AUTH_SESSION_TIMEOUT_MS))
     ]);
-    if(error) return "";
-    currentSession = data?.session || null;
-    return data?.session?.access_token || "";
+    if(error) return null;
+    return data?.session || null;
   }catch{
-    return "";
+    return null;
   }
+}
+async function getAccessToken(){
+  // usa prima cache (evita getSession che si può impallare)
+  if(currentSession?.access_token) return currentSession.access_token;
+  const session = await getSessionSafe();
+  if(session) currentSession = session;
+  return session?.access_token || "";
 }
 async function restJSON(method, path, token, body){
   const url = `${SUPABASE_URL}${path}`;
@@ -1009,7 +1013,12 @@ try{
     throw new Error("Supabase SDK non caricato (CDN bloccato o offline)");
   }
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { fetch: fetchWithTimeout }
+    global: { fetch: fetchWithTimeout },
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true
+    }
   });
 }catch(err){
   showDebug("❌ Init Supabase: " + (err.message || String(err)));
@@ -1207,19 +1216,9 @@ if(ph) ph.value = "00:00";
       if(currentSession?.user) return currentSession.user;
       if(!sb) return null;
 
-      // Bounded fallback: never hang forever
-      try{
-        const p = sb.auth.getSession();
-        const { data, error } = await Promise.race([
-          p,
-          new Promise((_, reject)=> setTimeout(()=> reject(new Error("timeout")), 4000))
-        ]);
-        if(error) return null;
-        currentSession = data?.session || null;
-        return data?.session?.user || null;
-      }catch(_e){
-        return null;
-      }
+      const session = await getSessionSafe();
+      if(session) currentSession = session;
+      return session?.user || null;
     }
 
     async function requireUser(){

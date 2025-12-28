@@ -159,6 +159,37 @@
     .itemTop{display:flex; justify-content:space-between; gap:10px; align-items:flex-start}
     .itemTitle{font-weight:900}
     .itemMeta{font-family:var(--mono); color:var(--muted); font-size:12px}
+    .itemMetaGrid{
+      display:grid;
+      grid-template-columns:1.6fr 1.2fr 1.2fr .7fr .6fr;
+      gap:8px;
+      margin-top:8px;
+    }
+    .metaBox{
+      border:1px solid var(--line);
+      background:var(--card);
+      border-radius:12px;
+      padding:8px 10px;
+      min-width:0;
+    }
+    .metaLabel{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      font-size:11px;
+      color:var(--muted);
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+    .metaValue{
+      margin-top:3px;
+      font-family:var(--mono);
+      font-size:11.5px;
+      font-weight:800;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
     .empty{
       text-align:center;
       color:var(--muted);
@@ -194,6 +225,10 @@
       <path d="M8 3v4"></path>
       <path d="M3 9h18"></path>
     </symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24">
+      <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+      <path d="M3 7l9 6 9-6"></path>
+    </symbol>
     <symbol id="i-list" viewBox="0 0 24 24">
       <path d="M8 6h12"></path>
       <path d="M8 12h12"></path>
@@ -205,6 +240,10 @@
     <symbol id="i-clock" viewBox="0 0 24 24">
       <circle cx="12" cy="12" r="9"></circle>
       <path d="M12 7v5l3 2"></path>
+    </symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24">
+      <path d="M9 6v12"></path>
+      <path d="M15 6v12"></path>
     </symbol>
     <symbol id="i-car" viewBox="0 0 24 24">
       <path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"></path>
@@ -505,17 +544,34 @@ async function getUser(){
       }
       $("empty").classList.add("hidden");
       for(const r of records){
-        const start = r.start_ts ? new Date(r.start_ts).toLocaleString("it-IT") : "";
-        const end = r.end_ts ? new Date(r.end_ts).toLocaleString("it-IT") : "";
+        const start = r.start_ts ? new Date(r.start_ts).toLocaleString("it-IT") : "—";
+        const end = r.end_ts ? new Date(r.end_ts).toLocaleString("it-IT") : "—";
         const el = document.createElement("div");
         el.className = "item";
         el.innerHTML = `
           <div class="itemTop">
-            <div>
-              <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
-              <div class="itemMeta">Email: ${escapeHTML(r.user_email || "")}</div>
-              <div class="itemMeta">Inizio: ${escapeHTML(start)}  •  Fine: ${escapeHTML(end)}</div>
-              <div class="itemMeta">Ore: ${escapeHTML(fmtHM(r.work_min||0))}  •  Pausa: ${escapeHTML(String(r.pause_min||0))}m  •  Km: ${escapeHTML(String(r.km||0))}</div>
+            <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
+          </div>
+          <div class="itemMetaGrid">
+            <div class="metaBox">
+              <div class="metaLabel"><svg class="icon xs" aria-hidden="true"><use href="#i-mail"></use></svg>Email</div>
+              <div class="metaValue">${escapeHTML(r.user_email || "—")}</div>
+            </div>
+            <div class="metaBox">
+              <div class="metaLabel"><svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>Inizio</div>
+              <div class="metaValue">${escapeHTML(start)}</div>
+            </div>
+            <div class="metaBox">
+              <div class="metaLabel"><svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>Fine</div>
+              <div class="metaValue">${escapeHTML(end)}</div>
+            </div>
+            <div class="metaBox">
+              <div class="metaLabel"><svg class="icon xs" aria-hidden="true"><use href="#i-pause"></use></svg>Pausa</div>
+              <div class="metaValue">${escapeHTML(fmtHM(r.pause_min||0))}</div>
+            </div>
+            <div class="metaBox">
+              <div class="metaLabel"><svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>Km</div>
+              <div class="metaValue">${escapeHTML(String(r.km||0))}</div>
             </div>
           </div>
         `;
