@@ -200,6 +200,22 @@
       overflow:hidden;
       text-overflow:ellipsis;
     }
+    .chipInput{
+      margin-top:4px;
+      width:100%;
+      border:none;
+      background:transparent;
+      color:var(--text);
+      font-family:var(--time);
+      font-variant-numeric: tabular-nums;
+      font-size:20px;
+      font-weight:800;
+      padding:0;
+      outline:none;
+    }
+    .chipInput[type="time"]{
+      min-height:28px;
+    }
 
     .grid2{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
     @media (max-width:520px){.grid2{grid-template-columns:1fr}}
@@ -504,6 +520,19 @@ body{
 @media (prefers-color-scheme: dark){
   .iosBox{background:rgba(255,255,255,.06); border:1px solid var(--line)}
 }
+.punch.is-active .iosRow,
+.punch.is-editing .iosRow{
+  background:var(--card2);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:10px 12px;
+}
+.punch.is-active .iosRow .iosRight input,
+.punch.is-editing .iosRow .iosRight input{
+  background:transparent;
+  border:none;
+  padding:6px 0;
+}
 
 .iosDetails{margin-top:12px}
 .iosSummary{font-weight:900; color:var(--muted); cursor:pointer; list-style:none}
@@ -555,12 +584,18 @@ body{
 .punch.is-editing .actions{
   display:none;
 }
-.punch.is-active .chips,
 .punch.is-active .iosDetails,
 .punch.is-active #endRow{
   display:none;
 }
+.punch.is-editing .iosDetails,
+.punch.is-editing #endRow{
+  display:none;
+}
 .punch.is-active #btnStart{
+  display:none;
+}
+.punch.is-editing #btnStart{
   display:none;
 }
 @media (max-width:520px){
@@ -674,7 +709,7 @@ body{
               Pausa
             </span>
           </div>
-          <div class="chipValue" id="pauseVal">0:00</div>
+          <input id="pauseHHMMUI" class="chipInput" type="time" step="60" value="00:00">
         </div>
         <div class="chip">
           <div class="chipLabel">
@@ -683,9 +718,10 @@ body{
               Km
             </span>
           </div>
-          <div class="chipValue" id="kmVal">0</div>
+          <input id="kmInput" class="chipInput" inputmode="numeric" type="text" placeholder="0">
         </div>
       </div>
+<input id="pauseInput" inputmode="numeric" type="number" min="0" step="1" class="hidden" value="0">
 
 <div class="iosTitleRow">
   <input id="titleInput" class="iosTitleInput" type="text" placeholder="Turno 28 Dec 2025">
@@ -718,31 +754,6 @@ body{
   </div>
 </div>
 <input id="endInput" type="datetime-local" class="hidden">
-
-<div class="iosRow">
-  <div class="iosLabel">
-    <span class="iconLabel">
-      <svg class="icon xs" aria-hidden="true"><use href="#i-pause"></use></svg>
-      Pausa (hh:mm)
-    </span>
-  </div>
-  <div class="iosRight">
-    <input id="pauseHHMMUI" class="iosBox iosBoxSmall" type="time" step="60" value="00:00">
-  </div>
-</div>
-<input id="pauseInput" inputmode="numeric" type="number" min="0" step="1" class="hidden" value="0">
-
-<div class="iosRow">
-  <div class="iosLabel">
-    <span class="iconLabel">
-      <svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>
-      Km
-    </span>
-  </div>
-  <div class="iosRight">
-    <input id="kmInput" class="iosBox iosBoxSmall" inputmode="numeric" type="text" placeholder="0">
-  </div>
-</div>
 
 <details class="iosDetails">
   <summary class="iosSummary">Note</summary>
@@ -1098,7 +1109,7 @@ const endRow = $("endRow");
 
   if(editRow){
     t.value = editRow.title || "";
-    k.value = (editRow.km ?? 0) === 0 ? "" : String(editRow.km);
+    k.value = String(Number(editRow.km||0));
     if(s) s.value = isoToLocalInput(editRow.startISO);
     if(e) e.value = isoToLocalInput(editRow.endISO);
     if(p) p.value = String(Number(editRow.pauseMin||0));
@@ -1114,7 +1125,7 @@ if(ph) ph.value = fmtHHMM(editRow.pauseMin||0);
 
   if(active){
     t.value = active.title || "";
-    k.value = (active.km ?? 0) === 0 ? "" : String(active.km);
+    k.value = String(Number(active.km||0));
     if(s) s.value = isoToLocalInput(active.startISO);
     if(e) e.value = isoToLocalInput(active.endISO);
     if(p) p.value = String(Number(active.pauseMin||0));
@@ -1697,18 +1708,20 @@ function startEditEndedRecord(id){
   }
 
   editRow = { ...row };
-  $("editBanner").classList.remove("hidden");
+  const banner = $("editBanner");
+  if(banner) banner.classList.add("hidden");
   $("btnSaveEdit").classList.remove("hidden");
   $("btnCancelEdit").classList.remove("hidden");
 
   syncInputsWithState();
   renderAll();
-  setActionMsg("✏️ Modifica attiva: cambia Titolo/Km e premi Salva.", "ok");
+  setActionMsg("", null);
 }
 
 function stopEditEndedRecord(){
   editRow = null;
-  $("editBanner").classList.add("hidden");
+  const banner = $("editBanner");
+  if(banner) banner.classList.add("hidden");
   $("btnSaveEdit").classList.add("hidden");
   $("btnCancelEdit").classList.add("hidden");
   syncInputsWithState();
@@ -1740,9 +1753,7 @@ function stopEditEndedRecord(){
           pauseMin = Number(editRow.pauseMin||0);
           const temp = {...editRow, pauseMin};
           netMin = computeWorkMin(temp, endISO);
-          $("kmVal").textContent = String(Number(editRow.km||0));
         }else{
-          $("kmVal").textContent = "0";
         }
       }else{
         isPause = !!active.breakStartISO;
@@ -1766,7 +1777,6 @@ function stopEditEndedRecord(){
         }
         const temp = {...active, pauseMin};
         netMin = computeWorkMin(temp, nowISO);
-        $("kmVal").textContent = String(Number(active.km||0));
       }
 
       if(punch){
@@ -1777,7 +1787,10 @@ function stopEditEndedRecord(){
       }
 
       setNetTimeDisplay(netMin);
-      $("pauseVal").textContent = fmtHM(pauseMin);
+      const ph = $("pauseHHMMUI");
+      if(ph && document.activeElement !== ph){
+        ph.value = fmtHHMM(pauseMin);
+      }
 
       // summary (solo turni chiusi)
       const turns = history.length;
