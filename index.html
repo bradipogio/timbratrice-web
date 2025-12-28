@@ -274,14 +274,13 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     .itemMeta{font-family:var(--mono); color:var(--muted); font-size:12px}
     .itemMetaGrid{
       display:grid;
-      grid-template-columns:1fr 1fr;
+      grid-template-columns:repeat(4, minmax(0, 1fr));
       gap:8px;
       margin-top:8px;
     }
-    .metaBox.wide{grid-column:1 / -1}
+    .metaBox.wide{grid-column:auto}
     @media (min-width:680px){
       .itemMetaGrid{grid-template-columns:1.6fr 1.6fr .8fr .8fr}
-      .metaBox.wide{grid-column:auto}
     }
     .metaBox{
       border:1px solid var(--line);
@@ -303,7 +302,7 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       margin-top:3px;
       font-family:var(--time);
       font-variant-numeric: tabular-nums;
-      font-size:13px;
+      font-size:12px;
       font-weight:800;
       white-space:nowrap;
       overflow:hidden;
@@ -553,6 +552,15 @@ body{
 }
 .punch.is-active #btnStart{
   display:none;
+}
+@media (max-width:520px){
+  .topbar{padding:10px 12px}
+  .wrap{padding:10px 12px; gap:10px}
+  .card{padding:12px; border-radius:18px}
+  .punch{padding:12px}
+  .item{padding:10px}
+  .metaBox{padding:6px 8px}
+  .chips, .chips3{gap:8px}
 }
 
 .netTime .timeColon{
@@ -1816,9 +1824,17 @@ if(filtered.length === 0){
 }else{
   $("empty").classList.add("hidden");
   const sorted = [...filtered].sort((a,b)=> (b.startISO||"").localeCompare(a.startISO||""));
+  const fmtShortDT = (iso)=>{
+    if(!iso) return "—";
+    const d = new Date(iso);
+    if(isNaN(d.getTime())) return "—";
+    const date = d.toLocaleDateString("it-IT");
+    const time = d.toLocaleTimeString("it-IT", { hour:"2-digit", minute:"2-digit" });
+    return `${date} ${time}`;
+  };
   for(const r of sorted){
-          const start = r.startISO ? new Date(r.startISO).toLocaleString("it-IT") : "—";
-          const end = r.endISO ? new Date(r.endISO).toLocaleString("it-IT") : "—";
+          const start = fmtShortDT(r.startISO);
+          const end = fmtShortDT(r.endISO);
           const el = document.createElement("div");
           el.className = "item";
           el.innerHTML = `
