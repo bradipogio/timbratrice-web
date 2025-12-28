@@ -13,14 +13,14 @@ jobs:
     steps:
       - name: Ping Supabase REST (PostgREST)
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_URL: ${{ secrets.https://rvznuudatshqyzmnqrmd.supabase.co }}
+          SUPABASE_ANON_KEY: ${{ secrets.sb_publishable_n8ZS_zPmPqm7mLeFMmt7sw_sN4_3fza }}
         run: |
           set -e
           echo "Pinging Supabase..."
           curl -sS --fail \
-            -H "apikey: ${SUPABASE_ANON_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            -H "apikey: ${sb_publishable_n8ZS_zPmPqm7mLeFMmt7sw_sN4_3fza}" \
+            -H "Authorization: Bearer ${sb_publishable_n8ZS_zPmPqm7mLeFMmt7sw_sN4_3fza}" \
             -H "Accept: application/json" \
             "${SUPABASE_URL}/rest/v1/work_records?select=id&limit=1" \
             > /dev/null
