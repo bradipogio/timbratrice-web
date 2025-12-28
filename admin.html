@@ -78,7 +78,7 @@
     .icon.xs{width:14px; height:14px}
     .icon.sm{width:16px; height:16px}
     .iconLabel{display:inline-flex; align-items:center; gap:6px}
-    .wrap{max-width:1280px; margin:0 auto; padding:16px; display:flex; flex-direction:column; gap:14px}
+    .wrap{max-width:1440px; margin:0 auto; padding:16px; display:flex; flex-direction:column; gap:14px}
     .card{
       background:var(--card);
       border-radius:var(--radius);
@@ -146,50 +146,49 @@
     .adminFilters .field select{
       background:transparent;
       border:none;
-      padding:6px 0 2px;
-      font-size:14px;
-    }
-    .adminFilters .grid1,
-    .adminFilters .grid2,
-    .adminFilters .grid3{
-      margin-top:8px;
-      gap:8px;
-    }
-    @media (min-width:1100px){
-      .adminFilters .grid1,
-      .adminFilters .grid2,
-      .adminFilters .grid3{
-        margin-top:0;
-      }
-      .adminFilters .grid1{grid-template-columns:1fr}
-      .adminFilters .grid2{grid-template-columns:1fr 1fr}
-      .adminFilters .grid3{grid-template-columns:1fr 1fr}
-      .adminFilters{
-        display:grid;
-        grid-template-columns:2fr 1fr 1fr 1fr;
-        gap:10px 12px;
-        align-items:end;
-      }
-      .adminFilters .h2,
-      .adminFilters .sub,
-      .adminFilters .chips3,
-      .adminFilters .row{
-        grid-column:1 / -1;
-      }
-      .adminFilters .grid1{grid-column:1}
-      .adminFilters .grid2:first-of-type{grid-column:2 / span 2}
-      .adminFilters .grid2:last-of-type{grid-column:4}
-    }
-    @media (max-width:760px){
-      .adminFilters .grid2{grid-template-columns:1fr 1fr}
-    }
-    @media (max-width:520px){
-      .adminFilters .grid2{grid-template-columns:1fr 1fr}
-      .adminFilters .grid1{grid-template-columns:1fr}
+      padding:5px 0 2px;
+      font-size:13px;
     }
     .adminFilters .field input:focus,
     .adminFilters .field select:focus{
       border:none;
+    }
+    .adminFiltersBar{
+      display:grid;
+      gap:8px 10px;
+      margin-top:10px;
+      align-items:end;
+    }
+    .adminFiltersBar .btn{
+      padding:10px 12px;
+      font-size:13px;
+      min-height:44px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    @media (min-width:1200px){
+      .adminFiltersBar{
+        grid-template-columns:
+          minmax(200px, 1.4fr)
+          minmax(120px, .9fr)
+          minmax(120px, .9fr)
+          minmax(120px, .8fr)
+          minmax(120px, .8fr)
+          minmax(150px, .9fr)
+          minmax(130px, .8fr)
+          minmax(130px, .8fr);
+      }
+    }
+    @media (max-width:1199px){
+      .adminFiltersBar{
+        grid-template-columns: repeat(4, minmax(160px, 1fr));
+      }
+    }
+    @media (max-width:900px){
+      .adminFiltersBar{
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
     .chips3{display:flex; gap:10px; margin-top:12px}
     .chip{
@@ -210,7 +209,7 @@
       overflow:hidden;
       text-overflow:ellipsis;
     }
-    .list{display:flex; flex-direction:column; gap:10px; margin-top:10px}
+    .list{display:flex; flex-direction:column; gap:10px; margin-top:10px; width:100%}
     .item{
       border:1px solid var(--line);
       background:var(--card2);
@@ -248,11 +247,18 @@
     .metaValue{
       margin-top:3px;
       font-family:var(--mono);
-      font-size:13px;
+      font-size:14px;
       font-weight:800;
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
+    }
+    @media (min-width:1100px){
+      .itemTitle{font-size:18px}
+      .metaValue{font-size:15px}
+    }
+    @media (max-width:980px){
+      .itemMetaGrid{grid-template-columns:repeat(2, minmax(0, 1fr))}
     }
     .empty{
       text-align:center;
@@ -349,16 +355,13 @@
       <div class="h2">Controllo Orari</div>
       <div class="sub">Filtra per utente, data e ordina i risultati</div>
 
-      <div class="grid1">
+      <div class="adminFiltersBar">
         <label class="field">
           <span>Seleziona email</span>
           <select id="emailSelect">
             <option value="">Tutte</option>
           </select>
         </label>
-      </div>
-
-      <div class="grid2">
         <label class="field">
           <span class="iconLabel">
             <svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>
@@ -373,9 +376,6 @@
           </span>
           <input id="toDate" type="date" />
         </label>
-      </div>
-
-      <div class="grid2">
         <label class="field">
           <span>Ordina per</span>
           <select id="sortField">
@@ -391,13 +391,8 @@
             <option value="asc">Ascendente</option>
           </select>
         </label>
-      </div>
-
-      <div class="row">
         <button id="btnExport" class="btn">Esporta CSV (filtro)</button>
         <button id="btnExportPdf" class="btn">Esporta PDF</button>
-      </div>
-      <div class="row">
         <button id="btnClear" class="btn">Pulisci filtri</button>
       </div>
 
