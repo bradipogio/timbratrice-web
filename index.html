@@ -278,7 +278,11 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       gap:8px;
       margin-top:8px;
     }
-    @media (min-width:680px){.itemMetaGrid{grid-template-columns:repeat(4,1fr)}}
+    .metaBox.wide{grid-column:1 / -1}
+    @media (min-width:680px){
+      .itemMetaGrid{grid-template-columns:1.6fr 1.6fr .8fr .8fr}
+      .metaBox.wide{grid-column:auto}
+    }
     .metaBox{
       border:1px solid var(--line);
       background:var(--card);
@@ -1826,11 +1830,11 @@ if(filtered.length === 0){
               </div>
             </div>
             <div class="itemMetaGrid">
-              <div class="metaBox">
+              <div class="metaBox wide">
                 <div class="metaLabel">${iconSvg("i-calendar","icon xs")}Inizio</div>
                 <div class="metaValue">${escapeHTML(start)}</div>
               </div>
-              <div class="metaBox">
+              <div class="metaBox wide">
                 <div class="metaLabel">${iconSvg("i-calendar","icon xs")}Fine</div>
                 <div class="metaValue">${escapeHTML(end)}</div>
               </div>
