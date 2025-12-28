@@ -1682,7 +1682,16 @@ function stopEditEndedRecord(){
         $("btnBreak").disabled = true;
         $("btnStop").disabled = true;
         $("btnBreak").textContent = "Inizia pausa";
-        $("kmVal").textContent = "0";
+
+        if(editRow){
+          const endISO = editRow.endISO || toISO(now);
+          pauseMin = Number(editRow.pauseMin||0);
+          const temp = {...editRow, pauseMin};
+          netMin = computeWorkMin(temp, endISO);
+          $("kmVal").textContent = String(Number(editRow.km||0));
+        }else{
+          $("kmVal").textContent = "0";
+        }
       }else{
         isPause = !!active.breakStartISO;
 
