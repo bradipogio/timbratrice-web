@@ -311,6 +311,141 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     @media (prefers-color-scheme: light){
       .hint{background:rgba(0,0,0,.03)}
     }
+    /* ============================= */
+/* iOS-like theme overrides      */
+/* ============================= */
+
+/* font: su iPhone prende SF Pro automaticamente */
+:root{
+  --bg:#f2f2f7;
+  --card:#ffffff;
+  --card2:#f6f6fa;
+  --text:#0a0a0a;
+  --muted:#6c6c75;
+  --line:rgba(0,0,0,.10);
+  --shadow: 0 10px 24px rgba(0,0,0,.08);
+  --radius:22px;
+  --radius2:18px;
+  --accent:#007aff;
+  --accent2:#0a63d1;
+
+  /* “rosa app” */
+  --punchBg:#f6dede;
+  --punchLine:rgba(255,105,135,.35);
+}
+
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#0b0b0c;
+    --card:#141417;
+    --card2:#17171b;
+    --text:#f2f2f2;
+    --muted:#b8b8bf;
+    --line:rgba(255,255,255,.10);
+    --shadow: 0 10px 30px rgba(0,0,0,.35);
+    --accent:#0a84ff;
+    --accent2:#0a63d1;
+    --punchBg:rgba(210,43,43,.12);
+    --punchLine:rgba(210,43,43,.30);
+  }
+}
+
+body{
+  background:var(--bg);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", system-ui, Segoe UI, Roboto, Helvetica, Arial;
+}
+
+.topbar{
+  background:transparent;
+  border-bottom:none;
+  padding:18px 18px 8px;
+}
+.brand{
+  font-size:44px;
+  font-weight:900;
+  letter-spacing:-.6px;
+}
+.userPill{border:none; padding:0; background:transparent}
+.iconBtn{border:none; background:transparent; font-size:22px; padding:10px 10px; border-radius:12px}
+
+.wrap{max-width:720px; padding:16px 18px 28px}
+.searchWrap{margin-top:2px}
+.searchBar{
+  width:100%;
+  padding:12px 14px;
+  border-radius:16px;
+  border:1px solid var(--line);
+  background:var(--card2);
+  color:var(--text);
+  font-size:16px;
+}
+
+.card{border-radius:26px; box-shadow:var(--shadow)}
+.punch{background:var(--punchBg); border:1px solid var(--punchLine)}
+.bigIcon{display:none}
+
+.pill{background:rgba(255,255,255,.65); border:none; padding:8px 12px}
+@media (prefers-color-scheme: dark){
+  .pill{background:rgba(255,255,255,.08); border:1px solid var(--line)}
+}
+.pill.ready{color:var(--accent)}
+.netTime{font-size:64px; letter-spacing:-1.2px}
+
+.chips{gap:12px}
+.chip{
+  border-radius:18px;
+  background:rgba(255,255,255,.35);
+  border:1px solid rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme: dark){
+  .chip{background:rgba(255,255,255,.06); border:1px solid var(--line)}
+}
+
+.iosTitleRow{margin-top:14px}
+.iosTitleInput{
+  width:100%;
+  border-radius:18px;
+  border:1px solid rgba(0,0,0,.08);
+  background:rgba(255,255,255,.35);
+  padding:14px 14px;
+  font-size:20px;
+  font-weight:900;
+}
+@media (prefers-color-scheme: dark){
+  .iosTitleInput{background:rgba(255,255,255,.06); border:1px solid var(--line)}
+}
+
+.iosRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:12px
+}
+.iosLabel{font-weight:900; color:var(--muted)}
+.iosRight{display:flex; gap:10px; align-items:center}
+.iosBox{
+  border-radius:16px;
+  border:1px solid rgba(0,0,0,.10);
+  background:rgba(255,255,255,.35);
+  padding:10px 12px;
+  font-size:16px;
+  min-width:140px;
+}
+.iosBoxSmall{min-width:110px; text-align:right}
+@media (prefers-color-scheme: dark){
+  .iosBox{background:rgba(255,255,255,.06); border:1px solid var(--line)}
+}
+
+.iosDetails{margin-top:12px}
+.iosSummary{font-weight:900; color:var(--muted); cursor:pointer; list-style:none}
+.iosSummary::-webkit-details-marker{display:none}
+.iosNotes{margin-top:10px}
+
+.actions{gap:12px}
+.btn{border-radius:22px; font-size:18px; padding:16px 16px}
+.btn.primary{background:linear-gradient(180deg, var(--accent), var(--accent2)); border:none; color:white}
+.btn.danger{background:rgba(255,70,70,.12); border-color:rgba(255,70,70,.18)}
   </style>
 </head>
 
@@ -324,6 +459,9 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
   </header>
 
 <main id="appMain" class="wrap">
+    <div class="searchWrap">
+    <input id="searchInput" class="searchBar" type="search" placeholder="Cerca titolo o note" autocomplete="off" />
+  </div>
     <section class="card punch">
       <div class="punchHead">
         <div class="punchTitle">Timbratrice</div>
@@ -346,48 +484,47 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
         </div>
       </div>
 
-      <div class="grid2">
-        <label class="field">
-          <span>Titolo</span>
-          <input id="titleInput" type="text" placeholder="Opzionale">
-        </label>
-
-        <label class="field">
-          <span>Km</span>
-          <input id="kmInput" inputmode="numeric" type="text" placeholder="0">
-        </label>
-      </div>
-<div class="grid2">
-  <label class="field">
-    <span>Inizio (data/ora)</span>
-    <input id="startInput" type="datetime-local">
-  </label>
-
-  <label class="field">
-    <span>Fine (data/ora)</span>
-    <input id="endInput" type="datetime-local">
-  </label>
+<div class="iosTitleRow">
+  <input id="titleInput" class="iosTitleInput" type="text" placeholder="Turno 28 Dec 2025">
 </div>
 
-<div class="grid2">
-  <label class="field">
-    <span>Pausa (minuti)</span>
-    <input id="pauseInput" inputmode="numeric" type="number" min="0" step="1" placeholder="0">
-  </label>
+<div class="iosRow">
+  <div class="iosLabel">Inizio</div>
+  <div class="iosRight">
+    <input id="startDateUI" class="iosBox" type="date">
+    <input id="startTimeUI" class="iosBox" type="time" step="60">
+  </div>
+</div>
+<input id="startInput" type="datetime-local" class="hidden">
 
-  <label class="field">
-    <span>&nbsp;</span>
-    <input type="text" disabled value="">
-  </label>
+<div id="endRow" class="iosRow hidden">
+  <div class="iosLabel">Fine</div>
+  <div class="iosRight">
+    <input id="endDateUI" class="iosBox" type="date">
+    <input id="endTimeUI" class="iosBox" type="time" step="60">
+  </div>
+</div>
+<input id="endInput" type="datetime-local" class="hidden">
+
+<div class="iosRow">
+  <div class="iosLabel">Pausa (hh:mm)</div>
+  <div class="iosRight">
+    <input id="pauseHHMMUI" class="iosBox iosBoxSmall" type="time" step="60" value="00:00">
+  </div>
+</div>
+<input id="pauseInput" inputmode="numeric" type="number" min="0" step="1" class="hidden" value="0">
+
+<div class="iosRow">
+  <div class="iosLabel">Km</div>
+  <div class="iosRight">
+    <input id="kmInput" class="iosBox iosBoxSmall" inputmode="numeric" type="text" placeholder="0">
+  </div>
 </div>
 
-<div class="grid1">
-  <label class="field">
-    <span>Note</span>
-    <textarea id="notesInput" placeholder="Opzionale"></textarea>
-  </label>
-</div>
-      <div class="actions">
+<details class="iosDetails">
+  <summary class="iosSummary">Note</summary>
+  <textarea id="notesInput" class="iosNotes" placeholder="Opzionale"></textarea>
+</details>      <div class="actions">
         <button id="btnStart" class="btn primary">Inizia turno</button>
         <button id="btnBreak" class="btn">Inizia pausa</button>
         <button id="btnStop" class="btn danger">Stop</button>
@@ -613,6 +750,20 @@ try{
     const $ = (id) => document.getElementById(id);
     const pad2 = (n) => String(n).padStart(2, "0");
     const fmtHM = (min) => {
+      const fmtHHMM = (min)=>{
+  const m = Math.max(0, Math.floor(Number(min||0)));
+  const h = Math.floor(m/60);
+  const mm = m%60;
+  return `${pad2(h)}:${pad2(mm)}`;
+};
+const hhmmToMin = (hhmm)=>{
+  const s = (hhmm||"").trim();
+  if(!s || !s.includes(":")) return 0;
+  const [H,M] = s.split(":");
+  const h = Math.max(0, parseInt(H,10)||0);
+  const m = Math.max(0, parseInt(M,10)||0);
+  return h*60 + m;
+};
       const m = Math.max(0, Math.floor(Number(min || 0)));
       const h = Math.floor(m / 60);
       const mm = m % 60;
@@ -692,6 +843,12 @@ function syncInputsWithState(){
   const e = $("endInput");
   const p = $("pauseInput");
   const n = $("notesInput");
+  const sd = $("startDateUI");
+const st = $("startTimeUI");
+const ed = $("endDateUI");
+const et = $("endTimeUI");
+const ph = $("pauseHHMMUI");
+const endRow = $("endRow");
   if(!t || !k) return;
 
   if(editRow){
@@ -701,6 +858,12 @@ function syncInputsWithState(){
     if(e) e.value = isoToLocalInput(editRow.endISO);
     if(p) p.value = String(Number(editRow.pauseMin||0));
     if(n) n.value = editRow.notes || "";
+    if(endRow) endRow.classList.remove("hidden");
+if(sd) sd.value = (editRow.startISO ? isoToLocalInput(editRow.startISO).slice(0,10) : "");
+if(st) st.value = (editRow.startISO ? isoToLocalInput(editRow.startISO).slice(11,16) : "");
+if(ed) ed.value = (editRow.endISO ? isoToLocalInput(editRow.endISO).slice(0,10) : "");
+if(et) et.value = (editRow.endISO ? isoToLocalInput(editRow.endISO).slice(11,16) : "");
+if(ph) ph.value = fmtHHMM(editRow.pauseMin||0);
     return;
   }
 
@@ -711,6 +874,12 @@ function syncInputsWithState(){
     if(e) e.value = isoToLocalInput(active.endISO);
     if(p) p.value = String(Number(active.pauseMin||0));
     if(n) n.value = active.notes || "";
+    if(endRow) endRow.classList.add("hidden");
+if(sd) sd.value = (active.startISO ? isoToLocalInput(active.startISO).slice(0,10) : "");
+if(st) st.value = (active.startISO ? isoToLocalInput(active.startISO).slice(11,16) : "");
+if(ed) ed.value = "";
+if(et) et.value = "";
+if(ph) ph.value = fmtHHMM(active.pauseMin||0);
   }else{
     t.value = draftTitle || "";
     k.value = draftKm || "";
@@ -718,6 +887,12 @@ function syncInputsWithState(){
     if(e) e.value = "";
     if(p) p.value = "0";
     if(n) n.value = "";
+    if(endRow) endRow.classList.add("hidden");
+if(sd) sd.value = "";
+if(st) st.value = "";
+if(ed) ed.value = "";
+if(et) et.value = "";
+if(ph) ph.value = "00:00";
   }
 }
 
@@ -1326,14 +1501,25 @@ function stopEditEndedRecord(){
       }
 
       // list
-      const list = $("list");
-      list.innerHTML = "";
-      if(history.length === 0){
-        $("empty").classList.remove("hidden");
-      }else{
-        $("empty").classList.add("hidden");
-        const sorted = [...history].sort((a,b)=> (b.startISO||"").localeCompare(a.startISO||""));
-        for(const r of sorted){
+// list (con search)
+const list = $("list");
+list.innerHTML = "";
+
+const q = ($("searchInput")?.value || "").trim().toLowerCase();
+const filtered = q
+  ? history.filter(r =>
+      (r.title||"").toLowerCase().includes(q) ||
+      (r.notes||"").toLowerCase().includes(q)
+    )
+  : history;
+
+if(filtered.length === 0){
+  $("empty").classList.remove("hidden");
+  $("empty").textContent = q ? "Nessun record trovato" : "Nessun record";
+}else{
+  $("empty").classList.add("hidden");
+  const sorted = [...filtered].sort((a,b)=> (b.startISO||"").localeCompare(a.startISO||""));
+  for(const r of sorted){
           const start = r.startISO ? new Date(r.startISO).toLocaleString("it-IT") : "";
           const end = r.endISO ? new Date(r.endISO).toLocaleString("it-IT") : "";
           const el = document.createElement("div");
@@ -1633,6 +1819,26 @@ $("pauseInput").addEventListener("input", ()=>{
     renderAll();
   }
 });
+function setHiddenDT(hiddenId, dateId, timeId){
+  const d = $(dateId)?.value || "";
+  const t = $(timeId)?.value || "";
+  const h = $(hiddenId);
+  if(!h) return;
+  h.value = (d && t) ? `${d}T${t}` : "";
+  h.dispatchEvent(new Event("change", { bubbles:true }));
+}
+
+$("startDateUI").addEventListener("change", ()=> setHiddenDT("startInput","startDateUI","startTimeUI"));
+$("startTimeUI").addEventListener("change", ()=> setHiddenDT("startInput","startDateUI","startTimeUI"));
+
+$("endDateUI").addEventListener("change", ()=> setHiddenDT("endInput","endDateUI","endTimeUI"));
+$("endTimeUI").addEventListener("change", ()=> setHiddenDT("endInput","endDateUI","endTimeUI"));
+
+$("pauseHHMMUI").addEventListener("change", ()=>{
+  const min = hhmmToMin($("pauseHHMMUI").value || "00:00");
+  $("pauseInput").value = String(min);
+  $("pauseInput").dispatchEvent(new Event("input", { bubbles:true }));
+});
 $("startInput").addEventListener("change", ()=>{
   const iso = localInputToISO($("startInput").value || "");
   if(!iso){
@@ -1709,6 +1915,7 @@ $("endInput").addEventListener("change", async ()=>{
 
     $("btnRefresh").addEventListener("click", refresh);
     $("btnExport").addEventListener("click", exportCSV);
+    $("searchInput").addEventListener("input", ()=> renderAll());
     $("btnCancelEdit").addEventListener("click", (e)=>{
   e.preventDefault();
   stopEditEndedRecord();
