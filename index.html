@@ -924,7 +924,7 @@ body{
           <input id="emailInput" type="email" placeholder="tuo@email.com" autocomplete="email">
         </label>
 
-        <label class="field">
+        <label id="passField" class="field">
           <span>Password</span>
           <input id="passInput" type="password" placeholder="min 6 caratteri" autocomplete="current-password">
         </label>
@@ -955,7 +955,7 @@ body{
         <button id="btnDiag" type="button" class="btn">Diagnostica</button>
       </div>
 
-      <div class="row">
+      <div id="logoutRow" class="row hidden">
         <button id="btnLogout" type="button" class="btn danger">Logout</button>
         <button id="btnCloseDlg" type="button" class="btn">Chiudi</button>
       </div>
@@ -1266,6 +1266,7 @@ if(ph) ph.value = "00:00";
 
     let currentUser = null;
     let currentSession = null; // cache in memoria sessione (token)
+    let recoveryMode = false;
 
     async function getUser(){
       // Prefer cached values to avoid hangs
@@ -1313,16 +1314,47 @@ if(ph) ph.value = "00:00";
       // Always enforce gate after updating currentUser
       if(typeof enforceAuthGate === "function") enforceAuthGate();
     }
-function updateAuthButtons(){
+function updateSettingsUI(){
   const logged = !!currentUser;
-  const btnLogin = $("btnLogin");
-  const btnLogout = $("btnLogout");
-  if(btnLogin){
-    btnLogin.textContent = logged ? "Logout" : "Login";
-    btnLogin.classList.toggle("primary", !logged);
-    btnLogin.classList.toggle("danger", logged);
+  const inRecovery = recoveryMode;
+  const emailInput = $("emailInput");
+  const passField = $("passField");
+  const authFields = $("authFields");
+  const loginRow = $("loginRow");
+  const resetRow = $("resetRow");
+  const logoutRow = $("logoutRow");
+  const closeBtn = $("btnCloseDlg");
+
+  if(emailInput){
+    emailInput.readOnly = logged;
   }
-  if(btnLogout) btnLogout.classList.add("hidden");
+  if(passField){
+    passField.classList.toggle("hidden", logged || inRecovery);
+  }
+  if(authFields){
+    authFields.classList.toggle("hidden", inRecovery);
+  }
+  if(loginRow){
+    loginRow.classList.toggle("hidden", logged || inRecovery);
+  }
+  if(resetRow){
+    resetRow.classList.toggle("hidden", inRecovery);
+  }
+  if(logoutRow){
+    logoutRow.classList.toggle("hidden", !logged || inRecovery);
+  }
+  if(closeBtn){
+    closeBtn.classList.toggle("hidden", !logged);
+  }
+}
+function updateAuthButtons(){
+  const btnLogin = $("btnLogin");
+  if(btnLogin){
+    btnLogin.textContent = "Login";
+    btnLogin.classList.add("primary");
+    btnLogin.classList.remove("danger");
+  }
+  updateSettingsUI();
 }
 function enforceAuthGate(){
   const main = document.getElementById("appMain");
@@ -2165,7 +2197,6 @@ if(filtered.length === 0){
     const settingsDlg = $("settingsDlg");
     const settingsMsg = $("settingsMsg");
     let settingsJustOpenedAt = 0;
-    let recoveryMode = false;
 
     function setSettingsMsg(text, kind){
       settingsMsg.textContent = text || "";
@@ -2176,9 +2207,7 @@ if(filtered.length === 0){
       recoveryMode = !!on;
       settingsDlg.classList.toggle("is-recovery", recoveryMode);
       $("recoveryBox")?.classList.toggle("hidden", !recoveryMode);
-      $("authFields")?.classList.toggle("hidden", recoveryMode);
-      $("loginRow")?.classList.toggle("hidden", recoveryMode);
-      $("resetRow")?.classList.toggle("hidden", recoveryMode);
+      updateSettingsUI();
       if(recoveryMode){
         openSettings();
         setSettingsMsg("🔑 Inserisci una nuova password per completare il recupero.", null);
