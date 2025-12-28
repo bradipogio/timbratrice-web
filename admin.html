@@ -228,7 +228,7 @@
         </label>
       </div>
 
-      <div class="grid3">
+      <div class="grid2">
         <label class="field">
           <span>Ordina per</span>
           <select id="sortField">
@@ -243,10 +243,6 @@
             <option value="desc">Discendente</option>
             <option value="asc">Ascendente</option>
           </select>
-        </label>
-        <label class="field">
-          <span>&nbsp;</span>
-          <button id="btnRefresh" class="btn">Aggiorna</button>
         </label>
       </div>
 
@@ -645,7 +641,6 @@ $("btnLogout").addEventListener("click", async ()=>{
   setAuthMsg("✅ Logout", "ok");
 });
 
-    $("btnRefresh").addEventListener("click", refresh);
     $("btnExport").addEventListener("click", exportCSV);
     $("btnClear").addEventListener("click", ()=>{
       $("emailSelect").value = "";
@@ -660,6 +655,10 @@ $("btnLogout").addEventListener("click", async ()=>{
     $("emailSelect").addEventListener("change", ()=>{
       refresh();
     });
+    $("fromDate").addEventListener("change", ()=> refresh());
+    $("toDate").addEventListener("change", ()=> refresh());
+    $("sortField").addEventListener("change", ()=> refresh());
+    $("sortDir").addEventListener("change", ()=> refresh());
 
 sb?.auth.onAuthStateChange(async (_event, session)=>{
   currentSession = session || null;
