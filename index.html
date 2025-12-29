@@ -275,6 +275,9 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     .summaryHead > div:first-child{min-width:0; flex:1 1 auto}
     #rangeText{display:block; white-space:normal; overflow-wrap:anywhere}
     .summaryActions{display:flex; align-items:center; gap:10px; flex:0 0 auto; white-space:nowrap}
+    .listActions{flex:1 1 auto; justify-content:flex-end; min-width:0}
+    .listActions .miniBtn{flex:0 0 auto}
+    .listActions .searchBarInline{flex:1 1 140px; min-width:0; max-width:240px}
     .exportWrap{position:relative}
     .exportMenu{
       position:absolute;
@@ -329,6 +332,7 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       height:1px;
     }
     .summaryActions .toggle span{display:inline-flex; align-items:center; gap:6px}
+    .summaryActions .toggle .icon{color:var(--muted)}
     .summaryActions .toggle.is-on{
       background:rgba(210,43,43,.12);
       border-color:rgba(210,43,43,.55);
@@ -524,9 +528,11 @@ body{
 }
 
 .topbar{
-  background:transparent;
-  border-bottom:none;
+  background:rgba(210,43,43,.30);
+  border-bottom:1px solid rgba(210,43,43,.25);
   padding:18px 18px 8px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 .brand{
   font-size:44px;
@@ -840,6 +846,11 @@ body{
       <path d="M8 9l4 4 4-4"></path>
       <path d="M5 21h14"></path>
     </symbol>
+    <symbol id="i-filter" viewBox="0 0 24 24">
+      <path d="M3 5h18"></path>
+      <path d="M6 12h12"></path>
+      <path d="M10 19h4"></path>
+    </symbol>
   </svg>
   <header class="topbar">
     <div class="brand">Timbratrice</div>
@@ -968,7 +979,10 @@ body{
           </div>
           <label id="filterLabel" class="toggle">
             <input id="filterToggle" type="checkbox" />
-            <span>Filtra</span>
+            <span>
+              <svg class="icon xs" aria-hidden="true"><use href="#i-filter"></use></svg>
+              <span>Filtra</span>
+            </span>
           </label>
         </div>
       </div>
@@ -1025,7 +1039,7 @@ body{
     <section class="card">
       <div class="summaryHead">
         <div class="h2">Storico</div>
-        <div class="summaryActions">
+        <div class="summaryActions listActions">
           <button id="btnSelectMode" class="miniBtn" type="button">Seleziona</button>
           <input id="searchInput" class="searchBar searchBarInline" type="search" placeholder="Cerca..." autocomplete="off" />
         </div>
