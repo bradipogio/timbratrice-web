@@ -271,8 +271,8 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     .btn.danger{background:rgba(255,70,70,.10); border-color:rgba(255,70,70,.25)}
     .btn:disabled{opacity:.45; cursor:not-allowed}
 
-    .summaryHead{display:flex; align-items:center; justify-content:space-between; gap:10px}
-    .summaryActions{display:flex; align-items:center; gap:10px}
+    .summaryHead{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap}
+    .summaryActions{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
     .exportWrap{position:relative}
     .exportMenu{
       position:absolute;
@@ -306,6 +306,22 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     .sub{color:var(--muted); font-size:13px; margin-top:2px}
     .toggle{display:flex; align-items:center; gap:8px; user-select:none; color:var(--muted); font-weight:900}
     .toggle input{width:18px; height:18px}
+    .summaryActions .toggle{
+      padding:10px 12px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:var(--card2);
+      color:var(--text);
+      cursor:pointer;
+      gap:8px;
+    }
+    .summaryActions .toggle input{
+      width:16px;
+      height:16px;
+    }
+    .summaryActions .toggle input:checked + span{
+      color:var(--text);
+    }
 
     .filterBox{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
     @media (max-width:520px){.filterBox{grid-template-columns:1fr 1fr}}
@@ -522,11 +538,15 @@ body{
 }
 .searchBarInline{
   width:auto;
-  min-width:180px;
-  max-width:52%;
+  min-width:160px;
+  max-width:100%;
+  flex:1 1 180px;
 }
 @media (max-width:520px){
-  .searchBarInline{max-width:48%}
+  .searchBarInline{
+    width:100%;
+    flex:1 1 100%;
+  }
 }
 
 .card{border-radius:26px; box-shadow:var(--shadow)}
