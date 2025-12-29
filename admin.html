@@ -15,7 +15,7 @@
       --card2:#17171b;
       --text:#f2f2f2;
       --muted:#b8b8bf;
-      --line:rgba(255,255,255,.28);
+      --line:rgba(255,255,255,.65);
       --red:#D22B2B;
       --red2:#b21f1f;
       --good:#3ddc84;
@@ -33,7 +33,7 @@
         --card2:#fafafa;
         --text:#121212;
         --muted:#6c6c75;
-        --line:rgba(0,0,0,.22);
+        --line:rgba(0,0,0,.35);
         --shadow: 0 10px 30px rgba(0,0,0,.10);
       }
     }
@@ -51,7 +51,7 @@
       padding:14px 16px;
       background:rgba(0,0,0,.18);
       backdrop-filter: blur(12px);
-      border-bottom:1px solid var(--line);
+      border-bottom:2px solid var(--line);
     }
     @media (prefers-color-scheme: light){
       .topbar{background:rgba(255,255,255,.70)}
@@ -59,7 +59,7 @@
     .brand{font-weight:900; letter-spacing:.2px; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
     .right{display:flex; align-items:center; gap:10px; min-width:0}
     .userPill{
-      border:1px solid var(--line);
+      border:2px solid var(--line);
       background:transparent;
       color:var(--muted);
       padding:8px 10px;
@@ -86,7 +86,7 @@
     .card{
       background:var(--card);
       border-radius:var(--radius);
-      border:1px solid var(--line);
+      border:2px solid var(--line);
       box-shadow:var(--shadow);
       padding:14px;
     }
@@ -98,7 +98,7 @@
       width:100%;
       padding:12px 12px;
       border-radius:14px;
-      border:1px solid var(--line);
+      border:2px solid var(--line);
       background:var(--card2);
       color:var(--text);
       outline:none;
@@ -125,7 +125,7 @@
     .btn{
       padding:12px 14px;
       border-radius:14px;
-      border:1px solid var(--line);
+      border:2px solid var(--line);
       background:var(--card2);
       color:var(--text);
       font-weight:900;
@@ -141,7 +141,7 @@
     .btn:disabled{opacity:.45; cursor:not-allowed}
     .adminFilters .field{
       background:var(--card2);
-      border:1px solid var(--line);
+      border:2px solid var(--line);
       border-radius:12px;
       padding:8px 10px;
     }
@@ -198,7 +198,7 @@
     .chip{
       flex:1;
       background:var(--card2);
-      border:1px solid var(--line);
+      border:2px solid var(--line);
       border-radius:var(--radius2);
       padding:10px 12px;
       min-width:0;
@@ -215,7 +215,7 @@
     }
     .list{display:flex; flex-direction:column; gap:10px; margin-top:10px; width:100%}
     .item{
-      border:1px solid var(--line);
+      border:2px solid var(--line);
       background:var(--card2);
       border-radius:16px;
       padding:12px;
@@ -235,7 +235,7 @@
       margin-top:8px;
     }
     .metaBox{
-      border:1px solid var(--line);
+      border:2px solid var(--line);
       background:var(--card);
       border-radius:12px;
       padding:8px 10px;
@@ -270,7 +270,7 @@
       text-align:center;
       color:var(--muted);
       padding:18px 8px;
-      border:1px dashed var(--line);
+      border:2px dashed var(--line);
       border-radius:16px;
       margin-top:10px;
     }
@@ -281,7 +281,7 @@
       min-height:18px;
       padding:10px 12px;
       border-radius:14px;
-      border:1px solid var(--line);
+      border:2px solid var(--line);
       background:rgba(0,0,0,.06);
       line-height:1.35;
     }
