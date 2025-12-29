@@ -134,7 +134,7 @@
     }
     .punch{
       padding:16px;
-      border:2px solid rgba(210,43,43,.35);
+      border:2px solid rgba(210,43,43,.60);
       box-shadow:none;
     }
     .punchHead{display:flex; align-items:center; justify-content:space-between; gap:10px}
@@ -471,8 +471,8 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
   --accent2:#0a63d1;
 
   /* “rosa app” */
-  --punchBg:#f6dede;
-  --punchLine:rgba(255,105,135,.35);
+  --punchBg:#f3c2c2;
+  --punchLine:rgba(210,43,43,.70);
 }
 
 @media (prefers-color-scheme: dark){
@@ -486,8 +486,8 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     --shadow: 0 10px 30px rgba(0,0,0,.35);
     --accent:#0a84ff;
     --accent2:#0a63d1;
-    --punchBg:rgba(210,43,43,.12);
-    --punchLine:rgba(210,43,43,.30);
+    --punchBg:rgba(210,43,43,.20);
+    --punchLine:rgba(255,80,80,.75);
   }
 }
 
@@ -530,7 +530,27 @@ body{
 }
 
 .card{border-radius:26px; box-shadow:var(--shadow)}
-.punch{background:var(--punchBg); border:1px solid var(--punchLine)}
+.punch{background:var(--punchBg); border:2px solid var(--punchLine)}
+.punch .chip,
+.punch .iosTitleInput,
+.punch .iosBox,
+.punch.is-active .iosRow,
+.punch.is-editing .iosRow,
+.punch.is-active .iosRow .iosRight input,
+.punch.is-editing .iosRow .iosRight input{
+  border-color: rgba(0,0,0,.25);
+}
+@media (prefers-color-scheme: dark){
+  .punch .chip,
+  .punch .iosTitleInput,
+  .punch .iosBox,
+  .punch.is-active .iosRow,
+  .punch.is-editing .iosRow,
+  .punch.is-active .iosRow .iosRight input,
+  .punch.is-editing .iosRow .iosRight input{
+    border-color: rgba(255,255,255,.45);
+  }
+}
 .bigIcon{display:none}
 
 .pill{background:rgba(255,255,255,.65); border:none; padding:8px 12px}
