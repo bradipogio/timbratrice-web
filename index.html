@@ -317,6 +317,7 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       flex-direction:column;
       gap:8px;
     }
+    body.selecting .item{cursor:pointer}
     .itemTop{display:flex; justify-content:space-between; gap:10px; align-items:center}
     .itemLeft{display:flex; align-items:center; gap:10px; min-width:0}
     .itemCheck input{width:18px; height:18px; padding:0}
@@ -2094,6 +2095,7 @@ list.innerHTML = "";
           const isChecked = selectedIds.has(String(r.id));
           const el = document.createElement("div");
           el.className = "item";
+          el.setAttribute("data-row-id", r.id);
           el.innerHTML = `
             <div class="itemTop">
               <div class="itemLeft">
@@ -2128,6 +2130,14 @@ list.innerHTML = "";
           `;
           list.appendChild(el);
         }
+        list.querySelectorAll(".item").forEach(item=>{
+          item.addEventListener("click", (e)=>{
+            if(!selectionMode) return;
+            if(e.target && (e.target.tagName === "INPUT")) return;
+            const input = item.querySelector("input[data-check]");
+            if(input) input.click();
+          });
+        });
         list.querySelectorAll("[data-check]").forEach(input=>{
           input.addEventListener("change", (e)=>{
             const id = String(e.currentTarget.getAttribute("data-check"));
