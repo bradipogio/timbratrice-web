@@ -139,6 +139,13 @@
     }
     .punchHead{display:flex; align-items:center; justify-content:space-between; gap:10px}
     .punchTitle{font-size:22px; font-weight:900; letter-spacing:.2px}
+    .punchTitleInput{
+      flex:1 1 auto;
+      min-width:0;
+      max-width:100%;
+      padding:10px 12px;
+      font-size:18px;
+    }
     .pill{
       padding:7px 12px;
       border-radius:999px;
@@ -866,7 +873,7 @@ body{
 
     <section class="card punch collapsed">
       <div class="punchHead">
-        <div class="punchTitle">Timbratrice</div>
+        <input id="titleInput" class="iosTitleInput punchTitleInput" type="text" placeholder="Inserisci nome turno">
         <div id="statusPill" class="pill ready">
           <svg class="icon sm" aria-hidden="true"><use href="#i-check-circle"></use></svg>
           <span>Pronto</span>
@@ -901,10 +908,6 @@ body{
         </div>
       </div>
 <input id="pauseInput" inputmode="numeric" type="number" min="0" step="1" class="hidden" value="0">
-
-<div class="iosTitleRow">
-  <input id="titleInput" class="iosTitleInput" type="text" placeholder="Turno 28 Dec 2025">
-</div>
 
 <div class="iosRow">
   <div class="iosLabel">
@@ -2894,6 +2897,9 @@ $("btnSaveEdit").addEventListener("click", async (e)=>{
     // init
     (async function boot(){
       try{
+        if(!draftTitle){
+          draftTitle = `Turno ${new Date().toLocaleDateString("it-IT")}`;
+        }
         $("fromDate").value = todayISODate(new Date(new Date().setDate(new Date().getDate()-7)));
         $("toDate").value = todayISODate();
         $("filterBox").classList.add("hidden");
