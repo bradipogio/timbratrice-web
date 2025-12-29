@@ -219,7 +219,9 @@
       flex-direction:column;
       gap:8px;
     }
-    .itemTop{display:flex; justify-content:space-between; gap:10px; align-items:flex-start}
+    .itemTop{display:flex; justify-content:space-between; gap:10px; align-items:center}
+    .paidToggle{display:inline-flex; align-items:center; gap:6px; font-weight:800; color:var(--muted)}
+    .paidToggle input{width:18px; height:18px; padding:0}
     .itemTitle{font-weight:900}
     .itemMeta{font-family:var(--mono); color:var(--muted); font-size:12px}
     .itemMetaGrid{
@@ -360,6 +362,14 @@
           <span>Seleziona utente</span>
           <select id="userSelect">
             <option value="">Tutte</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Pagato</span>
+          <select id="paidFilter">
+            <option value="">Tutti</option>
+            <option value="paid">Pagati</option>
+            <option value="unpaid">Non pagati</option>
           </select>
         </label>
         <label class="field">
@@ -531,6 +541,31 @@ async function restGet(path, token, ms=12000, label="Caricamento"){
   return json;
 }
 
+async function updatePaidStatus(id, paid){
+  if(!id) throw new Error("ID record mancante.");
+  const token = getToken();
+  if(!token) throw new Error("Sessione non valida: rifai Login.");
+  const url = `${SUPABASE_URL}/rest/v1/work_records?id=eq.${encodeURIComponent(id)}`;
+  const headers = {
+    ...buildRestHeaders(token),
+    Prefer: "return=minimal"
+  };
+  const res = await fetchWithTimeout(url, {
+    method: "PATCH",
+    headers,
+    body: JSON.stringify({ paid: !!paid })
+  }, 12000, "Aggiornamento pagato");
+  if(!res.ok){
+    const text = await res.text();
+    let json = null;
+    try{ json = text ? JSON.parse(text) : null; }catch{ json = null; }
+    const msg = (json && (json.message || json.error || json.error_description)) || text || `HTTP ${res.status}`;
+    const err = new Error(msg);
+    err.status = res.status;
+    throw err;
+  }
+}
+
 function getToken(){
   return currentSession?.access_token || "";
 }
@@ -623,11 +658,16 @@ async function getUser(){
         const start = r.start_ts ? new Date(r.start_ts).toLocaleString("it-IT") : "—";
         const end = r.end_ts ? new Date(r.end_ts).toLocaleString("it-IT") : "—";
         const userLabel = getUserLabelFromRecord(r);
+        const paidChecked = !!r.paid;
         const el = document.createElement("div");
         el.className = "item";
         el.innerHTML = `
           <div class="itemTop">
             <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
+            <label class="paidToggle">
+              <input type="checkbox" data-paid-id="${r.id}" ${paidChecked ? "checked" : ""}>
+              <span>Pagato</span>
+            </label>
           </div>
           <div class="itemMetaGrid">
             <div class="metaBox">
@@ -654,6 +694,27 @@ async function getUser(){
         `;
         list.appendChild(el);
       }
+      list.querySelectorAll("[data-paid-id]").forEach(input=>{
+        input.addEventListener("change", async (e)=>{
+          const el = e.currentTarget;
+          const id = el.getAttribute("data-paid-id");
+          const checked = el.checked;
+          try{
+            el.disabled = true;
+            await updatePaidStatus(id, checked);
+            const rec = records.find(r => String(r.id) === String(id));
+            if(rec) rec.paid = checked;
+            if(($("paidFilter").value || "").trim()){
+              await refresh();
+            }
+          }catch(err){
+            el.checked = !checked;
+            setActionMsg(`❌ ${err.message || String(err)}`, "err");
+          }finally{
+            el.disabled = false;
+          }
+        });
+      });
     }
 
     function renderSummary(){
@@ -722,6 +783,7 @@ async function refresh(){
   }
 
   const userFilterId = ($("userSelect").value || "").trim();
+  const paidFilter = ($("paidFilter").value || "").trim();
   const fromDate = $("fromDate").value;
   const toDate = $("toDate").value;
   const sortField = $("sortField").value;
@@ -734,6 +796,8 @@ async function refresh(){
     const params = [];
     params.push("select=*");
     if(userFilterId) params.push(`user_id=eq.${encodeURIComponent(userFilterId)}`);
+    if(paidFilter === "paid") params.push("paid=is.true");
+    if(paidFilter === "unpaid") params.push("or=(paid.is.false,paid.is.null)");
     if(fromDate) params.push(`start_ts=gte.${encodeURIComponent(new Date(fromDate + "T00:00:00").toISOString())}`);
     if(toDate) params.push(`start_ts=lte.${encodeURIComponent(new Date(toDate + "T23:59:59").toISOString())}`);
     params.push(`order=${encodeURIComponent(sortField)}.${sortAsc ? "asc" : "desc"}`);
@@ -977,6 +1041,7 @@ $("btnLogout").addEventListener("click", async ()=>{
     $("btnExportPdf").addEventListener("click", exportPDF);
     $("btnClear").addEventListener("click", ()=>{
       $("userSelect").value = "";
+      $("paidFilter").value = "";
       $("fromDate").value = "";
       $("toDate").value = "";
       $("sortField").value = "start_ts";
@@ -986,6 +1051,9 @@ $("btnLogout").addEventListener("click", async ()=>{
     });
 
     $("userSelect").addEventListener("change", ()=>{
+      refresh();
+    });
+    $("paidFilter").addEventListener("change", ()=>{
       refresh();
     });
     $("fromDate").addEventListener("change", ()=> refresh());

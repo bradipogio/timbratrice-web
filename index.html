@@ -317,7 +317,11 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       flex-direction:column;
       gap:8px;
     }
-    .itemTop{display:flex; justify-content:space-between; gap:10px; align-items:flex-start}
+    .itemTop{display:flex; justify-content:space-between; gap:10px; align-items:center}
+    .itemLeft{display:flex; align-items:center; gap:10px; min-width:0}
+    .itemCheck input{width:18px; height:18px; padding:0}
+    .listTools{align-items:center; flex-wrap:wrap}
+    .selectedCount{font-size:12px; color:var(--muted); font-weight:800}
     .itemTitle{font-weight:900}
     .itemMeta{font-family:var(--mono); color:var(--muted); font-size:12px}
     .itemMetaGrid{
@@ -953,6 +957,14 @@ body{
         <div class="h2">Storico</div>
         <input id="searchInput" class="searchBar searchBarInline" type="search" placeholder="Cerca titolo o note" autocomplete="off" />
       </div>
+      <div class="row listTools">
+        <label class="toggle">
+          <input id="selectAllToggle" type="checkbox" />
+          <span>Seleziona tutti</span>
+        </label>
+        <div id="selectedCount" class="selectedCount">0 selezionati</div>
+        <button id="btnDeleteSelected" class="btn danger" type="button" disabled>Elimina selezionati</button>
+      </div>
       <div id="list" class="list"></div>
       <div id="empty" class="empty hidden">Nessun record</div>
     </section>
@@ -1190,6 +1202,8 @@ function localInputToISO(v){
     let active = null;   // {id,title,startISO,endISO,pauseMin,workMin,km,notes,breakStartISO}
     let history = [];    // ended only
 let editRow = null; // record finito che sto modificando (titolo/km)
+let selectedIds = new Set();
+let visibleIds = [];
 
     // Prevent concurrent network actions (can cause hangs / UI confusion)
     let refreshBusy = false;
@@ -1723,6 +1737,37 @@ sb.auth.onAuthStateChange(async (_event, session) => {
       }
     }
 
+    async function deleteRows(ids){
+      if(!sb) throw new Error("Supabase non inizializzato.");
+      const user = await requireUser();
+      if(!user) throw new Error("Fai login (Impostazioni) per cancellare.");
+      const token = await getAccessToken();
+      if(!token) throw new Error("Sessione non valida: rifai login.");
+      if(!ids || ids.length === 0) return;
+
+      const inList = ids.map(id => encodeURIComponent(String(id))).join(",");
+      const url = `${SUPABASE_URL}/rest/v1/work_records?id=in.(${inList})&user_id=eq.${encodeURIComponent(user.id)}`;
+      const headers = {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`,
+        Prefer: "return=minimal"
+      };
+
+      const res = await withTimeout(
+        fetchWithTimeout(url, { method: "DELETE", headers }),
+        17000,
+        "Eliminazione"
+      );
+      if(!res.ok){
+        const text = await res.text();
+        let j=null; try{ j = text ? JSON.parse(text) : null; }catch{}
+        const msg = (j && (j.message || j.error)) || text || `HTTP ${res.status}`;
+        const err = new Error(msg);
+        err.status = res.status;
+        throw err;
+      }
+    }
+
     // --------- actions ---------
     function newId(){
       if (typeof crypto !== "undefined" && crypto.randomUUID) {
@@ -1873,6 +1918,32 @@ function stopEditEndedRecord(){
   renderAll();
   setActionMsg("", null);
 }
+function syncSelectionWithHistory(){
+  const ids = new Set(history.map(r => String(r.id)));
+  selectedIds = new Set([...selectedIds].filter(id => ids.has(id)));
+}
+function updateSelectionUI(){
+  const count = selectedIds.size;
+  const countEl = $("selectedCount");
+  const delBtn = $("btnDeleteSelected");
+  const selectAll = $("selectAllToggle");
+
+  if(countEl) countEl.textContent = `${count} selezionati`;
+  if(delBtn) delBtn.disabled = count === 0;
+
+  if(selectAll){
+    if(visibleIds.length === 0){
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+      selectAll.disabled = true;
+    }else{
+      const selectedVisible = visibleIds.filter(id => selectedIds.has(id)).length;
+      selectAll.checked = selectedVisible > 0 && selectedVisible === visibleIds.length;
+      selectAll.indeterminate = selectedVisible > 0 && selectedVisible < visibleIds.length;
+      selectAll.disabled = false;
+    }
+  }
+}
     // --------- UI rendering ---------
     function renderAll(){
       const now = new Date();
@@ -1953,6 +2024,7 @@ function stopEditEndedRecord(){
       }
 
       // list
+      syncSelectionWithHistory();
 // list (con search)
 const list = $("list");
 list.innerHTML = "";
@@ -1968,9 +2040,12 @@ list.innerHTML = "";
 if(filtered.length === 0){
   $("empty").classList.remove("hidden");
   $("empty").textContent = q ? "Nessun record trovato" : "Nessun record";
+  visibleIds = [];
+  updateSelectionUI();
 }else{
   $("empty").classList.add("hidden");
   const sorted = [...filtered].sort((a,b)=> (b.startISO||"").localeCompare(a.startISO||""));
+  visibleIds = sorted.map(r => String(r.id));
   const fmtShortDT = (iso)=>{
     if(!iso) return "—";
     const d = new Date(iso);
@@ -1982,11 +2057,17 @@ if(filtered.length === 0){
   for(const r of sorted){
           const start = fmtShortDT(r.startISO);
           const end = fmtShortDT(r.endISO);
+          const isChecked = selectedIds.has(String(r.id));
           const el = document.createElement("div");
           el.className = "item";
           el.innerHTML = `
             <div class="itemTop">
-              <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
+              <div class="itemLeft">
+                <label class="itemCheck">
+                  <input class="rowCheck" type="checkbox" data-check="${r.id}" ${isChecked ? "checked" : ""}>
+                </label>
+                <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
+              </div>
               <div class="itemBtns">
                 <button class="miniBtn" data-edit="${r.id}">Modifica</button>
 <button class="miniBtn d" data-del="${r.id}">Elimina</button>
@@ -2013,6 +2094,17 @@ if(filtered.length === 0){
           `;
           list.appendChild(el);
         }
+        list.querySelectorAll("[data-check]").forEach(input=>{
+          input.addEventListener("change", (e)=>{
+            const id = String(e.currentTarget.getAttribute("data-check"));
+            if(e.currentTarget.checked){
+              selectedIds.add(id);
+            }else{
+              selectedIds.delete(id);
+            }
+            updateSelectionUI();
+          });
+        });
         list.querySelectorAll("[data-del]").forEach(btn=>{
           btn.addEventListener("click", async (e)=>{
             const id = e.currentTarget.getAttribute("data-del");
@@ -2031,6 +2123,7 @@ if(filtered.length === 0){
     startEditEndedRecord(id);
   });
 });
+        updateSelectionUI();
       }
     }
 
@@ -2609,6 +2702,29 @@ $("endInput").addEventListener("change", async ()=>{
       const menu = $("exportMenu");
       if(!menu || menu.classList.contains("hidden")) return;
       if(wrap && !wrap.contains(e.target)) closeExportMenu();
+    });
+    $("selectAllToggle").addEventListener("change", (e)=>{
+      const checked = e.currentTarget.checked;
+      if(checked){
+        visibleIds.forEach(id => selectedIds.add(id));
+      }else{
+        visibleIds.forEach(id => selectedIds.delete(id));
+      }
+      updateSelectionUI();
+      renderAll();
+    });
+    $("btnDeleteSelected").addEventListener("click", async (e)=>{
+      e.preventDefault();
+      if(selectedIds.size === 0) return;
+      const ids = Array.from(selectedIds);
+      if(!confirm(`Eliminare ${ids.length} record selezionati?`)) return;
+      try{
+        await deleteRows(ids);
+        selectedIds.clear();
+        await refresh();
+      }catch(err){
+        alert(err.message || String(err));
+      }
     });
     $("searchInput").addEventListener("input", ()=> renderAll());
     $("btnCancelEdit").addEventListener("click", (e)=>{
