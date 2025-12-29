@@ -271,8 +271,10 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     .btn.danger{background:rgba(255,70,70,.10); border-color:rgba(255,70,70,.25)}
     .btn:disabled{opacity:.45; cursor:not-allowed}
 
-    .summaryHead{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap}
-    .summaryActions{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+    .summaryHead{display:flex; align-items:center; justify-content:space-between; gap:10px}
+    .summaryHead > div:first-child{min-width:0; flex:1 1 auto}
+    #rangeText{display:block; white-space:normal; overflow-wrap:anywhere}
+    .summaryActions{display:flex; align-items:center; gap:10px; flex:0 0 auto; white-space:nowrap}
     .exportWrap{position:relative}
     .exportMenu{
       position:absolute;
@@ -314,13 +316,22 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       color:var(--text);
       cursor:pointer;
       gap:8px;
+      position:relative;
+      font-size:15px;
+      font-weight:900;
+      line-height:1;
     }
     .summaryActions .toggle input{
-      width:16px;
-      height:16px;
+      position:absolute;
+      opacity:0;
+      pointer-events:none;
+      width:1px;
+      height:1px;
     }
-    .summaryActions .toggle input:checked + span{
-      color:var(--text);
+    .summaryActions .toggle span{display:inline-flex; align-items:center; gap:6px}
+    .summaryActions .toggle.is-on{
+      background:rgba(210,43,43,.12);
+      border-color:rgba(210,43,43,.55);
     }
 
     .filterBox{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
@@ -538,15 +549,11 @@ body{
 }
 .searchBarInline{
   width:auto;
-  min-width:160px;
-  max-width:100%;
-  flex:1 1 180px;
+  min-width:180px;
+  max-width:52%;
 }
 @media (max-width:520px){
-  .searchBarInline{
-    width:100%;
-    flex:1 1 100%;
-  }
+  .searchBarInline{max-width:48%}
 }
 
 .card{border-radius:26px; box-shadow:var(--shadow)}
@@ -959,7 +966,7 @@ body{
               <button id="btnExportPdf" class="menuBtn" type="button" role="menuitem">PDF</button>
             </div>
           </div>
-          <label class="toggle">
+          <label id="filterLabel" class="toggle">
             <input id="filterToggle" type="checkbox" />
             <span>Filtra</span>
           </label>
@@ -2843,9 +2850,14 @@ $("btnSaveEdit").addEventListener("click", async (e)=>{
   }
 });
 
+    const filterLabel = $("filterLabel");
+    if(filterLabel){
+      filterLabel.classList.toggle("is-on", $("filterToggle").checked);
+    }
     $("filterToggle").addEventListener("change", async ()=>{
       const on = $("filterToggle").checked;
       $("filterBox").classList.toggle("hidden", !on);
+      if(filterLabel){filterLabel.classList.toggle("is-on", on)}
       await refresh();
     });
 
