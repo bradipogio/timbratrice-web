@@ -322,6 +322,18 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     .itemCheck input{width:18px; height:18px; padding:0}
     .listTools{align-items:center; flex-wrap:wrap}
     .selectedCount{font-size:12px; color:var(--muted); font-weight:800}
+    body:not(.selecting) .listTools{display:none}
+    body:not(.selecting) .itemCheck{display:none}
+    body.selecting .itemBtns{display:none}
+    body.selecting .listTools{
+      position:sticky;
+      top:76px;
+      z-index:6;
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:10px;
+    }
     .itemTitle{font-weight:900}
     .itemMeta{font-family:var(--mono); color:var(--muted); font-size:12px}
     .itemMetaGrid{
@@ -955,7 +967,10 @@ body{
     <section class="card">
       <div class="summaryHead">
         <div class="h2">Storico</div>
-        <input id="searchInput" class="searchBar searchBarInline" type="search" placeholder="Cerca titolo o note" autocomplete="off" />
+        <div class="summaryActions">
+          <button id="btnSelectMode" class="miniBtn" type="button">Seleziona</button>
+          <input id="searchInput" class="searchBar searchBarInline" type="search" placeholder="Cerca titolo o note" autocomplete="off" />
+        </div>
       </div>
       <div class="row listTools">
         <label class="toggle">
@@ -1204,6 +1219,7 @@ function localInputToISO(v){
 let editRow = null; // record finito che sto modificando (titolo/km)
 let selectedIds = new Set();
 let visibleIds = [];
+let selectionMode = false;
 
     // Prevent concurrent network actions (can cause hangs / UI confusion)
     let refreshBusy = false;
@@ -1922,6 +1938,18 @@ function syncSelectionWithHistory(){
   const ids = new Set(history.map(r => String(r.id)));
   selectedIds = new Set([...selectedIds].filter(id => ids.has(id)));
 }
+function setSelectionMode(on){
+  selectionMode = !!on;
+  document.body.classList.toggle("selecting", selectionMode);
+  const btn = $("btnSelectMode");
+  if(btn) btn.textContent = selectionMode ? "Fine" : "Seleziona";
+  if(!selectionMode){
+    selectedIds.clear();
+    updateSelectionUI();
+  }else{
+    updateSelectionUI();
+  }
+}
 function updateSelectionUI(){
   const count = selectedIds.size;
   const countEl = $("selectedCount");
@@ -2037,12 +2065,12 @@ list.innerHTML = "";
       )
     : history;
 
-if(filtered.length === 0){
-  $("empty").classList.remove("hidden");
-  $("empty").textContent = q ? "Nessun record trovato" : "Nessun record";
-  visibleIds = [];
-  updateSelectionUI();
-}else{
+  if(filtered.length === 0){
+    $("empty").classList.remove("hidden");
+    $("empty").textContent = q ? "Nessun record trovato" : "Nessun record";
+    visibleIds = [];
+    updateSelectionUI();
+  }else{
   $("empty").classList.add("hidden");
   const sorted = [...filtered].sort((a,b)=> (b.startISO||"").localeCompare(a.startISO||""));
   visibleIds = sorted.map(r => String(r.id));
@@ -2713,6 +2741,11 @@ $("endInput").addEventListener("change", async ()=>{
       updateSelectionUI();
       renderAll();
     });
+    $("btnSelectMode").addEventListener("click", (e)=>{
+      e.preventDefault();
+      setSelectionMode(!selectionMode);
+      renderAll();
+    });
     $("btnDeleteSelected").addEventListener("click", async (e)=>{
       e.preventDefault();
       if(selectedIds.size === 0) return;
@@ -2721,6 +2754,7 @@ $("endInput").addEventListener("change", async ()=>{
       try{
         await deleteRows(ids);
         selectedIds.clear();
+        setSelectionMode(false);
         await refresh();
       }catch(err){
         alert(err.message || String(err));
