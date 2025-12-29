@@ -326,14 +326,20 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     body:not(.selecting) .itemCheck{display:none}
     body.selecting .itemBtns{display:none}
     body.selecting .listTools{
-      position:sticky;
-      top:76px;
-      z-index:6;
+      position:fixed;
+      left:50%;
+      bottom:16px;
+      transform:translateX(-50%);
+      width:min(720px, calc(100% - 36px));
+      z-index:40;
       background:var(--card);
       border:1px solid var(--line);
-      border-radius:16px;
-      padding:10px;
+      border-radius:18px;
+      padding:10px 12px;
+      margin-top:0;
+      box-shadow:var(--shadow);
     }
+    body.selecting #list{padding-bottom:110px}
     .itemTitle{font-weight:900}
     .itemMeta{font-family:var(--mono); color:var(--muted); font-size:12px}
     .itemMetaGrid{
