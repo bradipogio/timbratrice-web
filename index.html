@@ -132,6 +132,10 @@
       box-shadow:var(--shadow);
       padding:14px;
     }
+    .summaryCard{
+      background:var(--summaryBg);
+      border-color:var(--summaryLine);
+    }
     .punch{
       padding:16px;
       border:2px solid rgba(210,43,43,.60);
@@ -224,6 +228,7 @@
       padding:0;
       outline:none;
     }
+    .punch .chipInput{text-align:center}
     .chipInput[type="time"]{
       min-height:28px;
     }
@@ -343,6 +348,14 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     .summaryActions .toggle.is-on{
       background:rgba(210,43,43,.12);
       border-color:rgba(210,43,43,.55);
+    }
+    .summaryCard .chipLabel,
+    .summaryCard .chipValue{
+      text-align:center;
+    }
+    .summaryCard .chipLabel .iconLabel{
+      justify-content:center;
+      width:100%;
     }
 
     .filterBox{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
@@ -511,6 +524,8 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
   /* “rosa app” */
   --punchBg:#f3c2c2;
   --punchLine:rgba(210,43,43,.70);
+  --summaryBg:#f2d3a1;
+  --summaryLine:rgba(138,92,28,.35);
 }
 
 @media (prefers-color-scheme: dark){
@@ -523,10 +538,12 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     --line:rgba(255,255,255,.65);
     --shadow: 0 10px 30px rgba(0,0,0,.35);
     --accent:#0a84ff;
-    --accent2:#0a63d1;
-    --punchBg:rgba(210,43,43,.20);
-    --punchLine:rgba(255,80,80,.75);
-  }
+  --accent2:#0a63d1;
+  --punchBg:rgba(210,43,43,.20);
+  --punchLine:rgba(255,80,80,.75);
+  --summaryBg:#3b2b16;
+  --summaryLine:rgba(255,198,120,.35);
+}
 }
 
 body{
@@ -960,7 +977,7 @@ body{
       <div id="actionMsg" class="msg hidden" style="margin-top:10px"></div>
     </section>
 
-    <section class="card">
+    <section class="card summaryCard">
       <div class="summaryHead">
         <div>
           <div class="h2">Riepilogo</div>
@@ -1259,6 +1276,19 @@ try{
       const h = Math.floor(m / 60);
       const mm = m % 60;
       el.innerHTML = `<span class="timeH">${h}</span><span class="timeColon">:</span><span class="timeM">${pad2(mm)}</span>`;
+    };
+    const normalizeKmInput = (raw) => {
+      const trimmed = (raw || "").trim();
+      if(!trimmed) return "";
+      let out = trimmed;
+      if(/^0\d/.test(out)){
+        out = out.replace(/^0+/, "");
+        if(!out) out = "0";
+      }
+      if(out.startsWith(".") || out.startsWith(",")){
+        out = `0${out}`;
+      }
+      return out;
     };
     const toISO = (d) => new Date(d).toISOString();
 
@@ -2672,6 +2702,13 @@ $("btnCloseDlg").addEventListener("click", closeSettings);
     $("btnBreak").addEventListener("click", toggleBreak);
 
     // Live edit bindings for Titolo / Km
+$("titleInput").addEventListener("focus", ()=>{
+  if(active || editRow) return;
+  const el = $("titleInput");
+  if(!el || !el.value) return;
+  setTimeout(()=> el.select(), 0);
+});
+
 $("titleInput").addEventListener("input", ()=>{
   const v = $("titleInput").value || "";
   if(editRow){
@@ -2687,8 +2724,14 @@ $("titleInput").addEventListener("input", ()=>{
 });
 
 $("kmInput").addEventListener("input", ()=>{
-  const raw = ($("kmInput").value || "").trim();
-  const km = parseFloat(raw.replace(",", "."));
+  const input = $("kmInput");
+  if(!input) return;
+  const raw = input.value || "";
+  const normalized = normalizeKmInput(raw);
+  if(normalized !== raw){
+    input.value = normalized;
+  }
+  const km = parseFloat(normalized.replace(",", "."));
 
   if(editRow){
     editRow.km = isFinite(km) ? km : 0;
@@ -2699,7 +2742,7 @@ $("kmInput").addEventListener("input", ()=>{
     active.km = isFinite(km) ? km : 0;
     saveActiveEditsDebounced();
   }else{
-    draftKm = raw;
+    draftKm = normalized;
   }
 });
 $("notesInput").addEventListener("input", ()=>{
