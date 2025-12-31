@@ -707,7 +707,7 @@
     }
 
     const SUPABASE_URL_RAW = "https://rvznuudatshqyzmnqrmd.supabase.co";
-    const SUPABASE_ANON_KEY_RAW = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2em51dWRhdHNocXl6bW5xcm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Njg5NTcsImV4cCI6MjA4MjM0NDk1N30.0_KKO88ExW4_WHXhR2fuVuLWNBmI3xXKMth4A2qqVr4";
+    const SUPABASE_ANON_KEY_RAW = "sb_publishable_n8ZS_zPmPqm7mLeFMmt7sw_sN4_3fza";
     const ADMIN_EMAIL = "mazzanti.giova@gmail.com";
     const ADMIN_EMAIL_NORM = ADMIN_EMAIL.trim().toLowerCase();
 
@@ -867,6 +867,19 @@ async function getAccessToken(){
   if(session){
     currentSession = session;
     return session.access_token || "";
+  }
+  return "";
+}
+
+async function refreshSessionHard(){
+  if(!sb) return "";
+  try{
+    const { data } = await withTimeout(sb.auth.refreshSession(), 8000, "Refresh sessione");
+    if(data?.session){
+      currentSession = data.session;
+      return data.session.access_token || "";
+    }
+  }catch{
   }
   return "";
 }
@@ -1394,22 +1407,38 @@ async function deleteDestination(id){
 }
 
 async function callAdminUsers(action, payload){
-  const token = await getAccessToken();
+  let token = await getAccessToken();
   if(!token) throw new Error("Sessione non valida: rifai Login.");
 
   const url = `${SUPABASE_URL}/functions/v1/admin-users`;
-  const headers = {
-    ...buildRestHeaders(token),
-    Authorization: `Bearer ${token}`
-  };
-  const res = await fetchWithTimeout(url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ action, ...payload })
-  }, 12000, "Utenti");
-  const text = await res.text();
-  let json = null;
-  try{ json = text ? JSON.parse(text) : null; }catch{ json = null; }
+
+  async function doRequest(authToken){
+    const headers = {
+      ...buildRestHeaders(authToken),
+      Authorization: `Bearer ${authToken}`
+    };
+    const res = await fetchWithTimeout(url, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ action, ...payload })
+    }, 12000, "Utenti");
+    const text = await res.text();
+    let json = null;
+    try{ json = text ? JSON.parse(text) : null; }catch{ json = null; }
+    return { res, json, text };
+  }
+
+  let { res, json, text } = await doRequest(token);
+  if(!res.ok && res.status === 401){
+    const msg = (json && (json.message || json.error || json.error_description)) || text || "";
+    if(msg.toLowerCase().includes("invalid jwt")){
+      token = await refreshSessionHard();
+      if(token){
+        ({ res, json, text } = await doRequest(token));
+      }
+    }
+  }
+
   if(!res.ok){
     const msg = (json && (json.message || json.error || json.error_description)) || text || `HTTP ${res.status}`;
     const err = new Error(msg);
