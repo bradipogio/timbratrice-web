@@ -630,6 +630,13 @@
 
           <div class="h2" style="margin-top:8px">Destinazioni</div>
           <div class="sub">Gestisci nomi, km e link Google Maps</div>
+          <div class="row">
+            <input id="destSearchInput" type="text" placeholder="Cerca destinazione" style="flex:1">
+            <select id="destSortSelect" style="flex:0 0 150px">
+              <option value="az">A → Z</option>
+              <option value="za">Z → A</option>
+            </select>
+          </div>
 
           <div class="destGrid">
             <input id="destNameInput" type="text" placeholder="Nome destinazione">
@@ -1153,7 +1160,15 @@ function renderDestinationsAdmin(){
   const wrap = $("destinationsList");
   if(!wrap) return;
   wrap.innerHTML = "";
-  if(destinations.length === 0){
+  const q = ($("destSearchInput")?.value || "").trim().toLowerCase();
+  const sortDir = ($("destSortSelect")?.value || "az").toLowerCase();
+  const filtered = destinations.filter(d =>
+    (d.name || "").toLowerCase().includes(q)
+  );
+  filtered.sort((a,b)=> (a.name || "").localeCompare(b.name || "", "it", { sensitivity: "base" }));
+  if(sortDir === "za") filtered.reverse();
+
+  if(filtered.length === 0){
     const empty = document.createElement("div");
     empty.className = "empty";
     empty.textContent = "Nessuna destinazione";
@@ -1161,7 +1176,7 @@ function renderDestinationsAdmin(){
     return;
   }
 
-  for(const dest of destinations){
+  for(const dest of filtered){
     const row = document.createElement("div");
     row.className = "destRow";
     row.dataset.id = dest.id;
@@ -1693,6 +1708,10 @@ $("btnLogout").addEventListener("click", async ()=>{
     function openDestinations(){
       if(settingsHome) settingsHome.classList.add("hidden");
       if(destinationsPanel) destinationsPanel.classList.remove("hidden");
+      const search = $("destSearchInput");
+      const sort = $("destSortSelect");
+      if(search) search.value = "";
+      if(sort) sort.value = "az";
       loadDestinationsAdmin();
     }
 
@@ -1723,6 +1742,8 @@ $("btnLogout").addEventListener("click", async ()=>{
         if(settingsHome) settingsHome.classList.remove("hidden");
       });
     }
+    $("destSearchInput")?.addEventListener("input", ()=> renderDestinationsAdmin());
+    $("destSortSelect")?.addEventListener("change", ()=> renderDestinationsAdmin());
     $("btnAddDestination")?.addEventListener("click", async ()=>{
       const nameEl = $("destNameInput");
       const kmEl = $("destKmInput");

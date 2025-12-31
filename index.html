@@ -1633,18 +1633,15 @@ try{
     }
 
     function updateDestinationFromTitle(title, applyKm){
-      if(editRow){
-        setKmLocked(false);
-        updateMapsChip(null);
-        return null;
-      }
       const dest = getDestinationByTitle(title);
-      setKmLocked(!!dest && !editRow);
+      setKmLocked(!!dest);
       if(dest && applyKm){
         const kmVal = String(Number(dest.km || 0));
         const kmInput = $("kmInput");
         if(kmInput) kmInput.value = kmVal;
-        if(active){
+        if(editRow){
+          editRow.km = Number(dest.km || 0);
+        }else if(active){
           active.km = Number(dest.km || 0);
           saveActiveEditsDebounced();
         }else{
@@ -3351,7 +3348,7 @@ $("titleInput").addEventListener("input", ()=>{
   const v = $("titleInput").value || "";
   if(editRow){
     editRow.title = v;
-    updateDestinationFromTitle(v, false);
+    updateDestinationFromTitle(v, true);
     return;
   }
   if(active){
