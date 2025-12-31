@@ -713,7 +713,13 @@
 
     const SUPABASE_URL = (SUPABASE_URL_RAW || "").trim();
     const SUPABASE_ANON_KEY = (SUPABASE_ANON_KEY_RAW || "").trim();
-    const sb = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const sb = window.supabase?.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
 
     const $ = (id) => document.getElementById(id);
     const pad2 = (n) => String(n).padStart(2, "0");
@@ -838,15 +844,29 @@ function getToken(){
 }
 
 async function getAccessToken(){
-  if(currentSession?.access_token) return currentSession.access_token;
   if(!sb) return "";
+  const now = Math.floor(Date.now() / 1000);
+  let session = currentSession || null;
+
   try{
-    const { data } = await withTimeout(sb.auth.getSession(), 4000, "Sessione");
-    if(data?.session){
-      currentSession = data.session;
-      return data.session.access_token || "";
+    if(!session){
+      const { data } = await withTimeout(sb.auth.getSession(), 4000, "Sessione");
+      session = data?.session || null;
     }
   }catch{
+  }
+
+  try{
+    if(session?.expires_at && session.expires_at < now + 60){
+      const { data } = await withTimeout(sb.auth.refreshSession(), 6000, "Refresh sessione");
+      session = data?.session || session;
+    }
+  }catch{
+  }
+
+  if(session){
+    currentSession = session;
+    return session.access_token || "";
   }
   return "";
 }
