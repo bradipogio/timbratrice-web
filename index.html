@@ -101,6 +101,22 @@
       text-overflow:ellipsis;
       white-space:nowrap;
     }
+    .netPill{
+      border-color:rgba(255,176,32,.6);
+      color:var(--warn);
+      background:rgba(255,176,32,.12);
+      max-width:none;
+    }
+    .netPill.sync{
+      border-color:rgba(45,125,255,.6);
+      color:#2d7dff;
+      background:rgba(45,125,255,.12);
+    }
+    .netPill.ok{
+      border-color:rgba(61,220,132,.55);
+      color:var(--good);
+      background:rgba(61,220,132,.12);
+    }
     .iconBtn{
       border:1px solid var(--line);
       background:transparent;
@@ -878,6 +894,7 @@ body{
     <div class="brand">Timbratrice</div>
     <div class="right">
       <div id="userPill" class="userPill">Non loggato</div>
+      <div id="netPill" class="userPill netPill hidden">Offline</div>
       <button id="btnSettings" class="iconBtn" aria-label="Account">
         <svg class="icon" aria-hidden="true"><use href="#i-gear"></use></svg>
       </button>
@@ -1131,6 +1148,14 @@ body{
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script>
+    if("serviceWorker" in navigator){
+      window.addEventListener("load", ()=>{
+        navigator.serviceWorker.register("./sw.js").catch((err)=>{
+          console.warn("Service worker non registrato:", err);
+        });
+      });
+    }
+
     // =========================================================
     // ===== SUPABASE CONFIG (INC0LLA QUI) ======================
     // =========================================================
@@ -1289,6 +1314,233 @@ try{
       return out;
     };
     const toISO = (d) => new Date(d).toISOString();
+
+    // --------- offline cache + queue (IndexedDB) ---------
+    const DB_NAME = "timbratrice-db";
+    const DB_VERSION = 1;
+    const STORE_RECORDS = "records";
+    const STORE_QUEUE = "queue";
+
+    let idbPromise = null;
+    let syncBusy = false;
+    let queueCount = 0;
+
+    function openLocalDb(){
+      if(!("indexedDB" in window)){
+        return Promise.reject(new Error("IndexedDB non disponibile."));
+      }
+      if(idbPromise) return idbPromise;
+      idbPromise = new Promise((resolve, reject)=>{
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = ()=>{
+          const db = req.result;
+          if(!db.objectStoreNames.contains(STORE_RECORDS)){
+            const store = db.createObjectStore(STORE_RECORDS, { keyPath: "id" });
+            store.createIndex("by_user", "userId", { unique: false });
+          }
+          if(!db.objectStoreNames.contains(STORE_QUEUE)){
+            const store = db.createObjectStore(STORE_QUEUE, { keyPath: "id" });
+            store.createIndex("by_user", "userId", { unique: false });
+            store.createIndex("by_record", "recordId", { unique: false });
+          }
+        };
+        req.onsuccess = ()=> resolve(req.result);
+        req.onerror = ()=> reject(req.error || new Error("IndexedDB non disponibile."));
+      });
+      return idbPromise;
+    }
+
+    async function idbGetAllByIndex(storeName, indexName, key){
+      const db = await openLocalDb();
+      return new Promise((resolve, reject)=>{
+        const tx = db.transaction(storeName, "readonly");
+        const store = tx.objectStore(storeName);
+        const index = store.index(indexName);
+        const req = index.getAll(key);
+        req.onsuccess = ()=> resolve(req.result || []);
+        req.onerror = ()=> reject(req.error);
+      });
+    }
+
+    async function idbPut(storeName, value){
+      const db = await openLocalDb();
+      return new Promise((resolve, reject)=>{
+        const tx = db.transaction(storeName, "readwrite");
+        tx.objectStore(storeName).put(value);
+        tx.oncomplete = ()=> resolve();
+        tx.onerror = ()=> reject(tx.error);
+      });
+    }
+
+    async function idbDelete(storeName, key){
+      const db = await openLocalDb();
+      return new Promise((resolve, reject)=>{
+        const tx = db.transaction(storeName, "readwrite");
+        tx.objectStore(storeName).delete(key);
+        tx.oncomplete = ()=> resolve();
+        tx.onerror = ()=> reject(tx.error);
+      });
+    }
+
+    async function cacheRecord(userId, row){
+      if(!userId || !row?.id) return;
+      const record = { ...row, userId };
+      await idbPut(STORE_RECORDS, record);
+    }
+
+    async function cacheRecordsForUser(userId, rows){
+      if(!userId) return;
+      const keep = new Set((rows || []).map(r => String(r.id)));
+      const db = await openLocalDb();
+      await new Promise((resolve, reject)=>{
+        const tx = db.transaction(STORE_RECORDS, "readwrite");
+        const store = tx.objectStore(STORE_RECORDS);
+        const idx = store.index("by_user");
+        const req = idx.openCursor(IDBKeyRange.only(userId));
+        req.onsuccess = ()=>{
+          const cursor = req.result;
+          if(cursor){
+            const id = String(cursor.primaryKey);
+            if(!keep.has(id)) cursor.delete();
+            cursor.continue();
+          }
+        };
+        for(const r of (rows || [])){
+          store.put({ ...r, userId });
+        }
+        tx.oncomplete = ()=> resolve();
+        tx.onerror = ()=> reject(tx.error);
+      });
+    }
+
+    async function removeCachedRecord(userId, recordId){
+      if(!userId || !recordId) return;
+      await idbDelete(STORE_RECORDS, recordId);
+    }
+
+    async function getCachedRecords(userId){
+      if(!userId) return [];
+      const rows = await idbGetAllByIndex(STORE_RECORDS, "by_user", userId);
+      return rows || [];
+    }
+
+    async function getQueueForUser(userId){
+      if(!userId) return [];
+      const rows = await idbGetAllByIndex(STORE_QUEUE, "by_user", userId);
+      return rows || [];
+    }
+
+    async function deleteQueueItem(id){
+      if(!id) return;
+      await idbDelete(STORE_QUEUE, id);
+    }
+
+    async function queueUpsert(user, row){
+      if(!user?.id || !row?.id) return;
+      const now = new Date().toISOString();
+      row.updatedAt = now;
+      row.userId = user.id;
+      await cacheRecord(user.id, row);
+
+      const queue = await getQueueForUser(user.id);
+      for(const q of queue){
+        if(String(q.recordId) === String(row.id)){
+          await deleteQueueItem(q.id);
+        }
+      }
+      const item = {
+        id: newId(),
+        action: "upsert",
+        recordId: row.id,
+        userId: user.id,
+        queuedAt: now,
+        record: { ...row }
+      };
+      await idbPut(STORE_QUEUE, item);
+      await refreshNetStatus();
+    }
+
+    async function queueDelete(user, recordId){
+      if(!user?.id || !recordId) return;
+      await removeCachedRecord(user.id, recordId);
+      const queue = await getQueueForUser(user.id);
+      const remaining = queue.filter(q => String(q.recordId) !== String(recordId));
+      const hadUpsert = queue.some(q => q.action === "upsert" && String(q.recordId) === String(recordId));
+
+      for(const q of queue){
+        if(String(q.recordId) === String(recordId)){
+          await deleteQueueItem(q.id);
+        }
+      }
+      if(hadUpsert){
+        await refreshNetStatus();
+        return;
+      }
+
+      if(!remaining.some(q => q.action === "delete" && String(q.recordId) === String(recordId))){
+        const item = {
+          id: newId(),
+          action: "delete",
+          recordId,
+          userId: user.id,
+          queuedAt: new Date().toISOString()
+        };
+        await idbPut(STORE_QUEUE, item);
+      }
+      await refreshNetStatus();
+    }
+
+    function updateNetPill(){
+      const pill = $("netPill");
+      if(!pill) return;
+      const online = navigator.onLine;
+      pill.classList.remove("sync","ok","hidden");
+
+      if(!online){
+        pill.textContent = queueCount ? `Offline · ${queueCount} in coda` : "Offline";
+        return;
+      }
+      if(syncBusy){
+        pill.textContent = queueCount ? `Sync... (${queueCount})` : "Sync...";
+        pill.classList.add("sync");
+        return;
+      }
+      if(queueCount > 0){
+        pill.textContent = `In coda: ${queueCount}`;
+        pill.classList.add("sync");
+        return;
+      }
+      pill.textContent = "Online";
+      pill.classList.add("ok");
+      pill.classList.add("hidden");
+    }
+
+    async function refreshNetStatus(){
+      try{
+        const userId = currentUser?.id || "";
+        if(!userId){
+          queueCount = 0;
+          updateNetPill();
+          return;
+        }
+        const queue = await getQueueForUser(userId);
+        queueCount = queue.length;
+      }catch{
+        queueCount = 0;
+      }
+      updateNetPill();
+    }
+
+    function isNetworkError(err){
+      if(!err || err.status) return false;
+      const msg = (err.message || "").toLowerCase();
+      return !navigator.onLine ||
+        msg.includes("failed to fetch") ||
+        msg.includes("networkerror") ||
+        msg.includes("offline") ||
+        msg.includes("timeout") ||
+        msg.includes("timed out");
+    }
 
     function todayISODate(d=new Date()){
       const yyyy = d.getFullYear();
@@ -1491,6 +1743,7 @@ if(ph) ph.value = "00:00";
       updateAdminOnlyUI();
       // Always enforce gate after updating currentUser
       if(typeof enforceAuthGate === "function") enforceAuthGate();
+      refreshNetStatus();
     }
 function updateSettingsUI(){
   const logged = !!currentUser;
@@ -1693,6 +1946,46 @@ sb.auth.onAuthStateChange(async (_event, session) => {
       return new Date(v + "T23:59:59").toISOString();
     }
 
+    async function loadFromCache(user){
+      if(!user) return;
+      try{
+        const rowsRaw = await getCachedRecords(user.id);
+        const fromISO = getFilterFromISO();
+        const toISO = getFilterToISO();
+        const filtered = (rowsRaw || []).filter(r => {
+          if(!r.startISO) return false;
+          if(fromISO && r.startISO < fromISO) return false;
+          if(toISO && r.startISO > toISO) return false;
+          return true;
+        });
+        const rows = filtered.map(r => ({
+          id: r.id,
+          title: r.title || "",
+          startISO: r.startISO || "",
+          endISO: r.endISO || "",
+          pauseMin: Number(r.pauseMin || 0),
+          workMin: Number(r.workMin || 0),
+          km: Number(r.km || 0),
+          notes: r.notes || "",
+          breakStartISO: r.breakStartISO || "",
+          updatedAt: r.updatedAt || "",
+          userId: r.userId || user.id
+        }));
+
+        active = rows.find(r => !r.endISO) || null;
+        history = rows.filter(r => !!r.endISO);
+
+        syncInputsWithState();
+        renderAll();
+        await refreshNetStatus();
+      }catch(err){
+        console.warn("Cache locale non disponibile:", err);
+        active = null;
+        history = [];
+        renderAll();
+      }
+    }
+
     // --------- Supabase CRUD ---------
     async function refresh(){
       if(refreshBusy){
@@ -1705,10 +1998,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
 
       if(!sb){
         console.warn("Supabase non inizializzato: controlla connessione/CDN/config");
-        active = null;
-        history = [];
-        renderAll();
-        // always release lock
+        await loadFromCache(user);
         refreshBusy = false;
         return;
       }
@@ -1722,12 +2012,9 @@ sb.auth.onAuthStateChange(async (_event, session) => {
       }
 
       const token = await getAccessToken();
-      if(!token){
-        console.warn("[refresh] no access token");
-        active = null;
-        history = [];
-        renderAll();
-        // always release lock
+      if(!token || !navigator.onLine){
+        console.warn("[refresh] offline or missing token");
+        await loadFromCache(user);
         refreshBusy = false;
         return;
       }
@@ -1752,8 +2039,11 @@ sb.auth.onAuthStateChange(async (_event, session) => {
         );
       }catch(e){
         console.error(e);
-        setActionMsg("❌ " + (e.message || String(e)), "err");
-        // always release lock
+        if(isNetworkError(e)){
+          await loadFromCache(user);
+        }else{
+          setActionMsg("❌ " + (e.message || String(e)), "err");
+        }
         refreshBusy = false;
         return;
       }
@@ -1769,12 +2059,16 @@ sb.auth.onAuthStateChange(async (_event, session) => {
         workMin: Number(r.work_min || 0),
         km: Number(r.km || 0),
         notes: r.notes || "",
-        breakStartISO: r.break_start_ts ? new Date(r.break_start_ts).toISOString() : ""
+        breakStartISO: r.break_start_ts ? new Date(r.break_start_ts).toISOString() : "",
+        updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : "",
+        userId: user.id
       }));
 
       active = rows.find(r => !r.endISO) || null;
       history = rows.filter(r => !!r.endISO);
 
+      await cacheRecordsForUser(user.id, rows);
+      await refreshNetStatus();
       syncInputsWithState();
       renderAll();
 
@@ -1782,13 +2076,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
       refreshBusy = false;
     }
 
-    async function upsertRow(row){
-      if(!sb) throw new Error("Supabase non inizializzato.");
-      const user = await requireUser();
-      if(!user) throw new Error("Fai login (Impostazioni) per salvare.");
-      const token = await getAccessToken();
-      if(!token) throw new Error("Sessione non valida: rifai login.");
-
+    async function upsertRowRemote(row, user, token){
       const payload = {
         id: row.id,
         user_id: user.id,
@@ -1827,13 +2115,33 @@ sb.auth.onAuthStateChange(async (_event, session) => {
       }
     }
 
-    async function deleteRow(id){
-      if(!sb) throw new Error("Supabase non inizializzato.");
+    async function upsertRow(row){
       const user = await requireUser();
-      if(!user) throw new Error("Fai login (Impostazioni) per cancellare.");
+      if(!user) throw new Error("Fai login (Impostazioni) per salvare.");
       const token = await getAccessToken();
-      if(!token) throw new Error("Sessione non valida: rifai login.");
+      const offline = !navigator.onLine || !token || !sb;
+      if(offline){
+        await queueUpsert(user, row);
+        return { queued: true };
+      }
 
+      try{
+        await upsertRowRemote(row, user, token);
+        row.updatedAt = new Date().toISOString();
+        row.userId = user.id;
+        await cacheRecord(user.id, row);
+        await refreshNetStatus();
+        return { queued: false };
+      }catch(e){
+        if(isNetworkError(e)){
+          await queueUpsert(user, row);
+          return { queued: true };
+        }
+        throw e;
+      }
+    }
+
+    async function deleteRowRemote(id, user, token){
       const url = `${SUPABASE_URL}/rest/v1/work_records?id=eq.${encodeURIComponent(id)}&user_id=eq.${encodeURIComponent(user.id)}`;
       const headers = {
         apikey: SUPABASE_ANON_KEY,
@@ -1856,14 +2164,8 @@ sb.auth.onAuthStateChange(async (_event, session) => {
       }
     }
 
-    async function deleteRows(ids){
-      if(!sb) throw new Error("Supabase non inizializzato.");
-      const user = await requireUser();
-      if(!user) throw new Error("Fai login (Impostazioni) per cancellare.");
-      const token = await getAccessToken();
-      if(!token) throw new Error("Sessione non valida: rifai login.");
+    async function deleteRowsRemote(ids, user, token){
       if(!ids || ids.length === 0) return;
-
       const inList = ids.map(id => encodeURIComponent(String(id))).join(",");
       const url = `${SUPABASE_URL}/rest/v1/work_records?id=in.(${inList})&user_id=eq.${encodeURIComponent(user.id)}`;
       const headers = {
@@ -1884,6 +2186,109 @@ sb.auth.onAuthStateChange(async (_event, session) => {
         const err = new Error(msg);
         err.status = res.status;
         throw err;
+      }
+    }
+
+    async function deleteRow(id){
+      const user = await requireUser();
+      if(!user) throw new Error("Fai login (Impostazioni) per cancellare.");
+      const token = await getAccessToken();
+      const offline = !navigator.onLine || !token || !sb;
+      if(offline){
+        await queueDelete(user, id);
+        return { queued: true };
+      }
+      try{
+        await deleteRowRemote(id, user, token);
+        await removeCachedRecord(user.id, id);
+        await refreshNetStatus();
+        return { queued: false };
+      }catch(e){
+        if(isNetworkError(e)){
+          await queueDelete(user, id);
+          return { queued: true };
+        }
+        throw e;
+      }
+    }
+
+    async function deleteRows(ids){
+      const user = await requireUser();
+      if(!user) throw new Error("Fai login (Impostazioni) per cancellare.");
+      if(!ids || ids.length === 0) return;
+      const token = await getAccessToken();
+      const offline = !navigator.onLine || !token || !sb;
+      if(offline){
+        for(const id of ids){
+          await queueDelete(user, id);
+        }
+        return { queued: true };
+      }
+      try{
+        await deleteRowsRemote(ids, user, token);
+        for(const id of ids){
+          await removeCachedRecord(user.id, id);
+        }
+        await refreshNetStatus();
+        return { queued: false };
+      }catch(e){
+        if(isNetworkError(e)){
+          for(const id of ids){
+            await queueDelete(user, id);
+          }
+          return { queued: true };
+        }
+        throw e;
+      }
+    }
+
+    async function syncQueue({ refreshAfter = false } = {}){
+      if(syncBusy) return;
+      if(!navigator.onLine) return;
+      const user = await requireUser();
+      if(!user) return;
+      const token = await getAccessToken();
+      if(!token || !sb){
+        await refreshNetStatus();
+        return;
+      }
+
+      const queue = await getQueueForUser(user.id);
+      if(queue.length === 0){
+        await refreshNetStatus();
+        return;
+      }
+
+      syncBusy = true;
+      updateNetPill();
+      try{
+        const ordered = [...queue].sort((a,b)=> (a.queuedAt || "").localeCompare(b.queuedAt || ""));
+        for(const item of ordered){
+          try{
+            if(item.action === "delete"){
+              await deleteRowRemote(item.recordId, user, token);
+              await removeCachedRecord(user.id, item.recordId);
+            }else if(item.action === "upsert"){
+              if(item.record){
+                await upsertRowRemote(item.record, user, token);
+                item.record.updatedAt = new Date().toISOString();
+                await cacheRecord(user.id, item.record);
+              }
+            }
+            await deleteQueueItem(item.id);
+          }catch(err){
+            console.error("Sync item error:", err);
+            if(isNetworkError(err)) break;
+            break;
+          }
+        }
+      }finally{
+        syncBusy = false;
+        await refreshNetStatus();
+      }
+
+      if(refreshAfter){
+        await refresh();
       }
     }
 
@@ -2530,6 +2935,12 @@ list.innerHTML = "";
     const settingsMsg = $("settingsMsg");
     let settingsJustOpenedAt = 0;
 
+    window.addEventListener("online", ()=>{
+      refreshNetStatus();
+      if(currentUser) syncQueue({ refreshAfter: true });
+    });
+    window.addEventListener("offline", ()=> refreshNetStatus());
+
     function setSettingsMsg(text, kind){
       settingsMsg.textContent = text || "";
       settingsMsg.classList.remove("ok","err");
@@ -3009,6 +3420,7 @@ $("btnSaveEdit").addEventListener("click", async (e)=>{
         // hideDebug(); // lasciamo la barra nascosta di default
 
         syncInputsWithState();
+        await syncQueue({ refreshAfter: false });
         await refresh();
       }catch(err){
         showDebug("❌ Boot: " + (err.message || String(err)));

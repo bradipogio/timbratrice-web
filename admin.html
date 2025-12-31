@@ -531,6 +531,14 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
+    if("serviceWorker" in navigator){
+      window.addEventListener("load", ()=>{
+        navigator.serviceWorker.register("./sw.js").catch((err)=>{
+          console.warn("Service worker non registrato:", err);
+        });
+      });
+    }
+
     const SUPABASE_URL_RAW = "https://rvznuudatshqyzmnqrmd.supabase.co";
     const SUPABASE_ANON_KEY_RAW = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ2em51dWRhdHNocXl6bW5xcm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY3Njg5NTcsImV4cCI6MjA4MjM0NDk1N30.0_KKO88ExW4_WHXhR2fuVuLWNBmI3xXKMth4A2qqVr4";
     const ADMIN_EMAIL = "mazzanti.giova@gmail.com";
