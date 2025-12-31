@@ -238,18 +238,17 @@
       display:flex;
       flex-direction:column;
     }
-    .modalHead{
+    .dlgInner{
+      padding:16px;
       display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:14px 16px;
-      border-bottom:1px solid var(--line);
-      background:var(--card2);
-    }
-    .modalBody{
-      padding:14px 16px;
+      flex-direction:column;
+      gap:12px;
       overflow:auto;
+      -webkit-overflow-scrolling:touch;
+      max-height:calc(100vh - 28px);
+      max-height:calc(100dvh - 28px);
     }
+    .dlgTitle{font-weight:900; font-size:18px}
     .destGrid{
       display:grid;
       grid-template-columns: 1.2fr .6fr 1.6fr auto;
@@ -611,21 +610,24 @@
     </section>
   </main>
 
-  <div id="settingsOverlay" class="modalOverlay hidden" role="dialog" aria-modal="true" aria-label="Impostazioni">
+  <div id="settingsOverlay" class="modalOverlay hidden" role="dialog" aria-modal="true" aria-label="Account e impostazioni">
     <div class="modalCard">
-      <div class="modalHead">
-        <div class="h2">Impostazioni</div>
-        <button id="btnCloseSettings" class="iconBtn" type="button" aria-label="Chiudi">
-          <svg class="icon sm" aria-hidden="true"><use href="#i-close"></use></svg>
-        </button>
-      </div>
-      <div class="modalBody">
+      <form class="dlgInner" onsubmit="return false;">
+        <div class="dlgTitle">Account & Impostazioni</div>
+
         <div id="settingsHome">
-          <button id="btnOpenDestinations" class="btn" type="button">Destinazioni</button>
+          <div class="row">
+            <button id="btnOpenDestinations" class="btn" type="button">Destinazioni</button>
+          </div>
+          <div class="row">
+            <button class="btn" type="button" data-close-settings>Chiudi</button>
+          </div>
         </div>
+
         <div id="destinationsPanel" class="hidden">
           <div class="row">
             <button id="btnBackSettings" class="btn" type="button">Indietro</button>
+            <button class="btn" type="button" data-close-settings>Chiudi</button>
           </div>
 
           <div class="h2" style="margin-top:8px">Destinazioni</div>
@@ -648,7 +650,7 @@
           <div id="destinationsList" style="margin-top:10px"></div>
           <div id="destinationsMsg" class="msg" style="margin-top:10px"></div>
         </div>
-      </div>
+      </form>
     </div>
   </div>
 
@@ -1698,7 +1700,7 @@ $("btnLogout").addEventListener("click", async ()=>{
 
     const settingsOverlay = $("settingsOverlay");
     const btnAdminSettings = $("btnAdminSettings");
-    const btnCloseSettings = $("btnCloseSettings");
+    const closeButtons = document.querySelectorAll("[data-close-settings]");
     const btnOpenDestinations = $("btnOpenDestinations");
     const btnBackSettings = $("btnBackSettings");
     const settingsHome = $("settingsHome");
@@ -1729,9 +1731,7 @@ $("btnLogout").addEventListener("click", async ()=>{
         openSettings();
       });
     }
-    if(btnCloseSettings){
-      btnCloseSettings.addEventListener("click", closeSettings);
-    }
+    closeButtons.forEach(btn => btn.addEventListener("click", closeSettings));
     if(settingsOverlay){
       settingsOverlay.addEventListener("click", (e)=>{
         if(e.target === settingsOverlay) closeSettings();
