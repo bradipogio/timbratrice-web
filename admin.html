@@ -72,15 +72,26 @@
       text-overflow:ellipsis;
       white-space:nowrap;
     }
-    .iconSprite{position:absolute; width:0; height:0; overflow:hidden}
+    .iconBtn{
+      border:1px solid var(--line);
+      background:transparent;
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
     .icon{
       width:18px; height:18px;
       stroke:currentColor; fill:none; stroke-width:1.8;
       stroke-linecap:round; stroke-linejoin:round;
       flex:0 0 auto;
     }
-    .icon.xs{width:14px; height:14px}
     .icon.sm{width:16px; height:16px}
+    .iconSprite{position:absolute; width:0; height:0; overflow:hidden}
+    .icon.xs{width:14px; height:14px}
     .iconLabel{display:inline-flex; align-items:center; gap:6px}
     .wrap{max-width:1440px; margin:0 auto; padding:16px; display:flex; flex-direction:column; gap:14px}
     .card{
@@ -200,6 +211,64 @@
       font-weight:900;
       cursor:pointer;
     }
+    .modalOverlay{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.45);
+      backdrop-filter: blur(10px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:14px;
+      z-index:9999;
+    }
+    @media (prefers-color-scheme: light){
+      .modalOverlay{background:rgba(0,0,0,.25)}
+    }
+    .modalCard{
+      width:min(720px, calc(100% - 28px));
+      background:var(--card);
+      color:var(--text);
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      max-height:calc(100vh - 28px);
+      max-height:calc(100dvh - 28px);
+      display:flex;
+      flex-direction:column;
+    }
+    .modalHead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:14px 16px;
+      border-bottom:1px solid var(--line);
+      background:var(--card2);
+    }
+    .modalBody{
+      padding:14px 16px;
+      overflow:auto;
+    }
+    .destGrid{
+      display:grid;
+      grid-template-columns: 1.2fr .6fr 1.6fr auto;
+      gap:10px;
+      align-items:center;
+      margin-top:10px;
+    }
+    .destRow{
+      display:grid;
+      grid-template-columns: 1.2fr .6fr 1.6fr auto;
+      gap:10px;
+      align-items:center;
+      padding:10px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:var(--card2);
+      margin-top:8px;
+    }
+    .destActions{display:flex; gap:8px}
     .btn.exportBtn{
       padding:10px 12px;
       font-size:13px;
@@ -323,6 +392,7 @@
       font-weight:900;
       flex:0 0 auto;
     }
+    .miniBtn.danger{background:rgba(255,70,70,.10); border-color:rgba(255,70,70,.25)}
     .listTools{align-items:center; flex-wrap:wrap}
     .selectedCount{font-size:12px; color:var(--muted); font-weight:800}
     .toggle{display:flex; align-items:center; gap:8px; user-select:none; color:var(--muted); font-weight:900}
@@ -374,6 +444,14 @@
       <path d="M8 9l4 4 4-4"></path>
       <path d="M5 21h14"></path>
     </symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V22a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H2a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3 1.7 1.7 0 0 0 1-1.5V2a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8 1.7 1.7 0 0 0 1.5 1H22a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path>
+    </symbol>
+    <symbol id="i-close" viewBox="0 0 24 24">
+      <path d="M6 6l12 12"></path>
+      <path d="M18 6l-12 12"></path>
+    </symbol>
     <symbol id="i-clock" viewBox="0 0 24 24">
       <circle cx="12" cy="12" r="9"></circle>
       <path d="M12 7v5l3 2"></path>
@@ -394,6 +472,9 @@
     <div class="brand">Timbratrice Admin</div>
     <div class="right">
       <div id="userPill" class="userPill">Non loggato</div>
+      <button id="btnAdminSettings" class="iconBtn hidden" aria-label="Impostazioni">
+        <svg class="icon" aria-hidden="true"><use href="#i-gear"></use></svg>
+      </button>
     </div>
   </header>
 
@@ -530,6 +611,40 @@
     </section>
   </main>
 
+  <div id="settingsOverlay" class="modalOverlay hidden" role="dialog" aria-modal="true" aria-label="Impostazioni">
+    <div class="modalCard">
+      <div class="modalHead">
+        <div class="h2">Impostazioni</div>
+        <button id="btnCloseSettings" class="iconBtn" type="button" aria-label="Chiudi">
+          <svg class="icon sm" aria-hidden="true"><use href="#i-close"></use></svg>
+        </button>
+      </div>
+      <div class="modalBody">
+        <div id="settingsHome">
+          <button id="btnOpenDestinations" class="btn" type="button">Destinazioni</button>
+        </div>
+        <div id="destinationsPanel" class="hidden">
+          <div class="row">
+            <button id="btnBackSettings" class="btn" type="button">Indietro</button>
+          </div>
+
+          <div class="h2" style="margin-top:8px">Destinazioni</div>
+          <div class="sub">Gestisci nomi, km e link Google Maps</div>
+
+          <div class="destGrid">
+            <input id="destNameInput" type="text" placeholder="Nome destinazione">
+            <input id="destKmInput" type="number" step="0.1" min="0" placeholder="Km">
+            <input id="destMapsInput" type="url" placeholder="Link Google Maps (opzionale)">
+            <button id="btnAddDestination" class="miniBtn" type="button">Aggiungi</button>
+          </div>
+
+          <div id="destinationsList" style="margin-top:10px"></div>
+          <div id="destinationsMsg" class="msg" style="margin-top:10px"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
@@ -568,6 +683,7 @@ let userLabelById = new Map();
 let selectedIds = new Set();
 let visibleIds = [];
 let selectionMode = false;
+let destinations = [];
 
 function isoDate(isoTs){
   if(!isoTs) return "";
@@ -702,6 +818,12 @@ async function getUser(){
       const isAdmin = !!user && userEmailNorm === ADMIN_EMAIL_NORM;
       $("adminCard").classList.toggle("hidden", !isAdmin);
       $("loginCard").classList.toggle("hidden", isAdmin);
+      const settingsBtn = $("btnAdminSettings");
+      if(settingsBtn) settingsBtn.classList.toggle("hidden", !isAdmin);
+      if(!isAdmin){
+        const overlay = $("settingsOverlay");
+        if(overlay) overlay.classList.add("hidden");
+      }
 
       if(user && !isAdmin){
         setAuthMsg("❌ Accesso negato: questo account non è admin.", "err");
@@ -888,6 +1010,25 @@ async function getUser(){
       return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     }
 
+    function newId(){
+      if (typeof crypto !== "undefined" && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+        const r = Math.random() * 16 | 0;
+        const v = (c === "x") ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+      });
+    }
+
+    function setDestMsg(text, kind){
+      const el = $("destinationsMsg");
+      if(!el) return;
+      el.textContent = text || "";
+      el.classList.remove("ok","err");
+      if(kind) el.classList.add(kind);
+    }
+
 async function loadUsers(){
   const user = await getUser();
   const userEmailNorm = (user?.email || "").trim().toLowerCase();
@@ -977,6 +1118,177 @@ async function refresh(){
   }catch(err){
     console.error(err);
     setActionMsg(`❌ ${err.message || String(err)}${err.status ? ` (HTTP ${err.status})` : ""}`, "err");
+  }
+}
+
+async function loadDestinationsAdmin(){
+  const token = getToken();
+  if(!token){
+    setDestMsg("❌ Nessuna sessione/token. Rifai Login.", "err");
+    return;
+  }
+  try{
+    setDestMsg("⏳ Caricamento destinazioni...", null);
+    const data = await restGet(
+      "/rest/v1/destinations?select=id,name,km,maps_url&order=name.asc",
+      token,
+      12000,
+      "Caricamento destinazioni"
+    );
+    destinations = (data || []).map(d => ({
+      id: d.id,
+      name: String(d.name || ""),
+      km: Number(d.km || 0),
+      maps_url: String(d.maps_url || "")
+    }));
+    renderDestinationsAdmin();
+    setDestMsg(destinations.length ? "✅ Destinazioni caricate" : "Nessuna destinazione salvata.", null);
+  }catch(err){
+    console.error(err);
+    setDestMsg(`❌ ${err.message || String(err)}`, "err");
+  }
+}
+
+function renderDestinationsAdmin(){
+  const wrap = $("destinationsList");
+  if(!wrap) return;
+  wrap.innerHTML = "";
+  if(destinations.length === 0){
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "Nessuna destinazione";
+    wrap.appendChild(empty);
+    return;
+  }
+
+  for(const dest of destinations){
+    const row = document.createElement("div");
+    row.className = "destRow";
+    row.dataset.id = dest.id;
+
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.value = dest.name || "";
+    nameInput.setAttribute("data-field", "name");
+
+    const kmInput = document.createElement("input");
+    kmInput.type = "number";
+    kmInput.step = "0.1";
+    kmInput.min = "0";
+    kmInput.value = String(Number(dest.km || 0));
+    kmInput.setAttribute("data-field", "km");
+
+    const mapsInput = document.createElement("input");
+    mapsInput.type = "url";
+    mapsInput.value = dest.maps_url || "";
+    mapsInput.placeholder = "Link Google Maps";
+    mapsInput.setAttribute("data-field", "maps");
+
+    const actions = document.createElement("div");
+    actions.className = "destActions";
+
+    const saveBtn = document.createElement("button");
+    saveBtn.className = "miniBtn";
+    saveBtn.type = "button";
+    saveBtn.textContent = "Salva";
+    saveBtn.addEventListener("click", async ()=>{
+      const name = (nameInput.value || "").trim();
+      if(!name){
+        setDestMsg("❌ Inserisci un nome.", "err");
+        return;
+      }
+      const km = parseFloat(String(kmInput.value || "0").replace(",", "."));
+      const mapsUrl = (mapsInput.value || "").trim();
+      try{
+        await upsertDestination({
+          id: dest.id,
+          name,
+          km: isFinite(km) ? km : 0,
+          maps_url: mapsUrl
+        });
+        await loadDestinationsAdmin();
+      }catch(err){
+        setDestMsg(`❌ ${err.message || String(err)}`, "err");
+      }
+    });
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "miniBtn danger";
+    delBtn.type = "button";
+    delBtn.textContent = "Elimina";
+    delBtn.addEventListener("click", async ()=>{
+      if(!confirm("Eliminare questa destinazione?")) return;
+      try{
+        await deleteDestination(dest.id);
+        await loadDestinationsAdmin();
+      }catch(err){
+        setDestMsg(`❌ ${err.message || String(err)}`, "err");
+      }
+    });
+
+    actions.appendChild(saveBtn);
+    actions.appendChild(delBtn);
+    row.appendChild(nameInput);
+    row.appendChild(kmInput);
+    row.appendChild(mapsInput);
+    row.appendChild(actions);
+    wrap.appendChild(row);
+  }
+}
+
+async function upsertDestination(dest){
+  const token = getToken();
+  if(!token) throw new Error("Sessione non valida: rifai Login.");
+  const payload = {
+    id: dest.id || newId(),
+    name: dest.name || "",
+    km: Number(dest.km || 0),
+    maps_url: dest.maps_url || null,
+    updated_at: new Date().toISOString()
+  };
+  const url = `${SUPABASE_URL}/rest/v1/destinations`;
+  const headers = {
+    ...buildRestHeaders(token),
+    Prefer: "resolution=merge-duplicates,return=representation"
+  };
+  const res = await fetchWithTimeout(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(payload)
+  }, 12000, "Salvataggio destinazione");
+  const text = await res.text();
+  let json = null;
+  try{ json = text ? JSON.parse(text) : null; }catch{ json = null; }
+  if(!res.ok){
+    const msg = (json && (json.message || json.error || json.error_description)) || text || `HTTP ${res.status}`;
+    const err = new Error(msg);
+    err.status = res.status;
+    throw err;
+  }
+  return json;
+}
+
+async function deleteDestination(id){
+  if(!id) return;
+  const token = getToken();
+  if(!token) throw new Error("Sessione non valida: rifai Login.");
+  const url = `${SUPABASE_URL}/rest/v1/destinations?id=eq.${encodeURIComponent(id)}`;
+  const headers = {
+    ...buildRestHeaders(token),
+    Prefer: "return=minimal"
+  };
+  const res = await fetchWithTimeout(url, {
+    method: "DELETE",
+    headers
+  }, 12000, "Eliminazione destinazione");
+  if(!res.ok){
+    const text = await res.text();
+    let json = null;
+    try{ json = text ? JSON.parse(text) : null; }catch{ json = null; }
+    const msg = (json && (json.message || json.error || json.error_description)) || text || `HTTP ${res.status}`;
+    const err = new Error(msg);
+    err.status = res.status;
+    throw err;
   }
 }
 
@@ -1359,6 +1671,82 @@ $("btnLogout").addEventListener("click", async ()=>{
     document.addEventListener("click", (e)=>{
       if(!exportMenu || exportMenu.classList.contains("hidden")) return;
       if(exportWrap && !exportWrap.contains(e.target)) closeExportMenu();
+    });
+
+    const settingsOverlay = $("settingsOverlay");
+    const btnAdminSettings = $("btnAdminSettings");
+    const btnCloseSettings = $("btnCloseSettings");
+    const btnOpenDestinations = $("btnOpenDestinations");
+    const btnBackSettings = $("btnBackSettings");
+    const settingsHome = $("settingsHome");
+    const destinationsPanel = $("destinationsPanel");
+
+    function openSettings(){
+      if(settingsOverlay) settingsOverlay.classList.remove("hidden");
+      if(settingsHome) settingsHome.classList.remove("hidden");
+      if(destinationsPanel) destinationsPanel.classList.add("hidden");
+      setDestMsg("", null);
+    }
+    function closeSettings(){
+      if(settingsOverlay) settingsOverlay.classList.add("hidden");
+    }
+    function openDestinations(){
+      if(settingsHome) settingsHome.classList.add("hidden");
+      if(destinationsPanel) destinationsPanel.classList.remove("hidden");
+      loadDestinationsAdmin();
+    }
+
+    if(btnAdminSettings){
+      btnAdminSettings.addEventListener("click", (e)=>{
+        e.preventDefault();
+        openSettings();
+      });
+    }
+    if(btnCloseSettings){
+      btnCloseSettings.addEventListener("click", closeSettings);
+    }
+    if(settingsOverlay){
+      settingsOverlay.addEventListener("click", (e)=>{
+        if(e.target === settingsOverlay) closeSettings();
+      });
+    }
+    if(btnOpenDestinations){
+      btnOpenDestinations.addEventListener("click", (e)=>{
+        e.preventDefault();
+        openDestinations();
+      });
+    }
+    if(btnBackSettings){
+      btnBackSettings.addEventListener("click", (e)=>{
+        e.preventDefault();
+        if(destinationsPanel) destinationsPanel.classList.add("hidden");
+        if(settingsHome) settingsHome.classList.remove("hidden");
+      });
+    }
+    $("btnAddDestination")?.addEventListener("click", async ()=>{
+      const nameEl = $("destNameInput");
+      const kmEl = $("destKmInput");
+      const mapsEl = $("destMapsInput");
+      const name = (nameEl?.value || "").trim();
+      if(!name){
+        setDestMsg("❌ Inserisci un nome.", "err");
+        return;
+      }
+      const km = parseFloat(String(kmEl?.value || "0").replace(",", "."));
+      const mapsUrl = (mapsEl?.value || "").trim();
+      try{
+        await upsertDestination({
+          name,
+          km: isFinite(km) ? km : 0,
+          maps_url: mapsUrl
+        });
+        if(nameEl) nameEl.value = "";
+        if(kmEl) kmEl.value = "";
+        if(mapsEl) mapsEl.value = "";
+        await loadDestinationsAdmin();
+      }catch(err){
+        setDestMsg(`❌ ${err.message || String(err)}`, "err");
+      }
     });
 
     $("btnSelectMode").addEventListener("click", (e)=>{
