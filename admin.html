@@ -620,6 +620,10 @@
             <button id="btnOpenDestinations" class="btn" type="button">Destinazioni</button>
           </div>
           <div class="row">
+            <button id="btnAdminDiag" class="btn" type="button">Diagnostica</button>
+            <button id="btnAdminLogout" class="btn danger" type="button">Logout</button>
+          </div>
+          <div class="row">
             <button class="btn" type="button" data-close-settings>Chiudi</button>
           </div>
         </div>
@@ -650,6 +654,8 @@
           <div id="destinationsList" style="margin-top:10px"></div>
           <div id="destinationsMsg" class="msg" style="margin-top:10px"></div>
         </div>
+
+        <div id="settingsMsg" class="msg" style="white-space: pre-line"></div>
       </form>
     </div>
   </div>
@@ -853,15 +859,23 @@ async function getUser(){
       }
     }
 
-    function setAuthMsg(text, kind){
-      const el = $("authMsg");
+function setAuthMsg(text, kind){
+  const el = $("authMsg");
+  el.textContent = text || "";
+  el.classList.remove("ok","err");
+  if(kind) el.classList.add(kind);
+}
+
+function setActionMsg(text, kind){
+      const el = $("actionMsg");
       el.textContent = text || "";
       el.classList.remove("ok","err");
       if(kind) el.classList.add(kind);
     }
 
-    function setActionMsg(text, kind){
-      const el = $("actionMsg");
+    function setSettingsMsg(text, kind){
+      const el = $("settingsMsg");
+      if(!el) return;
       el.textContent = text || "";
       el.classList.remove("ok","err");
       if(kind) el.classList.add(kind);
@@ -1082,6 +1096,34 @@ async function loadUsers(){
   }catch(err){
     console.warn("Lista utenti non disponibile", err);
   }
+}
+
+async function runAdminDiagnostics(){
+  if(!sb) throw new Error("Supabase non inizializzato.");
+  const token = getToken();
+  const user = currentUser || currentSession?.user || null;
+  const tokenInfo = token ? `token ${token.length} chars` : "no token";
+  const email = user?.email || "(no user)";
+  const uid = user?.id || "(no id)";
+
+  let qStatus = "";
+  if(!token){
+    qStatus = "Query SKIP: nessun token (rifai Login)";
+  }else{
+    try{
+      const rows = await withTimeout(
+        restGet("/rest/v1/work_records_admin_view?select=id&limit=1", token),
+        12000,
+        "Diagnostica query"
+      );
+      qStatus = `Query OK (rows: ${(rows||[]).length})`;
+    }catch(e){
+      qStatus = `Query ERROR: ${(e.message || String(e))}${e?.status ? ` (code ${e.status})` : ""}`;
+    }
+  }
+
+  const expiresAt = currentSession?.expires_at || null;
+  return { hasSession: !!token, email, uid, tokenInfo, qStatus, expiresAt };
 }
 
 async function refresh(){
@@ -1624,6 +1666,21 @@ async function deleteDestination(id){
       return t;
     }
 
+async function doLogout(){
+  try{
+    await sb.auth.signOut();
+  }catch(err){
+    console.warn("Logout error:", err);
+  }
+  currentSession = null;
+  currentUser = null;
+  records = [];
+  setSelectionMode(false);
+  setAuthUI(null);
+  setAuthMsg("✅ Logout", "ok");
+  setSettingsMsg("✅ Logout", "ok");
+}
+
 $("btnLogin").addEventListener("click", async ()=>{
   try{
     setAuthMsg("⏳ Login...", null);
@@ -1648,17 +1705,7 @@ $("btnLogin").addEventListener("click", async ()=>{
 });
 
 $("btnLogout").addEventListener("click", async ()=>{
-  try{
-    await sb.auth.signOut();
-  }catch(err){
-    console.warn("Logout error:", err);
-  }
-  currentSession = null;
-  currentUser = null;
-  records = [];
-  setSelectionMode(false);
-  setAuthUI(null);
-  setAuthMsg("✅ Logout", "ok");
+  await doLogout();
 });
 
     const exportWrap = $("exportWrap");
@@ -1711,6 +1758,7 @@ $("btnLogout").addEventListener("click", async ()=>{
       if(settingsHome) settingsHome.classList.remove("hidden");
       if(destinationsPanel) destinationsPanel.classList.add("hidden");
       setDestMsg("", null);
+      setSettingsMsg("", null);
     }
     function closeSettings(){
       if(settingsOverlay) settingsOverlay.classList.add("hidden");
@@ -1743,6 +1791,25 @@ $("btnLogout").addEventListener("click", async ()=>{
         openDestinations();
       });
     }
+    $("btnAdminDiag")?.addEventListener("click", async (e)=>{
+      e.preventDefault();
+      try{
+        setSettingsMsg("⏳ Diagnostica in corso...", null);
+        const d = await runAdminDiagnostics();
+        const exp = d.expiresAt ? new Date(d.expiresAt * 1000).toLocaleString("it-IT") : "(n/a)";
+        setSettingsMsg(
+          `🧪 Session: ${d.hasSession ? "SI" : "NO"}\n👤 ${d.email}\n🆔 ${d.uid}\n🔑 ${d.tokenInfo}\n⏰ exp: ${exp}\n📡 ${d.qStatus}`,
+          d.hasSession && d.qStatus.startsWith("Query OK") ? "ok" : "err"
+        );
+      }catch(err){
+        setSettingsMsg("❌ " + (err.message || String(err)), "err");
+      }
+    });
+    $("btnAdminLogout")?.addEventListener("click", async (e)=>{
+      e.preventDefault();
+      await doLogout();
+      closeSettings();
+    });
     if(btnBackSettings){
       btnBackSettings.addEventListener("click", (e)=>{
         e.preventDefault();
