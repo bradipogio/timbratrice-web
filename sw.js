@@ -13,7 +13,8 @@ const CORE_ASSETS = [
   "A_flat_digital_vector_illustration_in_the_form_of_.png"
 ];
 const EXTERNAL_ASSETS = [
-  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
+  "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"
 ];
 
 self.addEventListener("install", (event) => {

@@ -475,6 +475,7 @@
           </button>
           <div id="exportMenu" class="exportMenu hidden" role="menu" aria-label="Esporta">
             <button id="btnExportCsv" class="menuBtn" type="button" role="menuitem">CSV (filtro)</button>
+            <button id="btnExportXlsx" class="menuBtn" type="button" role="menuitem">XLSX (Excel)</button>
             <button id="btnExportPdf" class="menuBtn" type="button" role="menuitem">PDF</button>
           </div>
         </div>
@@ -529,6 +530,7 @@
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     if("serviceWorker" in navigator){
@@ -1022,6 +1024,78 @@ async function refresh(){
       a.remove();
     }
 
+    function exportXLSX(){
+      if(!window.XLSX){
+        setActionMsg("❌ XLSX non disponibile (libreria non caricata).", "err");
+        return;
+      }
+      const rows = [...records];
+      if(rows.length === 0){
+        setActionMsg("Nessun record da esportare.", "err");
+        return;
+      }
+
+      const header = ["Utente","Titolo","DataOraInizio","DataOraFine","Pausa_min","Ore_nette","Km"];
+      const data = [header];
+      let sumWork = 0;
+      let sumKm = 0;
+      let sumPause = 0;
+
+      for(const r of rows){
+        const start = r.start_ts ? new Date(r.start_ts) : "";
+        const end = r.end_ts ? new Date(r.end_ts) : "";
+        const pauseMin = Number(r.pause_min || 0);
+        const workMin = Number(r.work_min || 0);
+        const km = Number(r.km || 0);
+        sumPause += pauseMin;
+        sumWork += workMin;
+        sumKm += km;
+
+        data.push([
+          getUserLabelFromRecord(r),
+          r.title || "",
+          start instanceof Date && !isNaN(start.getTime()) ? start : "",
+          end instanceof Date && !isNaN(end.getTime()) ? end : "",
+          pauseMin,
+          workMin / 1440,
+          km
+        ]);
+      }
+
+      data.push(["TOTALE SELEZIONE","","","", sumPause, sumWork / 1440, sumKm]);
+
+      const ws = XLSX.utils.aoa_to_sheet(data, { cellDates: true });
+      ws["!cols"] = [
+        { wch: 26 },
+        { wch: 28 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 12 },
+        { wch: 12 },
+        { wch: 10 }
+      ];
+
+      for(let r = 1; r < data.length; r++){
+        const startCell = XLSX.utils.encode_cell({ r, c: 2 });
+        const endCell = XLSX.utils.encode_cell({ r, c: 3 });
+        const workCell = XLSX.utils.encode_cell({ r, c: 5 });
+        if(ws[startCell] && ws[startCell].v instanceof Date){
+          ws[startCell].z = "yyyy-mm-dd hh:mm";
+        }
+        if(ws[endCell] && ws[endCell].v instanceof Date){
+          ws[endCell].z = "yyyy-mm-dd hh:mm";
+        }
+        if(ws[workCell]){
+          ws[workCell].t = "n";
+          ws[workCell].z = "[h]:mm";
+        }
+      }
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Turni");
+      XLSX.writeFile(wb, `timbratrice-admin-${Date.now()}.xlsx`);
+    }
+
     function exportPDF(){
       const rows = [...records];
       if(rows.length === 0){
@@ -1272,6 +1346,10 @@ $("btnLogout").addEventListener("click", async ()=>{
     }
     $("btnExportCsv").addEventListener("click", ()=>{
       exportCSV();
+      closeExportMenu();
+    });
+    $("btnExportXlsx").addEventListener("click", ()=>{
+      exportXLSX();
       closeExportMenu();
     });
     $("btnExportPdf").addEventListener("click", ()=>{

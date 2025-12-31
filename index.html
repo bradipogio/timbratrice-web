@@ -1009,6 +1009,7 @@ body{
             </button>
             <div id="exportMenu" class="exportMenu hidden" role="menu" aria-label="Esporta">
               <button id="btnExportCsv" class="menuBtn" type="button" role="menuitem">CSV (Excel)</button>
+              <button id="btnExportXlsx" class="menuBtn" type="button" role="menuitem">XLSX (Excel)</button>
               <button id="btnExportPdf" class="menuBtn" type="button" role="menuitem">PDF</button>
             </div>
           </div>
@@ -1143,6 +1144,9 @@ body{
     </form>
   </div>
 </div>
+
+  <!-- SheetJS (XLSX) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2748,6 +2752,76 @@ list.innerHTML = "";
       a.remove();
     }
 
+    // --------- XLSX export (durate numeriche per Excel) ---------
+    function exportXLSX(){
+      const report = getExportName();
+      if(report === null) return;
+      if(!window.XLSX){
+        setActionMsg("❌ XLSX non disponibile (libreria non caricata).", "err");
+        return;
+      }
+
+      const rows = getVisibleHistory();
+      if(rows.length === 0){
+        setActionMsg("Nessun record da esportare.", "err");
+        return;
+      }
+
+      const header = ["Titolo","DataOraInizio","DataOraFine","Ore_nette","Km"];
+      const data = [header];
+      let sumWork = 0;
+      let sumKm = 0;
+
+      for(const r of rows){
+        const start = r.startISO ? new Date(r.startISO) : "";
+        const end = r.endISO ? new Date(r.endISO) : "";
+        const workMin = Number(r.workMin || 0);
+        const km = Number(r.km || 0);
+        sumWork += workMin;
+        sumKm += km;
+        data.push([
+          r.title || "",
+          start instanceof Date && !isNaN(start.getTime()) ? start : "",
+          end instanceof Date && !isNaN(end.getTime()) ? end : "",
+          workMin / 1440,
+          km
+        ]);
+      }
+
+      data.push(["TOTALE SELEZIONE","","", sumWork / 1440, sumKm]);
+
+      const ws = XLSX.utils.aoa_to_sheet(data, { cellDates: true });
+      ws["!cols"] = [
+        { wch: 28 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 12 },
+        { wch: 10 }
+      ];
+
+      for(let r = 1; r < data.length; r++){
+        const startCell = XLSX.utils.encode_cell({ r, c: 1 });
+        const endCell = XLSX.utils.encode_cell({ r, c: 2 });
+        const workCell = XLSX.utils.encode_cell({ r, c: 3 });
+        if(ws[startCell] && ws[startCell].v instanceof Date){
+          ws[startCell].z = "yyyy-mm-dd hh:mm";
+        }
+        if(ws[endCell] && ws[endCell].v instanceof Date){
+          ws[endCell].z = "yyyy-mm-dd hh:mm";
+        }
+        if(ws[workCell]){
+          ws[workCell].t = "n";
+          ws[workCell].z = "[h]:mm";
+        }
+      }
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Turni");
+
+      const safe = report.replace(/[^\w\-]+/g, "-");
+      XLSX.writeFile(wb, `${safe}-${Date.now()}.xlsx`);
+    }
+
     // --------- PDF export (stampa -> salva PDF) ---------
     function exportPDF(){
       const report = getExportName();
@@ -3308,6 +3382,11 @@ $("endInput").addEventListener("change", async ()=>{
     $("btnExportCsv").addEventListener("click", (e)=>{
       e.preventDefault();
       exportCSV();
+      closeExportMenu();
+    });
+    $("btnExportXlsx").addEventListener("click", (e)=>{
+      e.preventDefault();
+      exportXLSX();
       closeExportMenu();
     });
     $("btnExportPdf").addEventListener("click", (e)=>{
