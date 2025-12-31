@@ -268,24 +268,6 @@
       background:var(--card2);
       margin-top:8px;
     }
-    .userGrid{
-      display:grid;
-      grid-template-columns: 1.6fr 1fr auto;
-      gap:10px;
-      align-items:center;
-      margin-top:10px;
-    }
-    .userRow{
-      display:grid;
-      grid-template-columns: 1.6fr 1fr auto;
-      gap:10px;
-      align-items:center;
-      padding:10px;
-      border-radius:12px;
-      border:1px solid var(--line);
-      background:var(--card2);
-      margin-top:8px;
-    }
     .destActions{display:flex; gap:8px}
     .btn.exportBtn{
       padding:10px 12px;
@@ -640,7 +622,6 @@
       <div class="modalBody">
         <div id="settingsHome">
           <button id="btnOpenDestinations" class="btn" type="button">Destinazioni</button>
-          <button id="btnOpenUsers" class="btn" type="button">Utenti</button>
         </div>
         <div id="destinationsPanel" class="hidden">
           <div class="row">
@@ -666,30 +647,6 @@
 
           <div id="destinationsList" style="margin-top:10px"></div>
           <div id="destinationsMsg" class="msg" style="margin-top:10px"></div>
-        </div>
-        <div id="usersPanel" class="hidden">
-          <div class="row">
-            <button id="btnBackUsers" class="btn" type="button">Indietro</button>
-          </div>
-
-          <div class="h2" style="margin-top:8px">Utenti</div>
-          <div class="sub">Crea e modifica accessi</div>
-          <div class="row">
-            <input id="userSearchInput" type="text" placeholder="Cerca utente" style="flex:1">
-            <select id="userSortSelect" style="flex:0 0 150px">
-              <option value="az">A → Z</option>
-              <option value="za">Z → A</option>
-            </select>
-          </div>
-
-          <div class="userGrid">
-            <input id="newUserEmail" type="email" placeholder="Email utente">
-            <input id="newUserPass" type="password" placeholder="Password">
-            <button id="btnAddUser" class="miniBtn" type="button">Aggiungi</button>
-          </div>
-
-          <div id="usersList" style="margin-top:10px"></div>
-          <div id="usersMsg" class="msg" style="margin-top:10px"></div>
         </div>
       </div>
     </div>
@@ -740,7 +697,6 @@ let selectedIds = new Set();
 let visibleIds = [];
 let selectionMode = false;
 let destinations = [];
-let adminUsers = [];
 
 function isoDate(isoTs){
   if(!isoTs) return "";
@@ -841,47 +797,6 @@ async function updatePaidStatus(id, paid){
 
 function getToken(){
   return currentSession?.access_token || "";
-}
-
-async function getAccessToken(){
-  if(!sb) return "";
-  const now = Math.floor(Date.now() / 1000);
-  let session = currentSession || null;
-
-  try{
-    if(!session){
-      const { data } = await withTimeout(sb.auth.getSession(), 4000, "Sessione");
-      session = data?.session || null;
-    }
-  }catch{
-  }
-
-  try{
-    if(session?.expires_at && session.expires_at < now + 60){
-      const { data } = await withTimeout(sb.auth.refreshSession(), 6000, "Refresh sessione");
-      session = data?.session || session;
-    }
-  }catch{
-  }
-
-  if(session){
-    currentSession = session;
-    return session.access_token || "";
-  }
-  return "";
-}
-
-async function refreshSessionHard(){
-  if(!sb) return "";
-  try{
-    const { data } = await withTimeout(sb.auth.refreshSession(), 8000, "Refresh sessione");
-    if(data?.session){
-      currentSession = data.session;
-      return data.session.access_token || "";
-    }
-  }catch{
-  }
-  return "";
 }
 
 async function getUser(){
@@ -1127,13 +1042,6 @@ async function getUser(){
       if(kind) el.classList.add(kind);
     }
 
-    function setUsersMsg(text, kind){
-      const el = $("usersMsg");
-      if(!el) return;
-      el.textContent = text || "";
-      el.classList.remove("ok","err");
-      if(kind) el.classList.add(kind);
-    }
 
 async function loadUsers(){
   const user = await getUser();
@@ -1406,138 +1314,6 @@ async function deleteDestination(id){
   }
 }
 
-async function callAdminUsers(action, payload){
-  let token = await getAccessToken();
-  if(!token) throw new Error("Sessione non valida: rifai Login.");
-
-  const url = `${SUPABASE_URL}/functions/v1/admin-users`;
-
-  async function doRequest(authToken){
-    const headers = {
-      ...buildRestHeaders(authToken),
-      Authorization: `Bearer ${authToken}`
-    };
-    const res = await fetchWithTimeout(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ action, ...payload })
-    }, 12000, "Utenti");
-    const text = await res.text();
-    let json = null;
-    try{ json = text ? JSON.parse(text) : null; }catch{ json = null; }
-    return { res, json, text };
-  }
-
-  let { res, json, text } = await doRequest(token);
-  if(!res.ok && res.status === 401){
-    const msg = (json && (json.message || json.error || json.error_description)) || text || "";
-    if(msg.toLowerCase().includes("invalid jwt")){
-      token = await refreshSessionHard();
-      if(token){
-        ({ res, json, text } = await doRequest(token));
-      }
-    }
-  }
-
-  if(!res.ok){
-    const msg = (json && (json.message || json.error || json.error_description)) || text || `HTTP ${res.status}`;
-    const err = new Error(msg);
-    err.status = res.status;
-    throw err;
-  }
-  return json || {};
-}
-
-async function loadUsersAdmin(){
-  try{
-    setUsersMsg("⏳ Caricamento utenti...", null);
-    const data = await callAdminUsers("list", {});
-    adminUsers = Array.isArray(data.users) ? data.users : [];
-    renderUsersAdmin();
-    if(data.truncated){
-      setUsersMsg("✅ Utenti caricati (mostrati max 1000).", null);
-    }else{
-      setUsersMsg(adminUsers.length ? "✅ Utenti caricati" : "Nessun utente trovato.", null);
-    }
-  }catch(err){
-    console.error(err);
-    setUsersMsg(`❌ ${err.message || String(err)}`, "err");
-  }
-}
-
-function renderUsersAdmin(){
-  const wrap = $("usersList");
-  if(!wrap) return;
-  wrap.innerHTML = "";
-  const q = ($("userSearchInput")?.value || "").trim().toLowerCase();
-  const sortDir = ($("userSortSelect")?.value || "az").toLowerCase();
-  const filtered = adminUsers.filter(u =>
-    (u.email || "").toLowerCase().includes(q)
-  );
-  filtered.sort((a,b)=> (a.email || "").localeCompare(b.email || "", "it", { sensitivity: "base" }));
-  if(sortDir === "za") filtered.reverse();
-
-  if(filtered.length === 0){
-    const empty = document.createElement("div");
-    empty.className = "empty";
-    empty.textContent = "Nessun utente";
-    wrap.appendChild(empty);
-    return;
-  }
-
-  for(const u of filtered){
-    const row = document.createElement("div");
-    row.className = "userRow";
-    row.dataset.id = u.id;
-
-    const emailInput = document.createElement("input");
-    emailInput.type = "email";
-    emailInput.value = u.email || "";
-    emailInput.setAttribute("data-field", "email");
-
-    const passInput = document.createElement("input");
-    passInput.type = "password";
-    passInput.placeholder = "Nuova password";
-    passInput.setAttribute("data-field", "password");
-
-    const actions = document.createElement("div");
-    actions.className = "destActions";
-    const saveBtn = document.createElement("button");
-    saveBtn.className = "miniBtn";
-    saveBtn.type = "button";
-    saveBtn.textContent = "Salva";
-    saveBtn.addEventListener("click", async ()=>{
-      const newEmail = (emailInput.value || "").trim();
-      const newPass = (passInput.value || "").trim();
-      if(!newEmail){
-        setUsersMsg("❌ Email mancante.", "err");
-        return;
-      }
-      if(!newPass && newEmail === (u.email || "").trim()){
-        setUsersMsg("ℹ️ Nessuna modifica da salvare.", null);
-        return;
-      }
-      try{
-        setUsersMsg("⏳ Salvataggio utente...", null);
-        await callAdminUsers("update", {
-          id: u.id,
-          email: newEmail,
-          password: newPass || null
-        });
-        passInput.value = "";
-        await loadUsersAdmin();
-      }catch(err){
-        setUsersMsg(`❌ ${err.message || String(err)}`, "err");
-      }
-    });
-
-    actions.appendChild(saveBtn);
-    row.appendChild(emailInput);
-    row.appendChild(passInput);
-    row.appendChild(actions);
-    wrap.appendChild(row);
-  }
-}
 
     function exportCSV(){
       const sep = ";";
@@ -1925,19 +1701,14 @@ $("btnLogout").addEventListener("click", async ()=>{
     const btnCloseSettings = $("btnCloseSettings");
     const btnOpenDestinations = $("btnOpenDestinations");
     const btnBackSettings = $("btnBackSettings");
-    const btnOpenUsers = $("btnOpenUsers");
-    const btnBackUsers = $("btnBackUsers");
     const settingsHome = $("settingsHome");
     const destinationsPanel = $("destinationsPanel");
-    const usersPanel = $("usersPanel");
 
     function openSettings(){
       if(settingsOverlay) settingsOverlay.classList.remove("hidden");
       if(settingsHome) settingsHome.classList.remove("hidden");
       if(destinationsPanel) destinationsPanel.classList.add("hidden");
-      if(usersPanel) usersPanel.classList.add("hidden");
       setDestMsg("", null);
-      setUsersMsg("", null);
     }
     function closeSettings(){
       if(settingsOverlay) settingsOverlay.classList.add("hidden");
@@ -1945,22 +1716,11 @@ $("btnLogout").addEventListener("click", async ()=>{
     function openDestinations(){
       if(settingsHome) settingsHome.classList.add("hidden");
       if(destinationsPanel) destinationsPanel.classList.remove("hidden");
-      if(usersPanel) usersPanel.classList.add("hidden");
       const search = $("destSearchInput");
       const sort = $("destSortSelect");
       if(search) search.value = "";
       if(sort) sort.value = "az";
       loadDestinationsAdmin();
-    }
-    function openUsers(){
-      if(settingsHome) settingsHome.classList.add("hidden");
-      if(destinationsPanel) destinationsPanel.classList.add("hidden");
-      if(usersPanel) usersPanel.classList.remove("hidden");
-      const search = $("userSearchInput");
-      const sort = $("userSortSelect");
-      if(search) search.value = "";
-      if(sort) sort.value = "az";
-      loadUsersAdmin();
     }
 
     if(btnAdminSettings){
@@ -1983,31 +1743,15 @@ $("btnLogout").addEventListener("click", async ()=>{
         openDestinations();
       });
     }
-    if(btnOpenUsers){
-      btnOpenUsers.addEventListener("click", (e)=>{
-        e.preventDefault();
-        openUsers();
-      });
-    }
     if(btnBackSettings){
       btnBackSettings.addEventListener("click", (e)=>{
         e.preventDefault();
         if(destinationsPanel) destinationsPanel.classList.add("hidden");
-        if(usersPanel) usersPanel.classList.add("hidden");
-        if(settingsHome) settingsHome.classList.remove("hidden");
-      });
-    }
-    if(btnBackUsers){
-      btnBackUsers.addEventListener("click", (e)=>{
-        e.preventDefault();
-        if(usersPanel) usersPanel.classList.add("hidden");
         if(settingsHome) settingsHome.classList.remove("hidden");
       });
     }
     $("destSearchInput")?.addEventListener("input", ()=> renderDestinationsAdmin());
     $("destSortSelect")?.addEventListener("change", ()=> renderDestinationsAdmin());
-    $("userSearchInput")?.addEventListener("input", ()=> renderUsersAdmin());
-    $("userSortSelect")?.addEventListener("change", ()=> renderUsersAdmin());
     $("btnAddDestination")?.addEventListener("click", async ()=>{
       const nameEl = $("destNameInput");
       const kmEl = $("destKmInput");
@@ -2031,25 +1775,6 @@ $("btnLogout").addEventListener("click", async ()=>{
         await loadDestinationsAdmin();
       }catch(err){
         setDestMsg(`❌ ${err.message || String(err)}`, "err");
-      }
-    });
-    $("btnAddUser")?.addEventListener("click", async ()=>{
-      const emailEl = $("newUserEmail");
-      const passEl = $("newUserPass");
-      const email = (emailEl?.value || "").trim();
-      const password = (passEl?.value || "").trim();
-      if(!email || !password){
-        setUsersMsg("❌ Inserisci email e password.", "err");
-        return;
-      }
-      try{
-        setUsersMsg("⏳ Creazione utente...", null);
-        await callAdminUsers("create", { email, password });
-        if(emailEl) emailEl.value = "";
-        if(passEl) passEl.value = "";
-        await loadUsersAdmin();
-      }catch(err){
-        setUsersMsg(`❌ ${err.message || String(err)}`, "err");
       }
     });
 
