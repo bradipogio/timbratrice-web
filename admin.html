@@ -1377,18 +1377,6 @@ async function callAdminUsers(action, payload){
   const token = await getAccessToken();
   if(!token) throw new Error("Sessione non valida: rifai Login.");
 
-  if(sb?.functions?.invoke){
-    const { data, error } = await withTimeout(
-      sb.functions.invoke("admin-users", { body: { action, ...payload } }),
-      12000,
-      "Utenti"
-    );
-    if(error){
-      throw new Error(error.message || "Errore funzione utenti");
-    }
-    return data || {};
-  }
-
   const url = `${SUPABASE_URL}/functions/v1/admin-users`;
   const headers = {
     ...buildRestHeaders(token),
