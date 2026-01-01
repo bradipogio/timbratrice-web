@@ -914,7 +914,6 @@ body{
   <header class="topbar">
     <div class="brand">Timbratrice</div>
     <div class="right">
-      <div id="userPill" class="userPill">Non loggato</div>
       <div id="netPill" class="userPill netPill hidden">Offline</div>
       <button id="btnSettings" class="iconBtn" aria-label="Account">
         <svg class="icon" aria-hidden="true"><use href="#i-gear"></use></svg>
@@ -1128,6 +1127,7 @@ body{
   <div class="modalCard">
     <form class="dlgInner" onsubmit="return false;">
       <div class="dlgTitle">Account & Impostazioni</div>
+      <div id="userPill" class="userPill">Non loggato</div>
 
       <div id="authFields">
         <label class="field">
@@ -1168,7 +1168,6 @@ body{
 
       <div id="logoutRow" class="row hidden">
         <button id="btnLogout" type="button" class="btn danger">Logout</button>
-        <button id="btnCloseDlg" type="button" class="btn">Chiudi</button>
       </div>
 
       <div id="settingsMsg" class="msg"></div>
@@ -1907,7 +1906,6 @@ function updateSettingsUI(){
   const loginRow = $("loginRow");
   const resetRow = $("resetRow");
   const logoutRow = $("logoutRow");
-  const closeBtn = $("btnCloseDlg");
 
   if(emailInput){
     emailInput.readOnly = logged;
@@ -1927,9 +1925,6 @@ function updateSettingsUI(){
   if(logoutRow){
     logoutRow.classList.toggle("hidden", !logged || inRecovery);
   }
-  if(closeBtn){
-    closeBtn.classList.toggle("hidden", !logged);
-  }
 }
 function updateAuthButtons(){
   const btnLogin = $("btnLogin");
@@ -1942,7 +1937,6 @@ function updateAuthButtons(){
 }
 function enforceAuthGate(){
   const main = document.getElementById("appMain");
-  const closeBtn = $("btnCloseDlg");
   const dlg = document.getElementById("settingsDlg");
 
   const logged = !!currentUser;
@@ -1952,11 +1946,9 @@ function enforceAuthGate(){
 
   // Se non loggato: forza apertura impostazioni e blocca chiusura
   if(!logged){
-    if(closeBtn) closeBtn.disabled = true;
     if(dlg) dlg.classList.remove("hidden");
     setSettingsMsg("🔐 Effettua il login per usare l’app.", null);
   }else{
-    if(closeBtn) closeBtn.disabled = false;
   }
 }
     function setActionMsg(text, kind){
@@ -3231,10 +3223,6 @@ $("btnSettings").addEventListener("click", ()=>{
 
     $("btnLogin").addEventListener("click", async (e)=>{
       e.preventDefault();
-      if(currentUser){
-        await doLogout();
-        return;
-      }
       try{
         setSettingsMsg("⏳ Login...", null);
         const email = ($("emailInput").value||"").trim();
@@ -3331,7 +3319,6 @@ $("btnSettings").addEventListener("click", ()=>{
       e.preventDefault();
       await doLogout();
     });
-$("btnCloseDlg").addEventListener("click", closeSettings);
 
     $("btnStart").addEventListener("click", startShift);
     $("btnBreak").addEventListener("click", toggleBreak);
