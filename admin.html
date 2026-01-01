@@ -612,7 +612,6 @@
     <div class="modalCard">
       <form class="dlgInner" onsubmit="return false;">
         <div class="dlgTitle">Account & Impostazioni</div>
-        <div id="userPill" class="userPill">Non loggato</div>
 
         <div id="settingsHome">
           <div class="row">
@@ -821,15 +820,9 @@ async function getUser(){
 }
 
     function setAuthUI(user){
-      const pill = $("userPill");
       currentUser = user || null;
 
       const userEmailNorm = (user?.email || "").trim().toLowerCase();
-      if(user){
-        pill.textContent = user.email || "Loggato";
-      }else{
-        pill.textContent = "Non loggato";
-      }
 
       const isAdmin = !!user && userEmailNorm === ADMIN_EMAIL_NORM;
       $("adminCard").classList.toggle("hidden", !isAdmin);

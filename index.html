@@ -101,6 +101,8 @@
       text-overflow:ellipsis;
       white-space:nowrap;
     }
+    #titleInput::-webkit-calendar-picker-indicator{display:none!important}
+    #titleInput::-webkit-list-button{display:none!important}
     .netPill{
       border-color:rgba(255,176,32,.6);
       color:var(--warn);
@@ -1127,7 +1129,7 @@ body{
   <div class="modalCard">
     <form class="dlgInner" onsubmit="return false;">
       <div class="dlgTitle">Account & Impostazioni</div>
-      <div id="userPill" class="userPill">Non loggato</div>
+      <div id="authStatus" class="msg"></div>
 
       <div id="authFields">
         <label class="field">
@@ -1881,14 +1883,22 @@ if(ph) ph.value = "00:00";
       if(btnDiag) btnDiag.classList.toggle("hidden", !isAdmin);
     }
     function setUserUI(user){
-      const pill = $("userPill");
+      const status = $("authStatus");
       const hint = $("loginHint");
       currentUser = user || null;
       if(user){
-        pill.textContent = user.email || "Loggato";
+        if(status){
+          status.textContent = "Online";
+          status.classList.remove("err");
+          status.classList.add("ok");
+        }
         hint.classList.add("hidden");
       }else{
-        pill.textContent = "Non loggato";
+        if(status){
+          status.textContent = "Non loggato";
+          status.classList.remove("ok");
+          status.classList.add("err");
+        }
         hint.classList.remove("hidden");
       }
       updateAuthButtons();
@@ -1897,19 +1907,20 @@ if(ph) ph.value = "00:00";
       if(typeof enforceAuthGate === "function") enforceAuthGate();
       refreshNetStatus();
     }
-function updateSettingsUI(){
-  const logged = !!currentUser;
-  const inRecovery = recoveryMode;
-  const emailInput = $("emailInput");
+  function updateSettingsUI(){
+    const logged = !!currentUser;
+    const inRecovery = recoveryMode;
+    const emailInput = $("emailInput");
   const passField = $("passField");
   const authFields = $("authFields");
-  const loginRow = $("loginRow");
-  const resetRow = $("resetRow");
-  const logoutRow = $("logoutRow");
+    const loginRow = $("loginRow");
+    const resetRow = $("resetRow");
+    const logoutRow = $("logoutRow");
+    const status = $("authStatus");
 
-  if(emailInput){
-    emailInput.readOnly = logged;
-  }
+    if(emailInput){
+      emailInput.readOnly = logged;
+    }
   if(passField){
     passField.classList.toggle("hidden", logged || inRecovery);
   }
@@ -1922,10 +1933,15 @@ function updateSettingsUI(){
   if(resetRow){
     resetRow.classList.toggle("hidden", inRecovery);
   }
-  if(logoutRow){
-    logoutRow.classList.toggle("hidden", !logged || inRecovery);
+    if(logoutRow){
+      logoutRow.classList.toggle("hidden", !logged || inRecovery);
+    }
+    if(status && !logged){
+      status.textContent = "Non loggato";
+      status.classList.remove("ok");
+      status.classList.add("err");
+    }
   }
-}
 function updateAuthButtons(){
   const btnLogin = $("btnLogin");
   if(btnLogin){
