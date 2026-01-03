@@ -1773,8 +1773,7 @@ function setActionMsg(text, kind){
     }
 
     function exportCalendarPDF(){
-      const scroll = $("calScroll");
-      if(!scroll || !calendarState.rangeStart || !calendarState.rangeEnd) return;
+      if(!calendarState.rangeStart || !calendarState.rangeEnd) return;
       const q = (calendarState.search || "").trim().toLowerCase();
       const users = (calendarState.users || []).filter(u =>
         calendarState.selectedUserIds.has(u.id) && (!q || u.labelLower.includes(q))
@@ -1784,76 +1783,118 @@ function setActionMsg(text, kind){
         return;
       }
 
-      const rangeStartMs = calendarState.rangeStart.getTime();
-      const rangeEndMs = calendarState.rangeEnd.getTime() + DAY_MS;
-      const viewLeft = Math.max(0, scroll.scrollLeft - calendarState.userColWidth);
-      const viewWidth = Math.max(200, scroll.clientWidth - calendarState.userColWidth);
-      let viewStartMs = rangeStartMs + (viewLeft / calendarState.pxPerHour) * 3600000;
-      let viewEndMs = rangeStartMs + ((viewLeft + viewWidth) / calendarState.pxPerHour) * 3600000;
-      viewStartMs = clamp(viewStartMs, rangeStartMs, rangeEndMs);
-      viewEndMs = clamp(viewEndMs, rangeStartMs, rangeEndMs);
-
-      let exportStart = floorToHour(new Date(viewStartMs));
-      let exportEnd = ceilToHour(new Date(viewEndMs));
-      if(exportEnd.getTime() <= exportStart.getTime()){
-        exportEnd = new Date(exportStart.getTime() + 3600000);
-      }
-
-      const exportStartMs = exportStart.getTime();
-      const exportEndMs = exportEnd.getTime();
-      const rangeMs = exportEndMs - exportStartMs;
-      const totalHours = Math.max(1, Math.round(rangeMs / 3600000));
-      const timelineWidth = 1000;
-      const pxPerMs = timelineWidth / rangeMs;
-      const hourWidth = timelineWidth / totalHours;
-      const hoursOffset = (exportStartMs - startOfDay(exportStart).getTime()) / 3600000;
-
-      let dayCells = "";
-      for(let d = startOfDay(exportStart); d.getTime() <= startOfDay(exportEnd).getTime(); d = addDays(d, 1)){
-        const cellStart = Math.max(d.getTime(), exportStartMs);
-        const cellEnd = Math.min(d.getTime() + DAY_MS, exportEndMs);
-        if(cellEnd <= cellStart) continue;
-        const width = Math.max(2, (cellEnd - cellStart) * pxPerMs);
-        dayCells += `<div class="dayCell" style="width:${width}px">${escapeHTML(formatDayLabel(d))}</div>`;
-      }
-
-      const hourStep = totalHours <= 24 ? 1 : totalHours <= 72 ? 2 : 4;
-      let hourMarks = "";
-      for(let h = 0; h <= totalHours; h += hourStep){
-        const markMs = exportStartMs + h * 3600000;
-        const left = ((markMs - exportStartMs) / rangeMs) * timelineWidth;
-        hourMarks += `<div class="hourMark" style="left:${left}px">${fmtHMFromDate(new Date(markMs))}</div>`;
-      }
-
-      let rowsHtml = "";
-      for(const user of users){
-        const recs = calendarState.recordsByUser.get(user.id) || [];
-        let blocks = "";
-        for(const r of recs){
-          const start = parseDateSafe(r.start_ts);
-          if(!start) continue;
-          const end = parseDateSafe(r.end_ts) || start;
-          let startMsRaw = start.getTime();
-          let endMsRaw = end.getTime();
-          if(!r.end_ts && r.work_min){
-            endMsRaw = startMsRaw + Number(r.work_min || 0) * 60000;
-          }
-          if(endMsRaw <= startMsRaw) endMsRaw = startMsRaw + (15 * 60000);
-          if(endMsRaw <= exportStartMs || startMsRaw >= exportEndMs) continue;
-          const leftPx = clamp((startMsRaw - exportStartMs) * pxPerMs, 0, timelineWidth);
-          const rightPx = clamp((endMsRaw - exportStartMs) * pxPerMs, 0, timelineWidth);
-          const widthPx = Math.max(3, rightPx - leftPx);
-          const label = escapeHTML(r.title || "Senza titolo");
-          blocks += `<div class="block" style="left:${leftPx}px;width:${widthPx}px">${label}</div>`;
+      let minMs = null;
+      let maxMs = null;
+      for(const r of (records || [])){
+        const start = parseDateSafe(r.start_ts);
+        if(!start) continue;
+        let end = parseDateSafe(r.end_ts) || start;
+        if(!r.end_ts && r.work_min){
+          end = new Date(start.getTime() + Number(r.work_min || 0) * 60000);
         }
-        rowsHtml += `<div class="row">
+        const sMs = start.getTime();
+        const eMs = end.getTime();
+        if(minMs === null || sMs < minMs) minMs = sMs;
+        if(maxMs === null || eMs > maxMs) maxMs = eMs;
+      }
+
+      const fromVal = ($("fromDate")?.value || "").trim();
+      const toVal = ($("toDate")?.value || "").trim();
+      let exportStart = fromVal ? startOfDay(new Date(fromVal + "T00:00:00")) : null;
+      let exportEnd = toVal ? addDays(startOfDay(new Date(toVal + "T00:00:00")), 1) : null;
+
+      if(!exportStart){
+        if(minMs !== null){
+          exportStart = startOfDay(new Date(minMs));
+        }else if(toVal){
+          exportStart = startOfDay(new Date(toVal + "T00:00:00"));
+        }else{
+          exportStart = startOfDay(new Date());
+        }
+      }
+      if(!exportEnd){
+        if(maxMs !== null){
+          exportEnd = addDays(startOfDay(new Date(maxMs)), 1);
+        }else if(fromVal){
+          exportEnd = addDays(startOfDay(new Date(fromVal + "T00:00:00")), 1);
+        }else{
+          exportEnd = addDays(exportStart, 1);
+        }
+      }
+      if(exportEnd.getTime() <= exportStart.getTime()){
+        exportEnd = addDays(exportStart, 1);
+      }
+
+      const dataStartMs = exportStart.getTime();
+      const dataEndMs = exportEnd.getTime();
+      const chunkMs = 2 * DAY_MS;
+      const totalMs = dataEndMs - dataStartMs;
+      const chunkCount = Math.max(1, Math.ceil(totalMs / chunkMs));
+      const timelineWidth = 980;
+      const totalHours = 48;
+      const hourWidth = timelineWidth / totalHours;
+      const pxPerMs = timelineWidth / chunkMs;
+      const hourStep = 2;
+
+      let chunksHtml = "";
+      for(let c = 0; c < chunkCount; c++){
+        const chunkStartMs = dataStartMs + (c * chunkMs);
+        const chunkEndMs = chunkStartMs + chunkMs;
+        const chunkStart = new Date(chunkStartMs);
+        const chunkEnd = new Date(chunkEndMs);
+
+        let dayCells = "";
+        for(let d = 0; d < 2; d++){
+          const day = addDays(chunkStart, d);
+          dayCells += `<div class="dayCell" style="width:${timelineWidth / 2}px">${escapeHTML(formatDayLabel(day))}</div>`;
+        }
+
+        let hourMarks = "";
+        for(let h = 0; h <= totalHours; h += hourStep){
+          const markMs = chunkStartMs + h * 3600000;
+          const left = ((markMs - chunkStartMs) / chunkMs) * timelineWidth;
+          hourMarks += `<div class="hourMark" style="left:${left}px">${fmtHMFromDate(new Date(markMs))}</div>`;
+        }
+
+        let rowsHtml = "";
+        for(const user of users){
+          const recs = calendarState.recordsByUser.get(user.id) || [];
+          let blocks = "";
+          for(const r of recs){
+            const start = parseDateSafe(r.start_ts);
+            if(!start) continue;
+            let end = parseDateSafe(r.end_ts) || start;
+            if(!r.end_ts && r.work_min){
+              end = new Date(start.getTime() + Number(r.work_min || 0) * 60000);
+            }
+            let startMsRaw = start.getTime();
+            let endMsRaw = end.getTime();
+            if(endMsRaw <= startMsRaw) endMsRaw = startMsRaw + (15 * 60000);
+            if(endMsRaw <= dataStartMs || startMsRaw >= dataEndMs) continue;
+            if(endMsRaw <= chunkStartMs || startMsRaw >= chunkEndMs) continue;
+            const leftPx = clamp((startMsRaw - chunkStartMs) * pxPerMs, 0, timelineWidth);
+            const rightPx = clamp((endMsRaw - chunkStartMs) * pxPerMs, 0, timelineWidth);
+            const widthPx = Math.max(3, rightPx - leftPx);
+            const label = escapeHTML(r.title || "Senza titolo");
+            blocks += `<div class="block" style="left:${leftPx}px;width:${widthPx}px">${label}</div>`;
+          }
+          rowsHtml += `<div class="row">
   <div class="user">${escapeHTML(user.label)}</div>
-  <div class="timeline" style="width:${timelineWidth}px; --hour-width:${hourWidth}px; background-position: 0 0, ${-hoursOffset * hourWidth}px 0;">${blocks}</div>
+  <div class="timeline" style="width:${timelineWidth}px; --hour-width:${hourWidth}px;">${blocks}</div>
+</div>`;
+        }
+
+        chunksHtml += `<div class="chunk">
+  <div class="axis">
+    <div class="dayRow" style="width:${timelineWidth}px">${dayCells}</div>
+    <div class="hourRow" style="width:${timelineWidth}px">${hourMarks}</div>
+  </div>
+  ${rowsHtml}
 </div>`;
       }
 
       const nowText = new Date().toLocaleString("it-IT");
-      const rangeLabel = `${exportStart.toLocaleString("it-IT")} - ${exportEnd.toLocaleString("it-IT")}`;
+      const rangeLabel = `${exportStart.toLocaleDateString("it-IT")} - ${addDays(exportEnd, -1).toLocaleDateString("it-IT")}`;
       const html = `<!doctype html>
 <html lang="it">
 <head>
@@ -1870,6 +1911,7 @@ function setActionMsg(text, kind){
     .dayCell{ font-size:10px; padding:4px 6px; border-right:1px solid #ddd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .hourRow{ position:relative; height:18px; border:1px solid #ddd; border-top:none; }
     .hourMark{ position:absolute; top:2px; transform:translateX(-50%); font-size:9px; color:#666; white-space:nowrap; }
+    .chunk{ margin-bottom:12px; page-break-inside:avoid; }
     .row{ display:grid; grid-template-columns: 200px auto; gap:6px; margin-bottom:6px; page-break-inside:avoid; align-items:start; }
     .user{ font-weight:700; font-size:11px; padding-top:6px; }
     .timeline{
@@ -1902,11 +1944,7 @@ function setActionMsg(text, kind){
   <div class="meta">Intervallo: ${escapeHTML(rangeLabel)}</div>
   <div class="meta">Utenti: ${users.length}</div>
   <div class="meta">Generato: ${escapeHTML(nowText)}</div>
-  <div class="axis">
-    <div class="dayRow" style="width:${timelineWidth}px">${dayCells}</div>
-    <div class="hourRow" style="width:${timelineWidth}px">${hourMarks}</div>
-  </div>
-  ${rowsHtml}
+  ${chunksHtml}
 </body>
 </html>`;
 
