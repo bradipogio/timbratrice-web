@@ -681,6 +681,11 @@
       text-overflow:ellipsis;
       box-shadow:0 6px 12px rgba(0,0,0,.25);
     }
+    .calBlock.pause{
+      background:linear-gradient(180deg, rgba(210,43,43,.45), rgba(210,43,43,.30));
+      border-color:rgba(255,255,255,.22);
+      color:#ffe6e6;
+    }
     .hidden{display:none!important}
   </style>
 </head>
@@ -1047,6 +1052,7 @@ let calendarState = {
   maxPxPerHour: 200,
   userColWidth: 220,
   maxVisibleDays: 10,
+  exportDaysPerRow: 2,
   rangeStart: null,
   rangeEnd: null,
   users: [],
@@ -1675,6 +1681,24 @@ function setActionMsg(text, kind){
           block.title = `${title} - ${startLabel}-${endLabel} | Pausa ${pauseLabel}`;
           block.textContent = title;
           timeline.appendChild(block);
+
+          const pauseMin = Number(r.pause_min || 0);
+          if(pauseMin > 0){
+            const pauseStartMs = endMsRaw;
+            const pauseEndMs = endMsRaw + (pauseMin * 60000);
+            if(pauseEndMs > startMs && pauseStartMs < endMs){
+              const pauseLeft = Math.max(0, (pauseStartMs - startMs) * pxPerMs);
+              const pauseRight = Math.min(timelineWidth, (pauseEndMs - startMs) * pxPerMs);
+              const pauseWidth = Math.max(4, pauseRight - pauseLeft);
+              const pauseBlock = document.createElement("div");
+              pauseBlock.className = "calBlock pause";
+              pauseBlock.style.left = `${pauseLeft}px`;
+              pauseBlock.style.width = `${pauseWidth}px`;
+              pauseBlock.title = `Pausa ${pauseLabel}`;
+              pauseBlock.textContent = `Pausa ${pauseLabel}`;
+              timeline.appendChild(pauseBlock);
+            }
+          }
         }
         row.appendChild(userCell);
         row.appendChild(timeline);
@@ -1774,6 +1798,13 @@ function setActionMsg(text, kind){
 
     function exportCalendarPDF(){
       if(!calendarState.rangeStart || !calendarState.rangeEnd) return;
+      const promptDefault = String(calendarState.exportDaysPerRow || 2);
+      const rawDays = prompt("Quanti giorni per riga? (1-5)", promptDefault);
+      if(rawDays === null) return;
+      let daysPerRow = parseInt(rawDays, 10);
+      if(!Number.isFinite(daysPerRow)) daysPerRow = 2;
+      daysPerRow = clamp(daysPerRow, 1, 5);
+      calendarState.exportDaysPerRow = daysPerRow;
       const q = (calendarState.search || "").trim().toLowerCase();
       const users = (calendarState.users || []).filter(u =>
         calendarState.selectedUserIds.has(u.id) && (!q || u.labelLower.includes(q))
@@ -1827,14 +1858,14 @@ function setActionMsg(text, kind){
 
       const dataStartMs = exportStart.getTime();
       const dataEndMs = exportEnd.getTime();
-      const chunkMs = 2 * DAY_MS;
+      const chunkMs = daysPerRow * DAY_MS;
       const totalMs = dataEndMs - dataStartMs;
       const chunkCount = Math.max(1, Math.ceil(totalMs / chunkMs));
       const timelineWidth = 980;
-      const totalHours = 48;
+      const totalHours = daysPerRow * 24;
       const hourWidth = timelineWidth / totalHours;
       const pxPerMs = timelineWidth / chunkMs;
-      const hourStep = 2;
+      const hourStep = totalHours <= 24 ? 1 : totalHours <= 48 ? 2 : totalHours <= 96 ? 4 : 6;
 
       let chunksHtml = "";
       for(let c = 0; c < chunkCount; c++){
@@ -1844,9 +1875,10 @@ function setActionMsg(text, kind){
         const chunkEnd = new Date(chunkEndMs);
 
         let dayCells = "";
-        for(let d = 0; d < 2; d++){
+        const dayWidth = timelineWidth / daysPerRow;
+        for(let d = 0; d < daysPerRow; d++){
           const day = addDays(chunkStart, d);
-          dayCells += `<div class="dayCell" style="width:${timelineWidth / 2}px">${escapeHTML(formatDayLabel(day))}</div>`;
+          dayCells += `<div class="dayCell" style="width:${dayWidth}px">${escapeHTML(formatDayLabel(day))}</div>`;
         }
 
         let hourMarks = "";
@@ -1877,15 +1909,28 @@ function setActionMsg(text, kind){
             const widthPx = Math.max(3, rightPx - leftPx);
             const label = escapeHTML(r.title || "Senza titolo");
             blocks += `<div class="block" style="left:${leftPx}px;width:${widthPx}px">${label}</div>`;
+
+            const pauseMin = Number(r.pause_min || 0);
+            if(pauseMin > 0){
+              const pauseStartMs = endMsRaw;
+              const pauseEndMs = endMsRaw + (pauseMin * 60000);
+              if(pauseEndMs > chunkStartMs && pauseStartMs < chunkEndMs){
+                const pauseLeft = clamp((pauseStartMs - chunkStartMs) * pxPerMs, 0, timelineWidth);
+                const pauseRight = clamp((pauseEndMs - chunkStartMs) * pxPerMs, 0, timelineWidth);
+                const pauseWidth = Math.max(3, pauseRight - pauseLeft);
+                const pauseLabel = escapeHTML(`Pausa ${fmtHM(pauseMin)}`);
+                blocks += `<div class="block pause" style="left:${pauseLeft}px;width:${pauseWidth}px">${pauseLabel}</div>`;
+              }
+            }
           }
           rowsHtml += `<div class="row">
   <div class="user">${escapeHTML(user.label)}</div>
-  <div class="timeline" style="width:${timelineWidth}px; --hour-width:${hourWidth}px;">${blocks}</div>
+  <div class="timeline" style="width:${timelineWidth}px;">${blocks}</div>
 </div>`;
         }
 
-        chunksHtml += `<div class="chunk">
-  <div class="axis">
+        chunksHtml += `<div class="chunk" style="--hour-width:${hourWidth}px; --day-width:${dayWidth}px;">
+  <div class="axis" style="width:${timelineWidth}px">
     <div class="dayRow" style="width:${timelineWidth}px">${dayCells}</div>
     <div class="hourRow" style="width:${timelineWidth}px">${hourMarks}</div>
   </div>
@@ -1907,9 +1952,19 @@ function setActionMsg(text, kind){
     h1{ font-size:18px; margin:0 0 6px; }
     .meta{ font-size:11px; color:#555; margin-bottom:2px; }
     .axis{ margin:8px 0 10px; }
-    .dayRow{ display:flex; border:1px solid #ddd; border-bottom:none; background:#f2f2f2; }
+    .dayRow{ display:flex; border:1px solid #ddd; border-bottom:none; background:#f2f2f2; box-sizing:border-box; }
     .dayCell{ font-size:10px; padding:4px 6px; border-right:1px solid #ddd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .hourRow{ position:relative; height:18px; border:1px solid #ddd; border-top:none; }
+    .hourRow{
+      position:relative;
+      height:18px;
+      border:1px solid #ddd;
+      border-top:none;
+      box-sizing:border-box;
+      background-image:
+        linear-gradient(to right, rgba(0,0,0,.08) 1px, transparent 1px),
+        linear-gradient(to right, rgba(0,0,0,.22) 2px, transparent 2px);
+      background-size: var(--hour-width) 100%, var(--day-width) 100%;
+    }
     .hourMark{ position:absolute; top:2px; transform:translateX(-50%); font-size:9px; color:#666; white-space:nowrap; }
     .chunk{ margin-bottom:12px; page-break-inside:avoid; }
     .row{ display:grid; grid-template-columns: 200px auto; gap:6px; margin-bottom:6px; page-break-inside:avoid; align-items:start; }
@@ -1918,10 +1973,11 @@ function setActionMsg(text, kind){
       position:relative;
       height:26px;
       border:1px solid #ddd;
+      box-sizing:border-box;
       background-image:
         linear-gradient(to right, rgba(0,0,0,.08) 1px, transparent 1px),
         linear-gradient(to right, rgba(0,0,0,.22) 2px, transparent 2px);
-      background-size: var(--hour-width) 100%, calc(var(--hour-width) * 24) 100%;
+      background-size: var(--hour-width) 100%, var(--day-width) 100%;
     }
     .block{
       position:absolute;
@@ -1936,6 +1992,10 @@ function setActionMsg(text, kind){
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
+    }
+    .block.pause{
+      background:#e57878;
+      color:#fff;
     }
   </style>
 </head>
