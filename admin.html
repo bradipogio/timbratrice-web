@@ -415,6 +415,255 @@
     }
     .msg.ok{color:var(--good)}
     .msg.err{color:#ff6b6b}
+    .calendarCard{
+      width:min(1200px, calc(100% - 28px));
+      max-height:calc(100vh - 28px);
+      max-height:calc(100dvh - 28px);
+      background:var(--card);
+      color:var(--text);
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+    }
+    .calendarHeader{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:14px 16px;
+      border-bottom:1px solid var(--line);
+      background:rgba(0,0,0,.16);
+      backdrop-filter: blur(10px);
+    }
+    @media (prefers-color-scheme: light){
+      .calendarHeader{background:rgba(255,255,255,.70)}
+    }
+    .calendarBody{
+      padding:14px;
+      display:grid;
+      grid-template-columns:minmax(220px, 260px) minmax(0, 1fr);
+      gap:12px;
+      min-height:0;
+      overflow:hidden;
+    }
+    @media (max-width:980px){
+      .calendarBody{grid-template-columns:1fr}
+    }
+    .calSidebar{
+      border:1px solid var(--line);
+      background:var(--card2);
+      border-radius:14px;
+      padding:10px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-height:0;
+    }
+    .calUserList{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      overflow:auto;
+      padding-right:4px;
+      min-height:0;
+    }
+    .calUserRow{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 8px;
+      border-radius:10px;
+      border:1px solid var(--line);
+      background:var(--card);
+      font-weight:800;
+      font-size:12px;
+      min-width:0;
+    }
+    .calUserRow input{width:18px; height:18px}
+    .calUserRow span{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .calUserCount{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:800;
+    }
+    .calMain{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-width:0;
+      min-height:0;
+    }
+    .calToolbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      gap:8px 12px;
+      padding:8px 10px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:var(--card2);
+    }
+    .calZoom{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .calZoom input[type="range"]{
+      width:160px;
+      accent-color: var(--red);
+    }
+    .calZoomLabel{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:800;
+    }
+    .calRangeLabel{
+      font-family:var(--mono);
+      font-size:12px;
+      color:var(--muted);
+      font-weight:800;
+    }
+    .calTimelineWrap{
+      border:1px solid var(--line);
+      background:var(--card2);
+      border-radius:14px;
+      overflow:hidden;
+      min-height:200px;
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+    }
+    .calTimelineWrap .empty{margin:10px}
+    .calScroll{
+      overflow:auto;
+      position:relative;
+      height:60vh;
+      -webkit-overflow-scrolling:touch;
+    }
+    @media (max-width:760px){
+      .calScroll{height:50vh}
+    }
+    .calGrid{
+      --cal-user-col: 220px;
+      --cal-hour-width: 80px;
+      --cal-day-width: 1920px;
+      --cal-width: 3840px;
+      min-width:calc(var(--cal-user-col) + var(--cal-width));
+      color:var(--text);
+    }
+    .calHeaderRow{
+      position:sticky;
+      top:0;
+      z-index:5;
+      display:grid;
+      grid-template-columns: var(--cal-user-col) var(--cal-width);
+      background:var(--card);
+      border-bottom:1px solid var(--line);
+    }
+    .calHeaderUser{
+      position:sticky;
+      left:0;
+      z-index:7;
+      background:var(--card);
+      border-right:1px solid var(--line);
+      padding:10px;
+      font-weight:900;
+      font-size:13px;
+    }
+    .calHeaderTimeline{
+      display:flex;
+      flex-direction:column;
+      background:var(--card2);
+    }
+    .calDaysRow, .calHoursRow{display:flex; min-width:0}
+    .calDayCell{
+      width:var(--cal-day-width);
+      padding:6px 8px;
+      border-right:1px solid var(--line);
+      font-weight:900;
+      font-size:12px;
+      white-space:nowrap;
+    }
+    .calHoursRow{border-top:1px solid rgba(255,255,255,.12)}
+    @media (prefers-color-scheme: light){
+      .calHoursRow{border-top:1px solid rgba(0,0,0,.12)}
+    }
+    .calHourCell{
+      width:var(--cal-hour-width);
+      padding:4px 6px;
+      border-right:1px solid rgba(255,255,255,.14);
+      font-family:var(--mono);
+      font-size:11px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    @media (prefers-color-scheme: light){
+      .calHourCell{border-right:1px solid rgba(0,0,0,.12)}
+    }
+    .calRows{
+      display:flex;
+      flex-direction:column;
+    }
+    .calRow{
+      display:grid;
+      grid-template-columns: var(--cal-user-col) var(--cal-width);
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    @media (prefers-color-scheme: light){
+      .calRow{border-bottom:1px solid rgba(0,0,0,.06)}
+    }
+    .calUserCell{
+      position:sticky;
+      left:0;
+      z-index:4;
+      background:var(--card);
+      border-right:1px solid var(--line);
+      padding:10px;
+      font-weight:900;
+      font-size:13px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .calRowTimeline{
+      position:relative;
+      height:44px;
+      background-image:
+        linear-gradient(to right, rgba(255,255,255,.08) 1px, transparent 1px),
+        linear-gradient(to right, rgba(255,255,255,.22) 2px, transparent 2px);
+      background-size: var(--cal-hour-width) 100%, var(--cal-day-width) 100%;
+    }
+    @media (prefers-color-scheme: light){
+      .calRowTimeline{
+        background-image:
+          linear-gradient(to right, rgba(0,0,0,.12) 1px, transparent 1px),
+          linear-gradient(to right, rgba(0,0,0,.22) 2px, transparent 2px);
+      }
+    }
+    .calBlock{
+      position:absolute;
+      top:8px;
+      height:28px;
+      border-radius:10px;
+      background:linear-gradient(180deg, rgba(210,43,43,.85), rgba(210,43,43,.7));
+      border:1px solid rgba(255,255,255,.35);
+      color:#fff;
+      font-weight:800;
+      font-size:11px;
+      padding:4px 6px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      box-shadow:0 6px 12px rgba(0,0,0,.25);
+    }
     .hidden{display:none!important}
   </style>
 </head>
@@ -591,6 +840,12 @@
 
       <div class="row">
         <button id="btnSelectMode" class="miniBtn" type="button">Seleziona</button>
+        <button id="btnOpenCalendar" class="miniBtn" type="button">
+          <span class="iconLabel">
+            <svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>
+            <span>Calendario</span>
+          </span>
+        </button>
       </div>
       <div class="row listTools">
         <label class="toggle">
@@ -607,6 +862,57 @@
       <div id="empty" class="empty hidden">Nessun record</div>
     </section>
   </main>
+
+  <div id="calendarOverlay" class="modalOverlay hidden" role="dialog" aria-modal="true" aria-label="Calendario">
+    <div class="calendarCard">
+      <div class="calendarHeader">
+        <div>
+          <div class="dlgTitle">Calendario</div>
+          <div class="sub">Panoramica generale dei turni</div>
+        </div>
+        <button id="btnCloseCalendar" class="iconBtn" type="button" aria-label="Chiudi calendario">
+          <svg class="icon" aria-hidden="true"><use href="#i-close"></use></svg>
+        </button>
+      </div>
+      <div class="calendarBody">
+        <aside class="calSidebar">
+          <label class="field">
+            <span>Cerca utente</span>
+            <input id="calUserSearch" type="search" placeholder="Nome o email">
+          </label>
+          <label class="toggle">
+            <input id="calSelectAll" type="checkbox" />
+            <span>Mostra tutti</span>
+          </label>
+          <div id="calUserCount" class="calUserCount">0 / 0 visibili</div>
+          <div id="calUserList" class="calUserList"></div>
+        </aside>
+        <section class="calMain">
+          <div class="calToolbar">
+            <div class="calZoom">
+              <button id="calZoomOut" class="miniBtn" type="button">-</button>
+              <input id="calZoom" type="range" min="30" max="200" step="10" />
+              <button id="calZoomIn" class="miniBtn" type="button">+</button>
+              <div id="calZoomLabel" class="calZoomLabel">0 px/ora</div>
+            </div>
+            <div id="calRangeLabel" class="calRangeLabel">-</div>
+          </div>
+          <div class="calTimelineWrap">
+            <div id="calEmpty" class="empty hidden">Nessun record per i filtri selezionati.</div>
+            <div id="calScroll" class="calScroll">
+              <div id="calGrid" class="calGrid">
+                <div id="calHeaderRow" class="calHeaderRow">
+                  <div class="calHeaderUser">Utenti</div>
+                  <div class="calHeaderTimeline" id="calHeaderTimeline"></div>
+                </div>
+                <div id="calRows" class="calRows"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
 
   <div id="settingsOverlay" class="modalOverlay hidden" role="dialog" aria-modal="true" aria-label="Account e impostazioni">
     <div class="modalCard">
@@ -699,6 +1005,25 @@ let selectedIds = new Set();
 let visibleIds = [];
 let selectionMode = false;
 let destinations = [];
+const DAY_MS = 24 * 60 * 60 * 1000;
+let calendarState = {
+  open: false,
+  pxPerHour: 80,
+  minPxPerHour: 30,
+  maxPxPerHour: 200,
+  userColWidth: 220,
+  rangeStart: null,
+  rangeEnd: null,
+  users: [],
+  selectedUserIds: new Set(),
+  search: "",
+  recordsByUser: new Map(),
+  filterSignature: "",
+  dayBatch: 3,
+  needsCenter: false,
+  focusDate: null,
+  scrollRaf: null
+};
 
 function isoDate(isoTs){
   if(!isoTs) return "";
@@ -707,6 +1032,47 @@ function isoDate(isoTs){
   const mm = pad2(d.getMonth()+1);
   const dd = pad2(d.getDate());
   return `${yyyy}-${mm}-${dd}`;
+}
+
+function startOfDay(d){
+  const t = new Date(d);
+  t.setHours(0,0,0,0);
+  return t;
+}
+
+function addDays(d, days){
+  const t = new Date(d);
+  t.setDate(t.getDate() + days);
+  return t;
+}
+
+function clamp(val, min, max){
+  return Math.min(max, Math.max(min, val));
+}
+
+function fmtHMFromDate(d){
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+function formatDayLabel(d){
+  return d.toLocaleDateString("it-IT", { weekday: "short", day: "2-digit", month: "short" });
+}
+
+function parseDateSafe(ts){
+  if(!ts) return null;
+  const d = new Date(ts);
+  if(isNaN(d.getTime())) return null;
+  return d;
+}
+
+function getRecordUserKey(record){
+  const id = String(record?.user_id || "").trim();
+  if(id) return id;
+  const email = String(record?.user_email || "").trim();
+  if(email) return `email:${email}`;
+  const name = String(record?.user_name || "").trim();
+  if(name) return `name:${name}`;
+  return String(record?.id || "unknown");
 }
 
 function initDateRangeFromRecordsOnce(){
@@ -832,6 +1198,9 @@ async function getUser(){
       if(!isAdmin){
         const overlay = $("settingsOverlay");
         if(overlay) overlay.classList.add("hidden");
+        const calOverlay = $("calendarOverlay");
+        if(calOverlay) calOverlay.classList.add("hidden");
+        calendarState.open = false;
       }
 
       if(user && !isAdmin){
@@ -983,6 +1352,396 @@ function setActionMsg(text, kind){
       const sumKm = records.reduce((a,r)=> a + Number(r.km||0), 0);
       $("sumHours").textContent = fmtHM(sumWork);
       $("sumKm").textContent = String(sumKm);
+    }
+
+    function getCalendarFilterSignature(){
+      return [
+        ($("userSelect")?.value || "").trim(),
+        ($("paidFilter")?.value || "").trim(),
+        ($("fromDate")?.value || "").trim(),
+        ($("toDate")?.value || "").trim()
+      ].join("|");
+    }
+
+    function getCalendarFocusDate(){
+      let focus = null;
+      for(const r of (records || [])){
+        const s = parseDateSafe(r.start_ts);
+        if(s && (!focus || s.getTime() > focus.getTime())) focus = s;
+      }
+      if(!focus){
+        const fromVal = ($("fromDate")?.value || "").trim();
+        if(fromVal) focus = new Date(fromVal + "T08:00:00");
+      }
+      return focus || new Date();
+    }
+
+    function resetCalendarRange(){
+      const fromVal = ($("fromDate")?.value || "").trim();
+      const toVal = ($("toDate")?.value || "").trim();
+      const hasFilterRange = !!fromVal || !!toVal;
+      let start = fromVal ? startOfDay(new Date(fromVal + "T00:00:00")) : null;
+      let end = toVal ? startOfDay(new Date(toVal + "T00:00:00")) : null;
+      if(start && end && start.getTime() > end.getTime()){
+        const tmp = start;
+        start = end;
+        end = tmp;
+      }
+      if(!start && !end){
+        let min = null;
+        let max = null;
+        for(const r of (records || [])){
+          const s = parseDateSafe(r.start_ts);
+          const e = parseDateSafe(r.end_ts) || s;
+          if(!s) continue;
+          const sMs = s.getTime();
+          const eMs = e ? e.getTime() : sMs;
+          if(min === null || sMs < min) min = sMs;
+          if(max === null || eMs > max) max = eMs;
+        }
+        if(min === null){
+          const today = startOfDay(new Date());
+          start = addDays(today, -2);
+          end = addDays(today, 2);
+        }else{
+          start = startOfDay(new Date(min));
+          end = startOfDay(new Date(max));
+        }
+      }
+      if(!start && end) start = end;
+      if(!end && start) end = start;
+
+      start = startOfDay(start);
+      end = startOfDay(end);
+
+      if(!hasFilterRange){
+        start = addDays(start, -1);
+        end = addDays(end, 1);
+
+        let dayCount = Math.round((end.getTime() - start.getTime()) / DAY_MS) + 1;
+        const minDays = 5;
+        if(dayCount < minDays){
+          const extra = Math.ceil((minDays - dayCount) / 2);
+          start = addDays(start, -extra);
+          end = addDays(end, minDays - dayCount - extra);
+        }
+      }
+
+      calendarState.rangeStart = start;
+      calendarState.rangeEnd = end;
+      calendarState.needsCenter = true;
+      calendarState.focusDate = getCalendarFocusDate();
+    }
+
+    function buildCalendarUsers(){
+      const labelMap = new Map();
+      const recMap = new Map();
+      for(const r of (records || [])){
+        const key = getRecordUserKey(r);
+        const label = getUserLabelFromRecord(r) || key;
+        if(!labelMap.has(key)) labelMap.set(key, label);
+        if(!recMap.has(key)) recMap.set(key, []);
+        recMap.get(key).push(r);
+      }
+      const users = Array.from(labelMap.entries()).map(([id, label])=> ({
+        id,
+        label,
+        labelLower: String(label || "").toLowerCase()
+      }));
+      users.sort((a,b)=> a.label.localeCompare(b.label, "it", { sensitivity: "base" }));
+      calendarState.users = users;
+      calendarState.recordsByUser = recMap;
+
+      const allIds = new Set(users.map(u => u.id));
+      if(allIds.size === 0){
+        calendarState.selectedUserIds = new Set();
+        return;
+      }
+      if(calendarState.selectedUserIds.size === 0){
+        calendarState.selectedUserIds = new Set(allIds);
+      }else{
+        const next = new Set([...calendarState.selectedUserIds].filter(id => allIds.has(id)));
+        calendarState.selectedUserIds = next.size ? next : new Set(allIds);
+      }
+    }
+
+    function updateCalendarData(){
+      const sig = getCalendarFilterSignature();
+      if(sig !== calendarState.filterSignature){
+        calendarState.filterSignature = sig;
+        resetCalendarRange();
+      }
+      buildCalendarUsers();
+      if(calendarState.open) renderCalendar();
+    }
+
+    function updateCalendarRangeLabel(dayCount){
+      const el = $("calRangeLabel");
+      if(!el || !calendarState.rangeStart || !calendarState.rangeEnd) return;
+      const startLabel = calendarState.rangeStart.toLocaleDateString("it-IT", { day: "2-digit", month: "short" });
+      const endLabel = calendarState.rangeEnd.toLocaleDateString("it-IT", { day: "2-digit", month: "short" });
+      const days = dayCount || (Math.round((calendarState.rangeEnd.getTime() - calendarState.rangeStart.getTime()) / DAY_MS) + 1);
+      el.textContent = `${startLabel} -> ${endLabel} (${days} giorni)`;
+    }
+
+    function renderCalendarHeader(){
+      const header = $("calHeaderTimeline");
+      if(!header || !calendarState.rangeStart || !calendarState.rangeEnd) return;
+      header.innerHTML = "";
+      const daysRow = document.createElement("div");
+      daysRow.className = "calDaysRow";
+      const hoursRow = document.createElement("div");
+      hoursRow.className = "calHoursRow";
+      const dayCount = Math.round((calendarState.rangeEnd.getTime() - calendarState.rangeStart.getTime()) / DAY_MS) + 1;
+      for(let i = 0; i < dayCount; i++){
+        const day = addDays(calendarState.rangeStart, i);
+        const dayCell = document.createElement("div");
+        dayCell.className = "calDayCell";
+        dayCell.textContent = formatDayLabel(day);
+        daysRow.appendChild(dayCell);
+        for(let h = 0; h < 24; h++){
+          const hourCell = document.createElement("div");
+          hourCell.className = "calHourCell";
+          hourCell.textContent = `${pad2(h)}:00`;
+          hoursRow.appendChild(hourCell);
+        }
+      }
+      header.appendChild(daysRow);
+      header.appendChild(hoursRow);
+    }
+
+    function renderCalendarUserList(){
+      const list = $("calUserList");
+      if(!list) return;
+      const countEl = $("calUserCount");
+      const selectAll = $("calSelectAll");
+      list.innerHTML = "";
+      const q = (calendarState.search || "").trim().toLowerCase();
+      const users = calendarState.users || [];
+      const visibleUsers = q ? users.filter(u => u.labelLower.includes(q)) : users;
+      const selectedCount = users.filter(u => calendarState.selectedUserIds.has(u.id)).length;
+      if(countEl) countEl.textContent = `Selezionati: ${selectedCount} / ${users.length}`;
+      if(selectAll){
+        const allSelected = users.length > 0 && selectedCount === users.length;
+        selectAll.checked = allSelected;
+        selectAll.indeterminate = selectedCount > 0 && selectedCount < users.length;
+      }
+      if(visibleUsers.length === 0){
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.textContent = "Nessun utente";
+        list.appendChild(empty);
+        return;
+      }
+      for(const u of visibleUsers){
+        const row = document.createElement("label");
+        row.className = "calUserRow";
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.checked = calendarState.selectedUserIds.has(u.id);
+        input.addEventListener("change", ()=>{
+          if(input.checked){
+            calendarState.selectedUserIds.add(u.id);
+          }else{
+            calendarState.selectedUserIds.delete(u.id);
+          }
+          renderCalendarUserList();
+          renderCalendarRows();
+        });
+        const text = document.createElement("span");
+        text.textContent = u.label;
+        row.appendChild(input);
+        row.appendChild(text);
+        list.appendChild(row);
+      }
+    }
+
+    function renderCalendarRows(){
+      const rowsEl = $("calRows");
+      const emptyEl = $("calEmpty");
+      if(!rowsEl || !calendarState.rangeStart || !calendarState.rangeEnd) return;
+      rowsEl.innerHTML = "";
+      const q = (calendarState.search || "").trim().toLowerCase();
+      const users = (calendarState.users || []).filter(u =>
+        calendarState.selectedUserIds.has(u.id) && (!q || u.labelLower.includes(q))
+      );
+      if(users.length === 0){
+        if(emptyEl) emptyEl.classList.remove("hidden");
+        return;
+      }
+      if(emptyEl) emptyEl.classList.add("hidden");
+      const startMs = calendarState.rangeStart.getTime();
+      const endMs = calendarState.rangeEnd.getTime() + DAY_MS;
+      const pxPerMs = calendarState.pxPerHour / 3600000;
+      const dayCount = Math.round((calendarState.rangeEnd.getTime() - calendarState.rangeStart.getTime()) / DAY_MS) + 1;
+      const timelineWidth = dayCount * calendarState.pxPerHour * 24;
+
+      for(const user of users){
+        const row = document.createElement("div");
+        row.className = "calRow";
+        const userCell = document.createElement("div");
+        userCell.className = "calUserCell";
+        userCell.textContent = user.label;
+        const timeline = document.createElement("div");
+        timeline.className = "calRowTimeline";
+        const recs = calendarState.recordsByUser.get(user.id) || [];
+        for(const r of recs){
+          const start = parseDateSafe(r.start_ts);
+          if(!start) continue;
+          const end = parseDateSafe(r.end_ts) || start;
+          let startMsRaw = start.getTime();
+          let endMsRaw = end.getTime();
+          if(!r.end_ts && r.work_min){
+            endMsRaw = startMsRaw + Number(r.work_min || 0) * 60000;
+          }
+          if(endMsRaw <= startMsRaw) endMsRaw = startMsRaw + (15 * 60000);
+          if(endMsRaw <= startMs || startMsRaw >= endMs) continue;
+          const leftPx = Math.max(0, (startMsRaw - startMs) * pxPerMs);
+          const rightPx = Math.min(timelineWidth, (endMsRaw - startMs) * pxPerMs);
+          const widthPx = Math.max(6, rightPx - leftPx);
+          const block = document.createElement("div");
+          block.className = "calBlock";
+          block.style.left = `${leftPx}px`;
+          block.style.width = `${widthPx}px`;
+          const title = r.title || "Senza titolo";
+          const startLabel = fmtHMFromDate(start);
+          const endLabel = fmtHMFromDate(new Date(endMsRaw));
+          block.title = `${title} - ${startLabel}-${endLabel}`;
+          block.textContent = title;
+          timeline.appendChild(block);
+        }
+        row.appendChild(userCell);
+        row.appendChild(timeline);
+        rowsEl.appendChild(row);
+      }
+    }
+
+    function centerCalendarOnDate(date){
+      const scroll = $("calScroll");
+      if(!scroll || !calendarState.rangeStart || !date) return;
+      const startMs = calendarState.rangeStart.getTime();
+      const targetMs = date.getTime();
+      const minutes = (targetMs - startMs) / 60000;
+      const targetX = (minutes / 60) * calendarState.pxPerHour;
+      const nextLeft = targetX + calendarState.userColWidth - (scroll.clientWidth / 2);
+      const maxLeft = Math.max(0, scroll.scrollWidth - scroll.clientWidth);
+      scroll.scrollLeft = clamp(nextLeft, 0, maxLeft);
+    }
+
+    function renderCalendar(){
+      const grid = $("calGrid");
+      const scroll = $("calScroll");
+      if(!grid || !scroll) return;
+      if(!calendarState.rangeStart || !calendarState.rangeEnd){
+        resetCalendarRange();
+      }
+      const dayCount = Math.round((calendarState.rangeEnd.getTime() - calendarState.rangeStart.getTime()) / DAY_MS) + 1;
+      const dayWidth = calendarState.pxPerHour * 24;
+      const timelineWidth = Math.max(1, dayCount) * dayWidth;
+      grid.style.setProperty("--cal-hour-width", `${calendarState.pxPerHour}px`);
+      grid.style.setProperty("--cal-day-width", `${dayWidth}px`);
+      grid.style.setProperty("--cal-width", `${timelineWidth}px`);
+      grid.style.setProperty("--cal-user-col", `${calendarState.userColWidth}px`);
+
+      const zoomInput = $("calZoom");
+      if(zoomInput) zoomInput.value = String(calendarState.pxPerHour);
+      const zoomLabel = $("calZoomLabel");
+      if(zoomLabel) zoomLabel.textContent = `${calendarState.pxPerHour} px/ora`;
+
+      renderCalendarHeader();
+      renderCalendarUserList();
+      renderCalendarRows();
+      updateCalendarRangeLabel(dayCount);
+
+      if(calendarState.needsCenter){
+        requestAnimationFrame(()=>{
+          centerCalendarOnDate(calendarState.focusDate || new Date());
+        });
+        calendarState.needsCenter = false;
+      }
+    }
+
+    function setCalendarZoom(nextPx, keepCenter = true){
+      const scroll = $("calScroll");
+      const prevPx = calendarState.pxPerHour;
+      let centerMinutes = null;
+      if(keepCenter && scroll){
+        const centerX = scroll.scrollLeft + (scroll.clientWidth / 2) - calendarState.userColWidth;
+        centerMinutes = Math.max(0, (centerX / prevPx) * 60);
+      }
+      const snapped = Math.round(Number(nextPx || prevPx) / 10) * 10;
+      calendarState.pxPerHour = clamp(snapped, calendarState.minPxPerHour, calendarState.maxPxPerHour);
+      calendarState.needsCenter = false;
+      renderCalendar();
+      if(keepCenter && scroll && centerMinutes !== null){
+        const nextLeft = (centerMinutes / 60) * calendarState.pxPerHour + calendarState.userColWidth - (scroll.clientWidth / 2);
+        const maxLeft = Math.max(0, scroll.scrollWidth - scroll.clientWidth);
+        scroll.scrollLeft = clamp(nextLeft, 0, maxLeft);
+      }
+    }
+
+    function extendCalendarRange(direction, days){
+      if(!calendarState.rangeStart || !calendarState.rangeEnd) return;
+      const scroll = $("calScroll");
+      const prevLeft = scroll ? scroll.scrollLeft : 0;
+      const prevTop = scroll ? scroll.scrollTop : 0;
+      const dayWidth = calendarState.pxPerHour * 24;
+      if(direction === "left"){
+        calendarState.rangeStart = addDays(calendarState.rangeStart, -days);
+      }else{
+        calendarState.rangeEnd = addDays(calendarState.rangeEnd, days);
+      }
+      calendarState.needsCenter = false;
+      renderCalendar();
+      if(scroll){
+        if(direction === "left"){
+          const maxLeft = Math.max(0, scroll.scrollWidth - scroll.clientWidth);
+          scroll.scrollLeft = clamp(prevLeft + (dayWidth * days), 0, maxLeft);
+        }else{
+          const maxLeft = Math.max(0, scroll.scrollWidth - scroll.clientWidth);
+          scroll.scrollLeft = clamp(prevLeft, 0, maxLeft);
+        }
+        scroll.scrollTop = prevTop;
+      }
+    }
+
+    function maybeExtendCalendarRange(){
+      const scroll = $("calScroll");
+      if(!scroll || !calendarState.open) return;
+      const threshold = 200;
+      if(scroll.scrollLeft < threshold){
+        extendCalendarRange("left", calendarState.dayBatch);
+        return;
+      }
+      if(scroll.scrollLeft + scroll.clientWidth > scroll.scrollWidth - threshold){
+        extendCalendarRange("right", calendarState.dayBatch);
+      }
+    }
+
+    function onCalendarScroll(){
+      if(calendarState.scrollRaf) return;
+      calendarState.scrollRaf = requestAnimationFrame(()=>{
+        calendarState.scrollRaf = null;
+        maybeExtendCalendarRange();
+      });
+    }
+
+    function openCalendar(){
+      const userEmailNorm = (currentUser?.email || "").trim().toLowerCase();
+      if(userEmailNorm !== ADMIN_EMAIL_NORM) return;
+      const overlay = $("calendarOverlay");
+      if(overlay) overlay.classList.remove("hidden");
+      calendarState.open = true;
+      calendarState.needsCenter = true;
+      calendarState.focusDate = getCalendarFocusDate();
+      updateCalendarData();
+      renderCalendar();
+    }
+
+    function closeCalendar(){
+      const overlay = $("calendarOverlay");
+      if(overlay) overlay.classList.add("hidden");
+      calendarState.open = false;
     }
 
     function setSelectionMode(on){
@@ -1155,6 +1914,7 @@ async function refresh(){
     renderSummary();
     renderList();
     initDateRangeFromRecordsOnce();
+    updateCalendarData();
 
     if(records.length === 0){
       setActionMsg("⚠️ Nessun record trovato (filtri troppo stretti o dati assenti).", "err");
@@ -1737,11 +2497,14 @@ if(btnLogout){
     });
 
     const settingsOverlay = $("settingsOverlay");
+    const calendarOverlay = $("calendarOverlay");
     const btnAdminSettings = $("btnAdminSettings");
     const btnOpenDestinations = $("btnOpenDestinations");
     const btnBackSettings = $("btnBackSettings");
     const settingsHome = $("settingsHome");
     const destinationsPanel = $("destinationsPanel");
+    const btnOpenCalendar = $("btnOpenCalendar");
+    const btnCloseCalendar = $("btnCloseCalendar");
 
     function openSettings(){
       if(settingsOverlay) settingsOverlay.classList.remove("hidden");
@@ -1774,10 +2537,27 @@ if(btnLogout){
         if(e.target === settingsOverlay) closeSettings();
       });
     }
+    if(calendarOverlay){
+      calendarOverlay.addEventListener("click", (e)=>{
+        if(e.target === calendarOverlay) closeCalendar();
+      });
+    }
     if(btnOpenDestinations){
       btnOpenDestinations.addEventListener("click", (e)=>{
         e.preventDefault();
         openDestinations();
+      });
+    }
+    if(btnOpenCalendar){
+      btnOpenCalendar.addEventListener("click", (e)=>{
+        e.preventDefault();
+        openCalendar();
+      });
+    }
+    if(btnCloseCalendar){
+      btnCloseCalendar.addEventListener("click", (e)=>{
+        e.preventDefault();
+        closeCalendar();
       });
     }
     $("btnAdminDiag")?.addEventListener("click", async (e)=>{
@@ -1833,6 +2613,33 @@ if(btnLogout){
         setDestMsg(`❌ ${err.message || String(err)}`, "err");
       }
     });
+    $("calUserSearch")?.addEventListener("input", (e)=>{
+      calendarState.search = (e.currentTarget.value || "").trim();
+      renderCalendarUserList();
+      renderCalendarRows();
+    });
+    $("calSelectAll")?.addEventListener("change", (e)=>{
+      const checked = e.currentTarget.checked;
+      if(checked){
+        calendarState.selectedUserIds = new Set((calendarState.users || []).map(u => u.id));
+      }else{
+        calendarState.selectedUserIds = new Set();
+      }
+      renderCalendarUserList();
+      renderCalendarRows();
+    });
+    $("calZoom")?.addEventListener("input", (e)=>{
+      setCalendarZoom(Number(e.currentTarget.value), true);
+    });
+    $("calZoomIn")?.addEventListener("click", (e)=>{
+      e.preventDefault();
+      setCalendarZoom(calendarState.pxPerHour + 10, true);
+    });
+    $("calZoomOut")?.addEventListener("click", (e)=>{
+      e.preventDefault();
+      setCalendarZoom(calendarState.pxPerHour - 10, true);
+    });
+    $("calScroll")?.addEventListener("scroll", onCalendarScroll);
 
     $("btnSelectMode").addEventListener("click", (e)=>{
       e.preventDefault();
