@@ -774,11 +774,11 @@
           </select>
         </label>
         <label class="field">
-          <span>Pagato</span>
+          <span>Confermato</span>
           <select id="paidFilter">
             <option value="">Tutti</option>
-            <option value="paid">Pagati</option>
-            <option value="unpaid">Non pagati</option>
+            <option value="paid">Confermati</option>
+            <option value="unpaid">Non confermati</option>
           </select>
         </label>
         <label class="field">
@@ -870,8 +870,8 @@
           <span>Seleziona tutti</span>
         </label>
         <div id="selectedCount" class="selectedCount">0 selezionati</div>
-        <button id="btnMarkPaid" class="miniBtn" type="button" disabled>Segna pagati</button>
-        <button id="btnMarkUnpaid" class="miniBtn" type="button" disabled>Segna non pagati</button>
+        <button id="btnMarkPaid" class="miniBtn" type="button" disabled>Segna confermati</button>
+        <button id="btnMarkUnpaid" class="miniBtn" type="button" disabled>Segna non confermati</button>
       </div>
 
       <div id="actionMsg" class="msg"></div>
@@ -922,6 +922,12 @@
                 </button>
                 <input id="calJumpDate" type="date" aria-label="Seleziona data" />
               </div>
+              <button id="calExportPdf" class="miniBtn" type="button">
+                <span class="iconLabel">
+                  <svg class="icon xs" aria-hidden="true"><use href="#i-download"></use></svg>
+                  <span>PDF</span>
+                </span>
+              </button>
               <div id="calRangeLabel" class="calRangeLabel">-</div>
             </div>
           </div>
@@ -1069,6 +1075,22 @@ function startOfDay(d){
   return t;
 }
 
+function floorToHour(d){
+  const t = new Date(d);
+  t.setMinutes(0,0,0);
+  return t;
+}
+
+function ceilToHour(d){
+  const t = new Date(d);
+  if(t.getMinutes() || t.getSeconds() || t.getMilliseconds()){
+    t.setHours(t.getHours() + 1, 0, 0, 0);
+  }else{
+    t.setMinutes(0,0,0);
+  }
+  return t;
+}
+
 function addDays(d, days){
   const t = new Date(d);
   t.setDate(t.getDate() + days);
@@ -1180,7 +1202,7 @@ async function updatePaidStatus(id, paid){
     method: "PATCH",
     headers,
     body: JSON.stringify({ paid: !!paid })
-  }, 12000, "Aggiornamento pagato");
+  }, 12000, "Aggiornamento confermato");
   if(!res.ok){
     const text = await res.text();
     let json = null;
@@ -1311,7 +1333,7 @@ function setActionMsg(text, kind){
             </div>
             <label class="paidToggle">
               <input type="checkbox" data-paid-id="${r.id}" ${paidChecked ? "checked" : ""}>
-              <span>Pagato</span>
+              <span>Confermato</span>
             </label>
           </div>
           <div class="itemMetaGrid">
@@ -1649,7 +1671,8 @@ function setActionMsg(text, kind){
           const title = r.title || "Senza titolo";
           const startLabel = fmtHMFromDate(start);
           const endLabel = fmtHMFromDate(new Date(endMsRaw));
-          block.title = `${title} - ${startLabel}-${endLabel}`;
+          const pauseLabel = fmtHM(Number(r.pause_min || 0));
+          block.title = `${title} - ${startLabel}-${endLabel} | Pausa ${pauseLabel}`;
           block.textContent = title;
           timeline.appendChild(block);
         }
@@ -1747,6 +1770,160 @@ function setActionMsg(text, kind){
       if(jumpInput){
         jumpInput.value = isoDate(date);
       }
+    }
+
+    function exportCalendarPDF(){
+      const scroll = $("calScroll");
+      if(!scroll || !calendarState.rangeStart || !calendarState.rangeEnd) return;
+      const q = (calendarState.search || "").trim().toLowerCase();
+      const users = (calendarState.users || []).filter(u =>
+        calendarState.selectedUserIds.has(u.id) && (!q || u.labelLower.includes(q))
+      );
+      if(users.length === 0){
+        setActionMsg("Nessun utente selezionato nel calendario.", "err");
+        return;
+      }
+
+      const rangeStartMs = calendarState.rangeStart.getTime();
+      const rangeEndMs = calendarState.rangeEnd.getTime() + DAY_MS;
+      const viewLeft = Math.max(0, scroll.scrollLeft - calendarState.userColWidth);
+      const viewWidth = Math.max(200, scroll.clientWidth - calendarState.userColWidth);
+      let viewStartMs = rangeStartMs + (viewLeft / calendarState.pxPerHour) * 3600000;
+      let viewEndMs = rangeStartMs + ((viewLeft + viewWidth) / calendarState.pxPerHour) * 3600000;
+      viewStartMs = clamp(viewStartMs, rangeStartMs, rangeEndMs);
+      viewEndMs = clamp(viewEndMs, rangeStartMs, rangeEndMs);
+
+      let exportStart = floorToHour(new Date(viewStartMs));
+      let exportEnd = ceilToHour(new Date(viewEndMs));
+      if(exportEnd.getTime() <= exportStart.getTime()){
+        exportEnd = new Date(exportStart.getTime() + 3600000);
+      }
+
+      const exportStartMs = exportStart.getTime();
+      const exportEndMs = exportEnd.getTime();
+      const rangeMs = exportEndMs - exportStartMs;
+      const totalHours = Math.max(1, Math.round(rangeMs / 3600000));
+      const timelineWidth = 1000;
+      const pxPerMs = timelineWidth / rangeMs;
+      const hourWidth = timelineWidth / totalHours;
+      const hoursOffset = (exportStartMs - startOfDay(exportStart).getTime()) / 3600000;
+
+      let dayCells = "";
+      for(let d = startOfDay(exportStart); d.getTime() <= startOfDay(exportEnd).getTime(); d = addDays(d, 1)){
+        const cellStart = Math.max(d.getTime(), exportStartMs);
+        const cellEnd = Math.min(d.getTime() + DAY_MS, exportEndMs);
+        if(cellEnd <= cellStart) continue;
+        const width = Math.max(2, (cellEnd - cellStart) * pxPerMs);
+        dayCells += `<div class="dayCell" style="width:${width}px">${escapeHTML(formatDayLabel(d))}</div>`;
+      }
+
+      const hourStep = totalHours <= 24 ? 1 : totalHours <= 72 ? 2 : 4;
+      let hourMarks = "";
+      for(let h = 0; h <= totalHours; h += hourStep){
+        const markMs = exportStartMs + h * 3600000;
+        const left = ((markMs - exportStartMs) / rangeMs) * timelineWidth;
+        hourMarks += `<div class="hourMark" style="left:${left}px">${fmtHMFromDate(new Date(markMs))}</div>`;
+      }
+
+      let rowsHtml = "";
+      for(const user of users){
+        const recs = calendarState.recordsByUser.get(user.id) || [];
+        let blocks = "";
+        for(const r of recs){
+          const start = parseDateSafe(r.start_ts);
+          if(!start) continue;
+          const end = parseDateSafe(r.end_ts) || start;
+          let startMsRaw = start.getTime();
+          let endMsRaw = end.getTime();
+          if(!r.end_ts && r.work_min){
+            endMsRaw = startMsRaw + Number(r.work_min || 0) * 60000;
+          }
+          if(endMsRaw <= startMsRaw) endMsRaw = startMsRaw + (15 * 60000);
+          if(endMsRaw <= exportStartMs || startMsRaw >= exportEndMs) continue;
+          const leftPx = clamp((startMsRaw - exportStartMs) * pxPerMs, 0, timelineWidth);
+          const rightPx = clamp((endMsRaw - exportStartMs) * pxPerMs, 0, timelineWidth);
+          const widthPx = Math.max(3, rightPx - leftPx);
+          const label = escapeHTML(r.title || "Senza titolo");
+          blocks += `<div class="block" style="left:${leftPx}px;width:${widthPx}px">${label}</div>`;
+        }
+        rowsHtml += `<div class="row">
+  <div class="user">${escapeHTML(user.label)}</div>
+  <div class="timeline" style="width:${timelineWidth}px; --hour-width:${hourWidth}px; background-position: 0 0, ${-hoursOffset * hourWidth}px 0;">${blocks}</div>
+</div>`;
+      }
+
+      const nowText = new Date().toLocaleString("it-IT");
+      const rangeLabel = `${exportStart.toLocaleString("it-IT")} - ${exportEnd.toLocaleString("it-IT")}`;
+      const html = `<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <title>Timbratrice-Calendario-PDF</title>
+  <style>
+    @page { size: A4 landscape; margin: 12mm 10mm; }
+    body{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color:#111; }
+    @media print{ *{-webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;} }
+    h1{ font-size:18px; margin:0 0 6px; }
+    .meta{ font-size:11px; color:#555; margin-bottom:2px; }
+    .axis{ margin:8px 0 10px; }
+    .dayRow{ display:flex; border:1px solid #ddd; border-bottom:none; background:#f2f2f2; }
+    .dayCell{ font-size:10px; padding:4px 6px; border-right:1px solid #ddd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .hourRow{ position:relative; height:18px; border:1px solid #ddd; border-top:none; }
+    .hourMark{ position:absolute; top:2px; transform:translateX(-50%); font-size:9px; color:#666; white-space:nowrap; }
+    .row{ display:grid; grid-template-columns: 200px auto; gap:6px; margin-bottom:6px; page-break-inside:avoid; align-items:start; }
+    .user{ font-weight:700; font-size:11px; padding-top:6px; }
+    .timeline{
+      position:relative;
+      height:26px;
+      border:1px solid #ddd;
+      background-image:
+        linear-gradient(to right, rgba(0,0,0,.08) 1px, transparent 1px),
+        linear-gradient(to right, rgba(0,0,0,.22) 2px, transparent 2px);
+      background-size: var(--hour-width) 100%, calc(var(--hour-width) * 24) 100%;
+    }
+    .block{
+      position:absolute;
+      top:4px;
+      height:18px;
+      border-radius:6px;
+      background:#D22B2B;
+      color:#fff;
+      font-weight:700;
+      font-size:9px;
+      padding:2px 4px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+  </style>
+</head>
+<body>
+  <h1>Calendario Turni (Selezione)</h1>
+  <div class="meta">Intervallo: ${escapeHTML(rangeLabel)}</div>
+  <div class="meta">Utenti: ${users.length}</div>
+  <div class="meta">Generato: ${escapeHTML(nowText)}</div>
+  <div class="axis">
+    <div class="dayRow" style="width:${timelineWidth}px">${dayCells}</div>
+    <div class="hourRow" style="width:${timelineWidth}px">${hourMarks}</div>
+  </div>
+  ${rowsHtml}
+</body>
+</html>`;
+
+      const win = window.open("", "_blank");
+      if(!win){
+        setActionMsg("Popup bloccato: abilita per esportare PDF.", "err");
+        return;
+      }
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+      win.document.title = `timbratrice-calendario-${Date.now()}`;
+      win.focus();
+      win.onload = () => {
+        win.print();
+        setTimeout(()=>{ try{ win.close(); }catch{} }, 300);
+      };
     }
 
     function extendCalendarRange(direction, days){
@@ -1849,7 +2026,7 @@ function setActionMsg(text, kind){
         }
         setSelectionMode(false);
         await refresh();
-        setActionMsg(paid ? "✅ Segnati come pagati" : "✅ Segnati come non pagati", "ok");
+        setActionMsg(paid ? "✅ Segnati come confermati" : "✅ Segnati come non confermati", "ok");
       }catch(err){
         setActionMsg(`❌ ${err.message || String(err)}`, "err");
       }
@@ -2403,7 +2580,7 @@ async function deleteDestination(id){
         <th>Pausa</th>
         <th>Ore</th>
         <th class="right">Km</th>
-        <th class="center paidCol">Pagato</th>
+        <th class="center paidCol">Confermato</th>
       </tr>
     </thead>
     <tbody>
@@ -2727,6 +2904,10 @@ if(btnLogout){
       const val = (e.currentTarget.value || "").trim();
       if(!val) return;
       jumpToCalendarDate(new Date(val + "T12:00:00"));
+    });
+    $("calExportPdf")?.addEventListener("click", (e)=>{
+      e.preventDefault();
+      exportCalendarPDF();
     });
     window.addEventListener("resize", ()=>{
       if(calendarState.open){
