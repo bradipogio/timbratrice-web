@@ -510,6 +510,13 @@
       border-radius:12px;
       background:var(--card2);
     }
+    .calToolbarRight{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
     .calZoom{
       display:flex;
       align-items:center;
@@ -524,6 +531,16 @@
       font-size:12px;
       color:var(--muted);
       font-weight:800;
+    }
+    .calJump{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .calJump input{
+      width:150px;
+      min-width:120px;
     }
     .calRangeLabel{
       font-family:var(--mono);
@@ -884,18 +901,29 @@
             <input id="calSelectAll" type="checkbox" />
             <span>Mostra tutti</span>
           </label>
-          <div id="calUserCount" class="calUserCount">0 / 0 visibili</div>
+          <div id="calUserCount" class="calUserCount">Selezionati: 0 / 0</div>
           <div id="calUserList" class="calUserList"></div>
         </aside>
         <section class="calMain">
           <div class="calToolbar">
             <div class="calZoom">
               <button id="calZoomOut" class="miniBtn" type="button">-</button>
-              <input id="calZoom" type="range" min="30" max="200" step="10" />
+              <input id="calZoom" type="range" min="1" max="200" step="1" />
               <button id="calZoomIn" class="miniBtn" type="button">+</button>
               <div id="calZoomLabel" class="calZoomLabel">0 px/ora</div>
             </div>
-            <div id="calRangeLabel" class="calRangeLabel">-</div>
+            <div class="calToolbarRight">
+              <div class="calJump">
+                <button id="calJumpOpen" class="miniBtn" type="button">
+                  <span class="iconLabel">
+                    <svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>
+                    <span>Vai a data</span>
+                  </span>
+                </button>
+                <input id="calJumpDate" type="date" aria-label="Seleziona data" />
+              </div>
+              <div id="calRangeLabel" class="calRangeLabel">-</div>
+            </div>
           </div>
           <div class="calTimelineWrap">
             <div id="calEmpty" class="empty hidden">Nessun record per i filtri selezionati.</div>
@@ -1009,9 +1037,10 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 let calendarState = {
   open: false,
   pxPerHour: 80,
-  minPxPerHour: 30,
+  minPxPerHour: 4,
   maxPxPerHour: 200,
   userColWidth: 220,
+  maxVisibleDays: 10,
   rangeStart: null,
   rangeEnd: null,
   users: [],
@@ -1419,7 +1448,7 @@ function setActionMsg(text, kind){
         end = addDays(end, 1);
 
         let dayCount = Math.round((end.getTime() - start.getTime()) / DAY_MS) + 1;
-        const minDays = 5;
+        const minDays = calendarState.maxVisibleDays;
         if(dayCount < minDays){
           const extra = Math.ceil((minDays - dayCount) / 2);
           start = addDays(start, -extra);
@@ -1508,6 +1537,20 @@ function setActionMsg(text, kind){
       }
       header.appendChild(daysRow);
       header.appendChild(hoursRow);
+    }
+
+    function updateCalendarZoomBounds(dayCount){
+      const scroll = $("calScroll");
+      if(!scroll) return;
+      const visibleDays = Math.max(1, Math.min(calendarState.maxVisibleDays, dayCount || 1));
+      const visibleWidth = Math.max(120, scroll.clientWidth - calendarState.userColWidth);
+      const minPx = Math.floor(visibleWidth / (visibleDays * 24));
+      calendarState.minPxPerHour = clamp(minPx, 1, calendarState.maxPxPerHour);
+      if(calendarState.pxPerHour < calendarState.minPxPerHour){
+        calendarState.pxPerHour = calendarState.minPxPerHour;
+      }
+      const zoomInput = $("calZoom");
+      if(zoomInput) zoomInput.min = String(calendarState.minPxPerHour);
     }
 
     function renderCalendarUserList(){
@@ -1636,6 +1679,7 @@ function setActionMsg(text, kind){
         resetCalendarRange();
       }
       const dayCount = Math.round((calendarState.rangeEnd.getTime() - calendarState.rangeStart.getTime()) / DAY_MS) + 1;
+      updateCalendarZoomBounds(dayCount);
       const dayWidth = calendarState.pxPerHour * 24;
       const timelineWidth = Math.max(1, dayCount) * dayWidth;
       grid.style.setProperty("--cal-hour-width", `${calendarState.pxPerHour}px`);
@@ -1669,7 +1713,7 @@ function setActionMsg(text, kind){
         const centerX = scroll.scrollLeft + (scroll.clientWidth / 2) - calendarState.userColWidth;
         centerMinutes = Math.max(0, (centerX / prevPx) * 60);
       }
-      const snapped = Math.round(Number(nextPx || prevPx) / 10) * 10;
+      const snapped = Math.round(Number(nextPx || prevPx));
       calendarState.pxPerHour = clamp(snapped, calendarState.minPxPerHour, calendarState.maxPxPerHour);
       calendarState.needsCenter = false;
       renderCalendar();
@@ -1677,6 +1721,31 @@ function setActionMsg(text, kind){
         const nextLeft = (centerMinutes / 60) * calendarState.pxPerHour + calendarState.userColWidth - (scroll.clientWidth / 2);
         const maxLeft = Math.max(0, scroll.scrollWidth - scroll.clientWidth);
         scroll.scrollLeft = clamp(nextLeft, 0, maxLeft);
+      }
+    }
+
+    function jumpToCalendarDate(date){
+      if(!date) return;
+      if(!calendarState.rangeStart || !calendarState.rangeEnd){
+        resetCalendarRange();
+      }
+      const targetDay = startOfDay(date);
+      const dayMs = targetDay.getTime();
+      const startMs = calendarState.rangeStart.getTime();
+      const endMs = calendarState.rangeEnd.getTime();
+      if(dayMs < startMs){
+        const extendDays = Math.ceil((startMs - dayMs) / DAY_MS);
+        calendarState.rangeStart = addDays(calendarState.rangeStart, -extendDays);
+      }else if(dayMs > endMs){
+        const extendDays = Math.ceil((dayMs - endMs) / DAY_MS);
+        calendarState.rangeEnd = addDays(calendarState.rangeEnd, extendDays);
+      }
+      calendarState.focusDate = date;
+      calendarState.needsCenter = true;
+      renderCalendar();
+      const jumpInput = $("calJumpDate");
+      if(jumpInput){
+        jumpInput.value = isoDate(date);
       }
     }
 
@@ -1734,6 +1803,10 @@ function setActionMsg(text, kind){
       calendarState.open = true;
       calendarState.needsCenter = true;
       calendarState.focusDate = getCalendarFocusDate();
+      const jumpInput = $("calJumpDate");
+      if(jumpInput && calendarState.focusDate){
+        jumpInput.value = isoDate(calendarState.focusDate);
+      }
       updateCalendarData();
       renderCalendar();
     }
@@ -2633,11 +2706,32 @@ if(btnLogout){
     });
     $("calZoomIn")?.addEventListener("click", (e)=>{
       e.preventDefault();
-      setCalendarZoom(calendarState.pxPerHour + 10, true);
+      setCalendarZoom(calendarState.pxPerHour + 5, true);
     });
     $("calZoomOut")?.addEventListener("click", (e)=>{
       e.preventDefault();
-      setCalendarZoom(calendarState.pxPerHour - 10, true);
+      setCalendarZoom(calendarState.pxPerHour - 5, true);
+    });
+    $("calJumpOpen")?.addEventListener("click", (e)=>{
+      e.preventDefault();
+      const input = $("calJumpDate");
+      if(!input) return;
+      if(typeof input.showPicker === "function"){
+        input.showPicker();
+      }else{
+        input.focus();
+        input.click();
+      }
+    });
+    $("calJumpDate")?.addEventListener("change", (e)=>{
+      const val = (e.currentTarget.value || "").trim();
+      if(!val) return;
+      jumpToCalendarDate(new Date(val + "T12:00:00"));
+    });
+    window.addEventListener("resize", ()=>{
+      if(calendarState.open){
+        renderCalendar();
+      }
     });
     $("calScroll")?.addEventListener("scroll", onCalendarScroll);
 
