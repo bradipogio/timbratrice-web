@@ -1171,8 +1171,6 @@ body{
   <div class="modalCard">
     <form class="dlgInner" onsubmit="return false;">
       <div class="dlgTitle">Account & Impostazioni</div>
-      <div id="authStatus" class="msg"></div>
-
       <div id="authFields">
         <label class="field">
           <span>Email</span>
@@ -1926,22 +1924,11 @@ if(ph) ph.value = "00:00";
       if(btnDiag) btnDiag.classList.toggle("hidden", !isAdmin);
     }
     function setUserUI(user){
-      const status = $("authStatus");
       const hint = $("loginHint");
       currentUser = user || null;
       if(user){
-        if(status){
-          status.textContent = "Online";
-          status.classList.remove("err");
-          status.classList.add("ok");
-        }
         hint.classList.add("hidden");
       }else{
-        if(status){
-          status.textContent = "Non loggato";
-          status.classList.remove("ok");
-          status.classList.add("err");
-        }
         hint.classList.remove("hidden");
       }
       updateAuthButtons();
@@ -1959,7 +1946,6 @@ if(ph) ph.value = "00:00";
     const loginRow = $("loginRow");
     const resetRow = $("resetRow");
     const logoutRow = $("logoutRow");
-    const status = $("authStatus");
 
     if(emailInput){
       emailInput.readOnly = logged;
@@ -1978,11 +1964,6 @@ if(ph) ph.value = "00:00";
   }
     if(logoutRow){
       logoutRow.classList.toggle("hidden", !logged || inRecovery);
-    }
-    if(status && !logged){
-      status.textContent = "Non loggato";
-      status.classList.remove("ok");
-      status.classList.add("err");
     }
   }
 function updateAuthButtons(){
