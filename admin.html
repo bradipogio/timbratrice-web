@@ -1695,7 +1695,7 @@ function setActionMsg(text, kind){
               pauseBlock.style.left = `${pauseLeft}px`;
               pauseBlock.style.width = `${pauseWidth}px`;
               pauseBlock.title = `Pausa ${pauseLabel}`;
-              pauseBlock.textContent = `Pausa ${pauseLabel}`;
+              pauseBlock.textContent = "";
               timeline.appendChild(pauseBlock);
             }
           }
@@ -1918,8 +1918,7 @@ function setActionMsg(text, kind){
                 const pauseLeft = clamp((pauseStartMs - chunkStartMs) * pxPerMs, 0, timelineWidth);
                 const pauseRight = clamp((pauseEndMs - chunkStartMs) * pxPerMs, 0, timelineWidth);
                 const pauseWidth = Math.max(3, pauseRight - pauseLeft);
-                const pauseLabel = escapeHTML(`Pausa ${fmtHM(pauseMin)}`);
-                blocks += `<div class="block pause" style="left:${pauseLeft}px;width:${pauseWidth}px">${pauseLabel}</div>`;
+                blocks += `<div class="block pause" style="left:${pauseLeft}px;width:${pauseWidth}px"></div>`;
               }
             }
           }
@@ -1930,9 +1929,12 @@ function setActionMsg(text, kind){
         }
 
         chunksHtml += `<div class="chunk" style="--hour-width:${hourWidth}px; --day-width:${dayWidth}px;">
-  <div class="axis" style="width:${timelineWidth}px">
-    <div class="dayRow" style="width:${timelineWidth}px">${dayCells}</div>
-    <div class="hourRow" style="width:${timelineWidth}px">${hourMarks}</div>
+  <div class="axisRow">
+    <div class="axisSpacer"></div>
+    <div class="axis" style="width:${timelineWidth}px">
+      <div class="dayRow" style="width:${timelineWidth}px">${dayCells}</div>
+      <div class="hourRow" style="width:${timelineWidth}px">${hourMarks}</div>
+    </div>
   </div>
   ${rowsHtml}
 </div>`;
@@ -1951,7 +1953,15 @@ function setActionMsg(text, kind){
     @media print{ *{-webkit-print-color-adjust:exact; print-color-adjust:exact; color-adjust:exact;} }
     h1{ font-size:18px; margin:0 0 6px; }
     .meta{ font-size:11px; color:#555; margin-bottom:2px; }
-    .axis{ margin:8px 0 10px; }
+    .axisRow{
+      display:grid;
+      grid-template-columns: 200px auto;
+      gap:6px;
+      margin:8px 0 10px;
+      align-items:start;
+    }
+    .axisSpacer{ min-height:1px; }
+    .axis{ }
     .dayRow{ display:flex; border:1px solid #ddd; border-bottom:none; background:#f2f2f2; box-sizing:border-box; }
     .dayCell{ font-size:10px; padding:4px 6px; border-right:1px solid #ddd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .hourRow{
