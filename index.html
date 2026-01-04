@@ -214,13 +214,13 @@
     .pill.ready{color:#2d7dff}
     .pill.run{color:var(--good)}
     .pill.pause{color:var(--warn)}
-    .spinner{
-      width:14px; height:14px; border-radius:50%;
-      border:2px solid currentColor; border-right-color:transparent;
+    .pulseDot{
+      width:8px; height:8px; border-radius:50%;
+      background:currentColor;
       display:inline-block;
-      animation: spin 1.2s linear infinite;
+      animation: dotBlink 1s steps(1, end) infinite;
     }
-    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes dotBlink{50%{opacity:0}}
 
     .netRow{display:flex; align-items:center; justify-content:space-between; margin-top:10px; gap:10px}
     .netTime{
@@ -244,6 +244,13 @@
     }
     .punch.is-active .bigIcon{color:var(--good)}
     .punch.is-paused .bigIcon{color:var(--warn)}
+    .punch.is-paused .pauseChip{
+      animation: pauseBorderBlink 1s steps(1, end) infinite;
+    }
+    @keyframes pauseBorderBlink{
+      0%, 49%{border-color:var(--warn); box-shadow:0 0 0 1px rgba(255,176,32,.35)}
+      50%, 100%{border-color:var(--line); box-shadow:none}
+    }
 
     .chips{display:flex; gap:10px; margin-top:8px}
     .chips3{display:flex; gap:10px; margin-top:12px}
@@ -975,7 +982,7 @@ body{
           </button>
         </div>
         <datalist id="destinationsList"></datalist>
-        <div id="statusPill" class="pill ready">
+        <div id="statusPill" class="pill ready hidden">
           <svg class="icon sm" aria-hidden="true"><use href="#i-check-circle"></use></svg>
           <span>Pronto</span>
         </div>
@@ -989,7 +996,7 @@ body{
       </div>
 
       <div class="chips">
-        <div class="chip">
+        <div class="chip pauseChip">
           <div class="chipLabel">
             <span class="iconLabel">
               <svg class="icon xs" aria-hidden="true"><use href="#i-pause"></use></svg>
@@ -2682,7 +2689,7 @@ function updateSelectionUI(){
       let isPause = false;
 
       if(!active){
-        pill.className = "pill ready";
+        pill.className = "pill ready hidden";
         pill.innerHTML = `${iconSvg("i-check-circle","icon sm")}<span>Pronto</span>`;
         bigIcon.innerHTML = iconSvg("i-check-circle","icon lg");
         $("btnStart").disabled = false;
@@ -2703,7 +2710,7 @@ function updateSelectionUI(){
         pill.className = "pill " + (isPause ? "pause" : "run");
         pill.innerHTML = isPause
           ? `${iconSvg("i-pause","icon sm")}<span>Pausa</span>`
-          : `<span class="spinner"></span><span>In corso</span>`;
+          : `<span class="pulseDot"></span><span>In corso</span>`;
         bigIcon.innerHTML = isPause ? iconSvg("i-pause-circle","icon lg") : iconSvg("i-clock","icon lg");
 
         $("btnStart").disabled = true;
