@@ -20,6 +20,9 @@
       --red2:#b21f1f;
       --good:#3ddc84;
       --warn:#ffb020;
+      --ochre:#bf7c29;
+      --ochreBg:rgba(191,124,41,.18);
+      --ochreLine:rgba(191,124,41,.45);
       --shadow: 0 10px 30px rgba(0,0,0,.35);
       --radius:18px;
       --radius2:14px;
@@ -29,12 +32,14 @@
     @media (prefers-color-scheme: light){
       :root{
         --bg:#f5f5f7;
-        --card:#ffffff;
-        --card2:#fafafa;
+        --card:#f0f0f2;
+        --card2:#ffffff;
         --text:#121212;
         --muted:#6c6c75;
         --line:rgba(0,0,0,.35);
         --shadow: 0 10px 30px rgba(0,0,0,.10);
+        --ochreBg:rgba(255,191,102,.25);
+        --ochreLine:rgba(191,124,41,.55);
       }
     }
     *{box-sizing:border-box}
@@ -182,6 +187,45 @@
       overflow:hidden;
       text-overflow:ellipsis;
     }
+    .adminFiltersBar .miniBtn{
+      min-height:44px;
+      font-size:13px;
+    }
+    .filterActions{
+      display:flex;
+      gap:8px;
+      align-items:stretch;
+    }
+    .filterActions .miniBtn{flex:1}
+    .adminFilterBox{
+      background:var(--ochreBg);
+      border:1px solid var(--ochreLine);
+      border-radius:var(--radius);
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .adminFilterHead{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+    }
+    .adminFilterBox .adminFiltersBar{margin-top:0}
+    .adminListBox{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:12px;
+      display:flex;
+      flex-direction:column;
+    }
+    .adminListBox .row{margin-top:0}
+    .adminFilters{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
     .exportWrap{position:relative}
     .exportMenu{
       position:absolute;
@@ -281,10 +325,10 @@
           minmax(200px, 1.4fr)
           minmax(120px, .9fr)
           minmax(120px, .9fr)
-          minmax(120px, .8fr)
-          minmax(120px, .8fr)
+          minmax(120px, .9fr)
           minmax(150px, .9fr)
           minmax(130px, .8fr)
+          minmax(220px, 1fr)
           minmax(130px, .8fr);
       }
     }
@@ -298,7 +342,7 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
     }
-    .chips3{display:flex; gap:10px; margin-top:12px}
+    .chips3{display:flex; gap:10px}
     .chip{
       flex:1;
       background:var(--card2);
@@ -768,120 +812,126 @@
     </section>
 
     <section id="adminCard" class="card hidden adminFilters">
-      <div class="h2">Controllo Orari</div>
-      <div class="sub">Filtra per utente, data e ordina i risultati</div>
+      <div class="adminFilterBox">
+        <div class="adminFilterHead">
+          <div class="h2">Controllo Orari</div>
+          <div class="sub">Filtra per utente, data e ordina i risultati</div>
+        </div>
 
-      <div class="adminFiltersBar">
-        <label class="field">
-          <span>Seleziona utente</span>
-          <select id="userSelect">
-            <option value="">Tutte</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Confermato</span>
-          <select id="paidFilter">
-            <option value="">Tutti</option>
-            <option value="paid">Confermati</option>
-            <option value="unpaid">Non confermati</option>
-          </select>
-        </label>
-        <label class="field">
-          <span class="iconLabel">
-            <svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>
-            Da
-          </span>
-          <input id="fromDate" type="date" />
-        </label>
-        <label class="field">
-          <span class="iconLabel">
-            <svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>
-            A
-          </span>
-          <input id="toDate" type="date" />
-        </label>
-        <label class="field">
-          <span>Ordina per</span>
-          <select id="sortField">
-            <option value="start_ts">Inizio</option>
-            <option value="end_ts">Fine</option>
-            <option value="updated_at">Aggiornato</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Direzione</span>
-          <select id="sortDir">
-            <option value="desc">Discendente</option>
-            <option value="asc">Ascendente</option>
-          </select>
-        </label>
-        <div id="exportWrap" class="exportWrap">
-          <button id="btnExportMenu" class="btn exportBtn" type="button" aria-haspopup="menu" aria-expanded="false">
+        <div class="adminFiltersBar">
+          <label class="field">
+            <span>Seleziona utente</span>
+            <select id="userSelect">
+              <option value="">Tutte</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Confermato</span>
+            <select id="paidFilter">
+              <option value="">Tutti</option>
+              <option value="paid">Confermati</option>
+              <option value="unpaid">Non confermati</option>
+            </select>
+          </label>
+          <label class="field">
             <span class="iconLabel">
-              <svg class="icon xs" aria-hidden="true"><use href="#i-download"></use></svg>
-              <span>Esporta</span>
+              <svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>
+              Da
             </span>
-          </button>
-          <div id="exportMenu" class="exportMenu hidden" role="menu" aria-label="Esporta">
-            <button id="btnExportCsv" class="menuBtn" type="button" role="menuitem">CSV (filtro)</button>
-            <button id="btnExportXlsx" class="menuBtn" type="button" role="menuitem">XLSX (Excel)</button>
-            <button id="btnExportPdf" class="menuBtn" type="button" role="menuitem">PDF</button>
+            <input id="fromDate" type="date" />
+          </label>
+          <label class="field">
+            <span class="iconLabel">
+              <svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>
+              A
+            </span>
+            <input id="toDate" type="date" />
+          </label>
+          <label class="field">
+            <span>Ordina per</span>
+            <select id="sortField">
+              <option value="start_ts">Inizio</option>
+              <option value="end_ts">Fine</option>
+              <option value="updated_at">Aggiornato</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Direzione</span>
+            <select id="sortDir">
+              <option value="desc">Discendente</option>
+              <option value="asc">Ascendente</option>
+            </select>
+          </label>
+          <div class="filterActions">
+            <button id="btnSelectMode" class="miniBtn" type="button">Seleziona</button>
+            <button id="btnOpenCalendar" class="miniBtn" type="button">
+              <span class="iconLabel">
+                <svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>
+                <span>Calendario</span>
+              </span>
+            </button>
+          </div>
+          <div id="exportWrap" class="exportWrap">
+            <button id="btnExportMenu" class="btn exportBtn" type="button" aria-haspopup="menu" aria-expanded="false">
+              <span class="iconLabel">
+                <svg class="icon xs" aria-hidden="true"><use href="#i-download"></use></svg>
+                <span>Esporta</span>
+              </span>
+            </button>
+            <div id="exportMenu" class="exportMenu hidden" role="menu" aria-label="Esporta">
+              <button id="btnExportCsv" class="menuBtn" type="button" role="menuitem">CSV (filtro)</button>
+              <button id="btnExportXlsx" class="menuBtn" type="button" role="menuitem">XLSX (Excel)</button>
+              <button id="btnExportPdf" class="menuBtn" type="button" role="menuitem">PDF</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="chips3">
+          <div class="chip">
+            <div class="chipLabel">
+              <span class="iconLabel">
+                <svg class="icon xs" aria-hidden="true"><use href="#i-list"></use></svg>
+                Record
+              </span>
+            </div>
+            <div class="chipValue" id="sumRecords">0</div>
+          </div>
+          <div class="chip">
+            <div class="chipLabel">
+              <span class="iconLabel">
+                <svg class="icon xs" aria-hidden="true"><use href="#i-clock"></use></svg>
+                Ore nette
+              </span>
+            </div>
+            <div class="chipValue" id="sumHours">0:00</div>
+          </div>
+          <div class="chip">
+            <div class="chipLabel">
+              <span class="iconLabel">
+                <svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>
+                Km
+              </span>
+            </div>
+            <div class="chipValue" id="sumKm">0</div>
           </div>
         </div>
       </div>
 
-      <div class="chips3">
-        <div class="chip">
-          <div class="chipLabel">
-            <span class="iconLabel">
-              <svg class="icon xs" aria-hidden="true"><use href="#i-list"></use></svg>
-              Record
-            </span>
-          </div>
-          <div class="chipValue" id="sumRecords">0</div>
+      <div class="adminListBox">
+        <div class="row listTools">
+          <label class="toggle">
+            <input id="selectAllToggle" type="checkbox" />
+            <span>Seleziona tutti</span>
+          </label>
+          <div id="selectedCount" class="selectedCount">0 selezionati</div>
+          <button id="btnMarkPaid" class="miniBtn" type="button" disabled>Segna confermati</button>
+          <button id="btnMarkUnpaid" class="miniBtn" type="button" disabled>Segna non confermati</button>
         </div>
-        <div class="chip">
-          <div class="chipLabel">
-            <span class="iconLabel">
-              <svg class="icon xs" aria-hidden="true"><use href="#i-clock"></use></svg>
-              Ore nette
-            </span>
-          </div>
-          <div class="chipValue" id="sumHours">0:00</div>
-        </div>
-        <div class="chip">
-          <div class="chipLabel">
-            <span class="iconLabel">
-              <svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>
-              Km
-            </span>
-          </div>
-          <div class="chipValue" id="sumKm">0</div>
-        </div>
-      </div>
 
-      <div class="row">
-        <button id="btnSelectMode" class="miniBtn" type="button">Seleziona</button>
-        <button id="btnOpenCalendar" class="miniBtn" type="button">
-          <span class="iconLabel">
-            <svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>
-            <span>Calendario</span>
-          </span>
-        </button>
+        <div id="actionMsg" class="msg"></div>
+        <div id="list" class="list"></div>
+        <div id="empty" class="empty hidden">Nessun record</div>
       </div>
-      <div class="row listTools">
-        <label class="toggle">
-          <input id="selectAllToggle" type="checkbox" />
-          <span>Seleziona tutti</span>
-        </label>
-        <div id="selectedCount" class="selectedCount">0 selezionati</div>
-        <button id="btnMarkPaid" class="miniBtn" type="button" disabled>Segna confermati</button>
-        <button id="btnMarkUnpaid" class="miniBtn" type="button" disabled>Segna non confermati</button>
-      </div>
-
-      <div id="actionMsg" class="msg"></div>
-      <div id="list" class="list"></div>
-      <div id="empty" class="empty hidden">Nessun record</div>
     </section>
   </main>
 
