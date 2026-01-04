@@ -1,8 +1,8 @@
 {
-  "name": "Timbratrice Web",
-  "short_name": "Timbratrice",
-  "start_url": "./index.html",
-  "scope": "./",
+  "name": "Timbratrice Admin",
+  "short_name": "Admin",
+  "start_url": "./admin.html",
+  "scope": "./admin.html",
   "display": "standalone",
   "background_color": "#D22B2B",
   "theme_color": "#D22B2B",
