@@ -391,7 +391,7 @@
     .itemMeta{font-family:var(--mono); color:var(--muted); font-size:12px}
     .itemMetaGrid{
       display:grid;
-      grid-template-columns:1.6fr 1.2fr 1.2fr .7fr .6fr;
+      grid-template-columns:1.6fr 1.2fr 1.2fr .7fr .7fr .6fr;
       gap:8px;
       margin-top:8px;
     }
@@ -1432,6 +1432,10 @@ function setActionMsg(text, kind){
             <div class="metaBox">
               <div class="metaLabel"><svg class="icon xs" aria-hidden="true"><use href="#i-pause"></use></svg>Pausa</div>
               <div class="metaValue">${escapeHTML(fmtHM(r.pause_min||0))}</div>
+            </div>
+            <div class="metaBox">
+              <div class="metaLabel"><svg class="icon xs" aria-hidden="true"><use href="#i-clock"></use></svg>Ore</div>
+              <div class="metaValue">${escapeHTML(fmtHM(r.work_min||0))}</div>
             </div>
             <div class="metaBox">
               <div class="metaLabel"><svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>Km</div>
