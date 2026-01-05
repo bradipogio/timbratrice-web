@@ -160,6 +160,93 @@
       box-shadow:none;
     }
     .punchHead{display:flex; align-items:center; justify-content:space-between; gap:10px}
+    .vehiclePick{
+      display:flex;
+      gap:10px;
+      margin-top:10px;
+    }
+    .vehicleOption{
+      flex:1;
+      border:1px solid var(--line);
+      background:var(--card2);
+      border-radius:14px;
+      padding:10px 12px;
+      cursor:pointer;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      font-weight:900;
+      user-select:none;
+      min-width:0;
+      transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+    }
+    .vehicleOption.active{
+      border-color:var(--accent);
+      box-shadow:0 0 0 2px rgba(0,122,255,.18);
+      background:rgba(0,122,255,.10);
+    }
+    .vehicleOption .iconLabel{font-size:14px}
+    .driveSwitch{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      font-size:12px;
+      color:var(--muted);
+      font-weight:900;
+      position:relative;
+    }
+    .driveSwitch input{
+      position:absolute;
+      opacity:0;
+      pointer-events:none;
+      width:1px;
+      height:1px;
+    }
+    .driveSwitch .switchTrack{
+      width:34px;
+      height:18px;
+      border-radius:999px;
+      background:rgba(0,0,0,.15);
+      border:1px solid var(--line);
+      position:relative;
+      flex:0 0 auto;
+      transition:background .15s ease, border-color .15s ease;
+    }
+    .driveSwitch .switchTrack::after{
+      content:"";
+      position:absolute;
+      top:2px;
+      left:2px;
+      width:14px;
+      height:14px;
+      border-radius:50%;
+      background:var(--card);
+      border:1px solid rgba(0,0,0,.12);
+      transition:transform .15s ease;
+    }
+    .driveSwitch input:checked + .switchTrack{
+      background:rgba(0,122,255,.55);
+      border-color:rgba(0,122,255,.8);
+    }
+    .driveSwitch input:checked + .switchTrack::after{
+      transform:translateX(16px);
+    }
+    .driveSwitch .switchLabel{font-weight:900}
+    .driveSwitch.driveInline{
+      margin-top:6px;
+      justify-content:center;
+    }
+    .vehiclePick.blink .vehicleOption{
+      animation: vehicleBlink .6s steps(1, end) 2;
+    }
+    @keyframes vehicleBlink{
+      0%, 49%{border-color:var(--accent); box-shadow:0 0 0 2px rgba(0,122,255,.18)}
+      50%, 100%{border-color:var(--line); box-shadow:none}
+    }
+    .punch.is-active .vehiclePick,
+    .punch.is-editing .vehiclePick{
+      display:none;
+    }
     .punchTitle{font-size:22px; font-weight:900; letter-spacing:.2px}
     .titleInputWrap{
       position:relative;
@@ -253,7 +340,7 @@
     }
 
     .chips{display:flex; gap:10px; margin-top:8px}
-    .chips3{display:flex; gap:10px; margin-top:12px}
+    .chips3{display:flex; gap:10px; margin-top:12px; flex-wrap:wrap}
     .chip{
       flex:1;
       background:var(--card2);
@@ -280,6 +367,40 @@
       text-decoration:underline;
     }
     .chipLabel{font-size:12px; color:var(--muted); font-weight:800; letter-spacing:.2px}
+    .chipLabelRow{display:flex; align-items:center; gap:8px}
+    .vehicleSelectWrap{
+      margin-left:auto;
+      position:relative;
+      display:none;
+      align-items:center;
+    }
+    .punch.is-active .vehicleSelectWrap,
+    .punch.is-editing .vehicleSelectWrap{
+      display:inline-flex;
+    }
+    .vehicleSelect{
+      appearance:none;
+      -webkit-appearance:none;
+      border:1px solid var(--line);
+      background:var(--card);
+      color:var(--text);
+      border-radius:10px;
+      padding:4px 22px 4px 8px;
+      font-size:12px;
+      font-weight:900;
+      line-height:1;
+    }
+    .vehicleSelectWrap::after{
+      content:"";
+      position:absolute;
+      right:8px;
+      width:6px;
+      height:6px;
+      border-right:2px solid var(--muted);
+      border-bottom:2px solid var(--muted);
+      transform:rotate(45deg);
+      pointer-events:none;
+    }
     .chipValue{
       margin-top:4px;
       font-family:var(--time);
@@ -289,6 +410,14 @@
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
+    }
+    .chipValue.chipStack{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      font-size:14px;
+      align-items:center;
+      font-variant-numeric: tabular-nums;
     }
     .chipInput{
       margin-top:4px;
@@ -374,6 +503,18 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       border-color:rgba(210,43,43,.55);
       box-shadow:0 0 0 3px rgba(210,43,43,.25);
     }
+    .driveSwitch input[type="checkbox"]{
+      position:absolute;
+      opacity:0;
+      pointer-events:none;
+      width:1px;
+      height:1px;
+      margin:0;
+      border:none;
+      background:transparent;
+      appearance:none;
+      -webkit-appearance:none;
+    }
     .actions{display:flex; gap:10px; margin-top:14px}
     .btn{
       padding:14px 14px;
@@ -392,6 +533,7 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     }
     .btn.danger{background:rgba(255,70,70,.10); border-color:rgba(255,70,70,.25)}
     .btn:disabled{opacity:.45; cursor:not-allowed}
+    .btn.is-blocked{opacity:.6}
 
     .summaryHead{display:flex; align-items:center; justify-content:space-between; gap:10px}
     .summaryHead > div:first-child{min-width:0; flex:1 1 auto}
@@ -963,6 +1105,12 @@ body{
       <circle cx="7.5" cy="16.5" r="1"></circle>
       <circle cx="16.5" cy="16.5" r="1"></circle>
     </symbol>
+    <symbol id="i-van" viewBox="0 0 24 24">
+      <rect x="1" y="3" width="15" height="13"></rect>
+      <path d="M16 8h4l3 3v5h-7z"></path>
+      <circle cx="5.5" cy="18.5" r="2.5"></circle>
+      <circle cx="18.5" cy="18.5" r="2.5"></circle>
+    </symbol>
     <symbol id="i-map-pin" viewBox="0 0 24 24">
       <path d="M12 21s7-7.3 7-12a7 7 0 1 0-14 0c0 4.7 7 12 7 12z"></path>
       <circle cx="12" cy="9" r="2.5"></circle>
@@ -1023,6 +1171,26 @@ body{
         </div>
       </div>
 
+      <div id="vehiclePick" class="vehiclePick">
+        <div id="vehicleCarBtn" class="vehicleOption" role="button" tabindex="0" data-vehicle="car">
+          <span class="iconLabel">
+            <svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>
+            <span>Macchina</span>
+          </span>
+        </div>
+        <div id="vehicleVanBtn" class="vehicleOption" role="button" tabindex="0" data-vehicle="van">
+          <span class="iconLabel">
+            <svg class="icon xs" aria-hidden="true"><use href="#i-van"></use></svg>
+            <span>Furgone</span>
+          </span>
+          <label class="driveSwitch">
+            <input id="vanDriveToggle" type="checkbox" />
+            <span class="switchTrack"></span>
+            <span class="switchLabel">Guida</span>
+          </label>
+        </div>
+      </div>
+
       <div class="netRow">
         <div class="netTime" id="netTime">0:00</div>
         <div class="bigIcon" id="bigIcon">
@@ -1041,13 +1209,25 @@ body{
           <input id="pauseHHMMUI" class="chipInput" type="time" step="60" value="00:00">
         </div>
         <div class="chip">
-          <div class="chipLabel">
+          <div class="chipLabel chipLabelRow">
             <span class="iconLabel">
               <svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>
               Km
             </span>
+            <span class="vehicleSelectWrap">
+              <select id="vehicleSelect" class="vehicleSelect" aria-label="Veicolo">
+                <option value="car">Macchina</option>
+                <option value="van">Furgone</option>
+              </select>
+            </span>
           </div>
           <input id="kmInput" class="chipInput" inputmode="numeric" type="text" placeholder="0">
+          <label id="vanDriveInline" class="driveSwitch driveInline hidden">
+            <input id="vanDriveInlineToggle" type="checkbox" />
+            <span class="switchTrack"></span>
+            <span class="switchLabel">Guida</span>
+          </label>
+          <div id="vanLabelInline" class="chipValue hidden"></div>
         </div>
         <div id="mapsChip" class="chip mapChip hidden">
           <div class="chipLabel">
@@ -1170,6 +1350,18 @@ body{
             </span>
           </div>
           <div class="chipValue" id="sumKm">0</div>
+        </div>
+        <div class="chip">
+          <div class="chipLabel">
+            <span class="iconLabel">
+              <svg class="icon xs" aria-hidden="true"><use href="#i-van"></use></svg>
+              Furgone
+            </span>
+          </div>
+          <div class="chipValue chipStack">
+            <div>Furgone: <span id="sumVan">0</span></div>
+            <div>Guida: <span id="sumDrive">0</span></div>
+          </div>
         </div>
       </div>
 
@@ -1435,6 +1627,22 @@ try{
       }
       return out;
     };
+    const normalizeFurgone = (value) => {
+      const v = String(value || "").trim().toLowerCase();
+      if(v === "guida") return "guida";
+      if(v === "furgone") return "furgone";
+      return "";
+    };
+    const furgoneFromMode = (mode) => {
+      if(mode === "guida") return "guida";
+      if(mode === "furgone") return "furgone";
+      return "";
+    };
+    const vehicleModeFromRow = (row) => {
+      const v = normalizeFurgone(row?.furgone);
+      return v ? v : "car";
+    };
+    const isVanMode = (mode) => mode === "furgone" || mode === "guida";
     const toISO = (d) => new Date(d).toISOString();
 
     // --------- offline cache + queue (IndexedDB) ---------
@@ -1721,8 +1929,9 @@ try{
 
     function updateDestinationFromTitle(title, applyKm){
       const dest = getDestinationByTitle(title);
-      setKmLocked(!!dest);
-      if(dest && applyKm){
+      const allowKm = !isVanMode(getCurrentVehicleMode());
+      setKmLocked(!!dest && allowKm);
+      if(dest && applyKm && allowKm){
         const kmVal = String(Number(dest.km || 0));
         const kmInput = $("kmInput");
         if(kmInput) kmInput.value = kmVal;
@@ -1807,9 +2016,9 @@ function localInputToISO(v){
 }
 
     // --------- app state ---------
-    let active = null;   // {id,title,startISO,endISO,pauseMin,workMin,km,notes,breakStartISO}
+    let active = null;   // {id,title,startISO,endISO,pauseMin,workMin,km,furgone,notes,breakStartISO}
     let history = [];    // ended only
-let editRow = null; // record finito che sto modificando (titolo/km)
+let editRow = null; // record finito che sto modificando (titolo/km/furgone)
 let selectedIds = new Set();
 let visibleIds = [];
 let selectionMode = false;
@@ -1821,6 +2030,7 @@ let selectionMode = false;
     // Draft values for the NEXT shift (used only when no active shift)
     let draftTitle = "";
     let draftKm = "";
+    let draftVehicleMode = null; // null = non selezionato, "car" | "furgone" | "guida"
 
     // Debounced save for live edits on the active record
     let activeEditSaveTimer = null;
@@ -1898,6 +2108,130 @@ if(ph) ph.value = "00:00";
 
   updateDestinationFromTitle(t.value || "", false);
   updateTitleClearVisibility();
+  updateVehicleUI();
+}
+
+function getDraftVehicleMode(){
+  return (draftVehicleMode === "car" || draftVehicleMode === "furgone" || draftVehicleMode === "guida")
+    ? draftVehicleMode
+    : null;
+}
+
+function hasDraftVehicleSelection(){
+  return getDraftVehicleMode() !== null;
+}
+
+function getCurrentVehicleMode(){
+  if(editRow) return vehicleModeFromRow(editRow);
+  if(active) return vehicleModeFromRow(active);
+  return getDraftVehicleMode() || "car";
+}
+
+function updateVehicleUI(){
+  const carBtn = $("vehicleCarBtn");
+  const vanBtn = $("vehicleVanBtn");
+  const driveToggle = $("vanDriveToggle");
+  const vehicleSelect = $("vehicleSelect");
+  const driveInlineToggle = $("vanDriveInlineToggle");
+  const driveInlineWrap = $("vanDriveInline");
+  const vanLabelInline = $("vanLabelInline");
+  const kmInput = $("kmInput");
+
+  const inDraft = !active && !editRow;
+  const draftMode = getDraftVehicleMode();
+
+  if(carBtn) carBtn.classList.toggle("active", inDraft && draftMode === "car");
+  if(vanBtn) vanBtn.classList.toggle("active", inDraft && (draftMode === "furgone" || draftMode === "guida"));
+  if(driveToggle) driveToggle.checked = draftMode === "guida";
+
+  const mode = inDraft ? (draftMode || "car") : getCurrentVehicleMode();
+  const isVan = isVanMode(mode);
+
+  if(vehicleSelect) vehicleSelect.value = isVan ? "van" : "car";
+  if(driveInlineToggle) driveInlineToggle.checked = mode === "guida";
+  if(kmInput && driveInlineWrap){
+    const showInlineDrive = isVan && !inDraft;
+    kmInput.classList.toggle("hidden", isVan);
+    driveInlineWrap.classList.toggle("hidden", !showInlineDrive);
+  }
+  if(vanLabelInline){
+    const showLabel = isVan && inDraft;
+    vanLabelInline.classList.toggle("hidden", !showLabel);
+    if(showLabel){
+      vanLabelInline.textContent = mode === "guida" ? "Guida" : "Furgone";
+    }else{
+      vanLabelInline.textContent = "";
+    }
+  }
+}
+
+function updateStartButtonState(){
+  const btnStart = $("btnStart");
+  if(!btnStart) return;
+  if(active){
+    btnStart.classList.remove("is-blocked");
+    btnStart.setAttribute("aria-disabled", "false");
+    return;
+  }
+  const blocked = !editRow && !hasDraftVehicleSelection();
+  btnStart.classList.toggle("is-blocked", blocked);
+  btnStart.setAttribute("aria-disabled", blocked ? "true" : "false");
+}
+
+function setVehicleMode(mode){
+  let normalized = mode;
+  if(normalized === "van") normalized = "furgone";
+  if(normalized !== "car" && normalized !== "furgone" && normalized !== "guida"){
+    normalized = null;
+  }
+
+  if(editRow){
+    editRow.furgone = furgoneFromMode(normalized);
+    if(isVanMode(normalized)){
+      editRow.km = 0;
+      const kmInput = $("kmInput");
+      if(kmInput) kmInput.value = "0";
+    }
+    updateVehicleUI();
+    updateDestinationFromTitle(($("titleInput")?.value || "").trim(), normalized === "car");
+    updateStartButtonState();
+    return;
+  }
+
+  if(active){
+    active.furgone = furgoneFromMode(normalized);
+    if(isVanMode(normalized)){
+      active.km = 0;
+      const kmInput = $("kmInput");
+      if(kmInput) kmInput.value = "0";
+    }
+    saveActiveEditsDebounced();
+    updateVehicleUI();
+    updateDestinationFromTitle(($("titleInput")?.value || "").trim(), normalized === "car");
+    updateStartButtonState();
+    return;
+  }
+
+  draftVehicleMode = normalized;
+  if(isVanMode(normalized)){
+    draftKm = "0";
+    const kmInput = $("kmInput");
+    if(kmInput) kmInput.value = "0";
+  }
+  updateVehicleUI();
+  updateDestinationFromTitle(($("titleInput")?.value || "").trim(), normalized === "car");
+  updateStartButtonState();
+}
+
+let vehicleBlinkTimer = null;
+function flashVehiclePick(){
+  const wrap = $("vehiclePick");
+  if(!wrap) return;
+  wrap.classList.remove("blink");
+  void wrap.offsetWidth;
+  wrap.classList.add("blink");
+  if(vehicleBlinkTimer) clearTimeout(vehicleBlinkTimer);
+  vehicleBlinkTimer = setTimeout(()=> wrap.classList.remove("blink"), 1200);
 }
 
 
@@ -2198,6 +2532,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
           pauseMin: Number(r.pauseMin || 0),
           workMin: Number(r.workMin || 0),
           km: Number(r.km || 0),
+          furgone: normalizeFurgone(r.furgone || ""),
           notes: r.notes || "",
           breakStartISO: r.breakStartISO || "",
           updatedAt: r.updatedAt || "",
@@ -2290,6 +2625,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
         pauseMin: Number(r.pause_min || 0),
         workMin: Number(r.work_min || 0),
         km: Number(r.km || 0),
+        furgone: normalizeFurgone(r.furgone || ""),
         notes: r.notes || "",
         breakStartISO: r.break_start_ts ? new Date(r.break_start_ts).toISOString() : "",
         updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : "",
@@ -2318,6 +2654,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
         pause_min: Number(row.pauseMin || 0),
         work_min: Number(row.workMin || 0),
         km: Number(row.km || 0),
+        furgone: normalizeFurgone(row.furgone || ""),
         notes: row.notes || "",
         break_start_ts: row.breakStartISO || null,
         updated_at: new Date().toISOString()
@@ -2548,8 +2885,15 @@ sb.auth.onAuthStateChange(async (_event, session) => {
       draftTitle = titleRaw;
       draftKm = kmRaw;
 
+      if(!hasDraftVehicleSelection()){
+        flashVehiclePick();
+        setActionMsg("❌ Seleziona macchina o furgone.", "err");
+        return;
+      }
+
+      const draftMode = getDraftVehicleMode() || "car";
       const title = titleRaw || `Turno ${new Date().toLocaleDateString("it-IT")}`;
-      const km = parseFloat(kmRaw.replace(",", ".")) || 0;
+      const km = isVanMode(draftMode) ? 0 : (parseFloat(kmRaw.replace(",", ".")) || 0);
 
       const now = new Date();
       const row = {
@@ -2560,6 +2904,7 @@ startISO: localInputToISO($("startInput").value) || toISO(now),
         pauseMin: 0,
         workMin: 0,
         km,
+        furgone: furgoneFromMode(draftMode),
         notes:"",
         breakStartISO:""
       };
@@ -2731,6 +3076,7 @@ function updateSelectionUI(){
         $("btnBreak").disabled = true;
         $("btnStop").disabled = true;
         $("btnBreak").textContent = "Inizia pausa";
+        updateStartButtonState();
 
         if(editRow){
           const endISO = editRow.endISO || toISO(now);
@@ -2752,6 +3098,7 @@ function updateSelectionUI(){
         $("btnBreak").disabled = false;
         $("btnBreak").textContent = isPause ? "Fine pausa" : "Inizia pausa";
         $("btnStop").disabled = false;
+        updateStartButtonState();
 
         const nowISO = toISO(now);
         pauseMin = Number(active.pauseMin||0);
@@ -2769,6 +3116,7 @@ function updateSelectionUI(){
         punch.classList.toggle("is-paused", !!active && isPause);
         punch.classList.toggle("is-editing", !!editRow);
       }
+      updateVehicleUI();
 
       setNetTimeDisplay(netMin);
       const ph = $("pauseHHMMUI");
@@ -2780,9 +3128,15 @@ function updateSelectionUI(){
       const turns = history.length;
       const sumWorkMin = history.reduce((a,r)=>a + Number(r.workMin||0), 0);
       const sumKm = history.reduce((a,r)=>a + Number(r.km||0), 0);
+      const sumVan = history.filter(r => normalizeFurgone(r.furgone) === "furgone").length;
+      const sumDrive = history.filter(r => normalizeFurgone(r.furgone) === "guida").length;
       $("sumTurns").textContent = String(turns);
       $("sumHours").textContent = fmtHM(sumWorkMin);
       $("sumKm").textContent = String(sumKm);
+      const sumVanEl = $("sumVan");
+      const sumDriveEl = $("sumDrive");
+      if(sumVanEl) sumVanEl.textContent = String(sumVan);
+      if(sumDriveEl) sumDriveEl.textContent = String(sumDrive);
 
       const ft = $("filterToggle").checked;
       if(ft && $("fromDate").value && $("toDate").value){
@@ -2826,6 +3180,8 @@ list.innerHTML = "";
           const start = fmtShortDT(r.startISO);
           const end = fmtShortDT(r.endISO);
           const isChecked = selectedIds.has(String(r.id));
+          const fLabel = normalizeFurgone(r.furgone);
+          const kmDisplay = fLabel ? fLabel : String(r.km||0);
           const el = document.createElement("div");
           el.className = "item";
           el.setAttribute("data-row-id", r.id);
@@ -2861,7 +3217,7 @@ list.innerHTML = "";
               </div>
               <div class="metaBox compact">
                 <div class="metaLabel">${iconSvg("i-car","icon xs")}Km</div>
-                <div class="metaValue">${escapeHTML(String(r.km||0))}</div>
+                <div class="metaValue">${escapeHTML(kmDisplay)}</div>
               </div>
             </div>
           `;
@@ -2951,28 +3307,30 @@ list.innerHTML = "";
       };
 
       let csv = "\uFEFF";
-      csv += ["Titolo","DataOraInizio","DataOraFine","Ore_nette_hh:mm","Km"].join(sep) + "\r\n";
+      csv += ["Titolo","DataOraInizio","DataOraFine","Ore_nette_hh:mm","Km","Furgone"].join(sep) + "\r\n";
 
       let sumWork = 0, sumKm = 0;
 
       for(const r of rows){
         sumWork += Number(r.workMin||0);
         sumKm += Number(r.km||0);
+        const fLabel = normalizeFurgone(r.furgone);
         csv += [
           csvEscape(r.title||"", sep),
           dt(r.startISO),
           dt(r.endISO),
           fmtHM(Number(r.workMin||0)),
-          String(Number(r.km||0))
+          String(Number(r.km||0)),
+          fLabel
         ].join(sep) + "\r\n";
       }
 
-      csv += ["TOTALE SELEZIONE","","", fmtHM(sumWork), String(sumKm)].join(sep) + "\r\n";
+      csv += ["TOTALE SELEZIONE","","", fmtHM(sumWork), String(sumKm), ""].join(sep) + "\r\n";
       csv += "\r\n";
-      csv += ["RIEPILOGO","","","",""].join(sep) + "\r\n";
-      csv += ["Turni", String(rows.length), "","",""].join(sep) + "\r\n";
-      csv += ["Ore totali (nette)", fmtHM(sumWork), "","",""].join(sep) + "\r\n";
-      csv += ["Km totali", String(sumKm), "","",""].join(sep) + "\r\n";
+      csv += ["RIEPILOGO","","","","",""].join(sep) + "\r\n";
+      csv += ["Turni", String(rows.length), "","","",""].join(sep) + "\r\n";
+      csv += ["Ore totali (nette)", fmtHM(sumWork), "","","",""].join(sep) + "\r\n";
+      csv += ["Km totali", String(sumKm), "","","",""].join(sep) + "\r\n";
 
       const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
       const a = document.createElement("a");
@@ -2999,7 +3357,7 @@ list.innerHTML = "";
         return;
       }
 
-      const header = ["Titolo","DataOraInizio","DataOraFine","Ore_nette","Km"];
+      const header = ["Titolo","DataOraInizio","DataOraFine","Ore_nette","Km","Furgone"];
       const data = [header];
       let sumWork = 0;
       let sumKm = 0;
@@ -3009,6 +3367,7 @@ list.innerHTML = "";
         const end = r.endISO ? new Date(r.endISO) : "";
         const workMin = Number(r.workMin || 0);
         const km = Number(r.km || 0);
+        const fLabel = normalizeFurgone(r.furgone);
         sumWork += workMin;
         sumKm += km;
         data.push([
@@ -3016,11 +3375,12 @@ list.innerHTML = "";
           start instanceof Date && !isNaN(start.getTime()) ? start : "",
           end instanceof Date && !isNaN(end.getTime()) ? end : "",
           workMin / 1440,
-          km
+          km,
+          fLabel
         ]);
       }
 
-      data.push(["TOTALE SELEZIONE","","", sumWork / 1440, sumKm]);
+      data.push(["TOTALE SELEZIONE","","", sumWork / 1440, sumKm, ""]);
 
       const ws = XLSX.utils.aoa_to_sheet(data, { cellDates: true });
       ws["!cols"] = [
@@ -3028,7 +3388,8 @@ list.innerHTML = "";
         { wch: 20 },
         { wch: 20 },
         { wch: 12 },
-        { wch: 10 }
+        { wch: 10 },
+        { wch: 12 }
       ];
 
       for(let r = 1; r < data.length; r++){
@@ -3097,6 +3458,7 @@ list.innerHTML = "";
         const pause = escapeHTML(fmtHM(Number(r.pauseMin||0)));
         const work = escapeHTML(fmtHM(Number(r.workMin||0)));
         const km = escapeHTML(String(Number(r.km||0)));
+        const fLabel = escapeHTML(normalizeFurgone(r.furgone));
         const zebra = i % 2 ? " class=\"alt\"" : "";
         return `<tr${zebra}>
   <td>${t}</td>
@@ -3105,6 +3467,7 @@ list.innerHTML = "";
   <td class="center">${pause}</td>
   <td class="center">${work}</td>
   <td class="right">${km}</td>
+  <td class="center">${fLabel}</td>
 </tr>`;
       }).join("");
 
@@ -3156,6 +3519,7 @@ list.innerHTML = "";
         <th>Pausa</th>
         <th>Ore</th>
         <th class="right">Km</th>
+        <th class="center">Furgone</th>
       </tr>
     </thead>
     <tbody>
@@ -3413,6 +3777,51 @@ $("btnSettings").addEventListener("click", ()=>{
     $("btnStart").addEventListener("click", startShift);
     $("btnBreak").addEventListener("click", toggleBreak);
 
+    const vehicleCarBtn = $("vehicleCarBtn");
+    const vehicleVanBtn = $("vehicleVanBtn");
+    const vanDriveToggle = $("vanDriveToggle");
+    const vehicleSelect = $("vehicleSelect");
+    const vanDriveInlineToggle = $("vanDriveInlineToggle");
+
+    function handleVehicleKey(e){
+      if(e.key === "Enter" || e.key === " "){
+        e.preventDefault();
+        e.currentTarget.click();
+      }
+    }
+
+    if(vehicleCarBtn){
+      vehicleCarBtn.addEventListener("click", ()=> setVehicleMode("car"));
+      vehicleCarBtn.addEventListener("keydown", handleVehicleKey);
+    }
+    if(vehicleVanBtn){
+      vehicleVanBtn.addEventListener("click", ()=>{
+        const driveOn = !!$("vanDriveToggle")?.checked;
+        setVehicleMode(driveOn ? "guida" : "furgone");
+      });
+      vehicleVanBtn.addEventListener("keydown", handleVehicleKey);
+    }
+    if(vanDriveToggle){
+      vanDriveToggle.addEventListener("change", (e)=>{
+        setVehicleMode(e.currentTarget.checked ? "guida" : "furgone");
+      });
+    }
+    if(vehicleSelect){
+      vehicleSelect.addEventListener("change", (e)=>{
+        if(e.currentTarget.value === "car"){
+          setVehicleMode("car");
+        }else{
+          const driveOn = !!$("vanDriveInlineToggle")?.checked;
+          setVehicleMode(driveOn ? "guida" : "furgone");
+        }
+      });
+    }
+    if(vanDriveInlineToggle){
+      vanDriveInlineToggle.addEventListener("change", (e)=>{
+        setVehicleMode(e.currentTarget.checked ? "guida" : "furgone");
+      });
+    }
+
     // Live edit bindings for Titolo / Km
 function selectTitleInputAll(){
   const el = $("titleInput");
@@ -3468,6 +3877,7 @@ $("titleInput").addEventListener("input", ()=>{
 $("kmInput").addEventListener("input", ()=>{
   const input = $("kmInput");
   if(!input) return;
+  if(isVanMode(getCurrentVehicleMode())) return;
   if(input.readOnly && document.activeElement === input){
     return;
   }

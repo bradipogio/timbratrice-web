@@ -406,6 +406,13 @@
       overflow:hidden;
       text-overflow:ellipsis;
     }
+    .chipValue.chipStack{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      font-size:13px;
+      align-items:center;
+    }
     .list{display:flex; flex-direction:column; gap:10px; margin-top:10px; width:100%}
     .item{
       border:1px solid var(--line);
@@ -840,6 +847,12 @@
       <circle cx="7.5" cy="16.5" r="1"></circle>
       <circle cx="16.5" cy="16.5" r="1"></circle>
     </symbol>
+    <symbol id="i-van" viewBox="0 0 24 24">
+      <rect x="1" y="3" width="15" height="13"></rect>
+      <path d="M16 8h4l3 3v5h-7z"></path>
+      <circle cx="5.5" cy="18.5" r="2.5"></circle>
+      <circle cx="18.5" cy="18.5" r="2.5"></circle>
+    </symbol>
   </svg>
   <header class="topbar">
     <div class="brand">Timbratrice Admin</div>
@@ -972,6 +985,18 @@
               </span>
             </div>
             <div class="chipValue" id="sumKm">0</div>
+          </div>
+          <div class="chip">
+            <div class="chipLabel">
+              <span class="iconLabel">
+                <svg class="icon xs" aria-hidden="true"><use href="#i-van"></use></svg>
+                Furgone
+              </span>
+            </div>
+            <div class="chipValue chipStack">
+              <div>Furgone: <span id="sumVan">0</span></div>
+              <div>Guida: <span id="sumDrive">0</span></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1141,6 +1166,12 @@
       const h = Math.floor(m / 60);
       const mm = m % 60;
       return `${h}:${pad2(mm)}`;
+    };
+    const normalizeFurgone = (value) => {
+      const v = String(value || "").trim().toLowerCase();
+      if(v === "guida") return "guida";
+      if(v === "furgone") return "furgone";
+      return "";
     };
     const toISO = (d) => new Date(d).toISOString();
 
@@ -1436,6 +1467,8 @@ function setActionMsg(text, kind){
         const end = r.end_ts ? new Date(r.end_ts).toLocaleString("it-IT") : "—";
         const userLabel = getUserLabelFromRecord(r);
         const paidChecked = !!r.paid;
+        const fLabel = normalizeFurgone(r.furgone);
+        const kmDisplay = fLabel ? fLabel : String(r.km||0);
         const el = document.createElement("div");
         el.className = "item";
         el.innerHTML = `
@@ -1474,7 +1507,7 @@ function setActionMsg(text, kind){
             </div>
             <div class="metaBox">
               <div class="metaLabel"><svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>Km</div>
-              <div class="metaValue">${escapeHTML(String(r.km||0))}</div>
+              <div class="metaValue">${escapeHTML(kmDisplay)}</div>
             </div>
           </div>
         `;
@@ -1520,8 +1553,14 @@ function setActionMsg(text, kind){
       $("sumRecords").textContent = String(records.length);
       const sumWork = records.reduce((a,r)=> a + Number(r.work_min||0), 0);
       const sumKm = records.reduce((a,r)=> a + Number(r.km||0), 0);
+      const sumVan = records.filter(r => normalizeFurgone(r.furgone) === "furgone").length;
+      const sumDrive = records.filter(r => normalizeFurgone(r.furgone) === "guida").length;
       $("sumHours").textContent = fmtHM(sumWork);
       $("sumKm").textContent = String(sumKm);
+      const sumVanEl = $("sumVan");
+      const sumDriveEl = $("sumDrive");
+      if(sumVanEl) sumVanEl.textContent = String(sumVan);
+      if(sumDriveEl) sumDriveEl.textContent = String(sumDrive);
     }
 
     function getCalendarFilterSignature(){
@@ -2594,12 +2633,13 @@ async function deleteDestination(id){
       };
 
       let csv = "\uFEFF";
-      csv += ["Utente","Titolo","DataOraInizio","DataOraFine","Pausa_min","Ore_nette_hh:mm","Km"].join(sep) + "\r\n";
+      csv += ["Utente","Titolo","DataOraInizio","DataOraFine","Pausa_min","Ore_nette_hh:mm","Km","Furgone"].join(sep) + "\r\n";
 
       let sumWork = 0, sumKm = 0;
       for(const r of rows){
         sumWork += Number(r.work_min||0);
         sumKm += Number(r.km||0);
+        const fLabel = normalizeFurgone(r.furgone);
         csv += [
           csvEscape(getUserLabelFromRecord(r), sep),
           csvEscape(r.title||"", sep),
@@ -2607,11 +2647,12 @@ async function deleteDestination(id){
           dt(r.end_ts),
           String(Number(r.pause_min||0)),
           fmtHM(Number(r.work_min||0)),
-          String(Number(r.km||0))
+          String(Number(r.km||0)),
+          fLabel
         ].join(sep) + "\r\n";
       }
 
-      csv += ["TOTALE SELEZIONE","","","", fmtHM(sumWork), String(sumKm)].join(sep) + "\r\n";
+      csv += ["TOTALE SELEZIONE","","","","", fmtHM(sumWork), String(sumKm), ""].join(sep) + "\r\n";
 
       const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
       const a = document.createElement("a");
@@ -2633,7 +2674,7 @@ async function deleteDestination(id){
         return;
       }
 
-      const header = ["Utente","Titolo","DataOraInizio","DataOraFine","Pausa_min","Ore_nette","Km"];
+      const header = ["Utente","Titolo","DataOraInizio","DataOraFine","Pausa_min","Ore_nette","Km","Furgone"];
       const data = [header];
       let sumWork = 0;
       let sumKm = 0;
@@ -2645,6 +2686,7 @@ async function deleteDestination(id){
         const pauseMin = Number(r.pause_min || 0);
         const workMin = Number(r.work_min || 0);
         const km = Number(r.km || 0);
+        const fLabel = normalizeFurgone(r.furgone);
         sumPause += pauseMin;
         sumWork += workMin;
         sumKm += km;
@@ -2656,11 +2698,12 @@ async function deleteDestination(id){
           end instanceof Date && !isNaN(end.getTime()) ? end : "",
           pauseMin,
           workMin / 1440,
-          km
+          km,
+          fLabel
         ]);
       }
 
-      data.push(["TOTALE SELEZIONE","","","", sumPause, sumWork / 1440, sumKm]);
+      data.push(["TOTALE SELEZIONE","","","", sumPause, sumWork / 1440, sumKm, ""]);
 
       const ws = XLSX.utils.aoa_to_sheet(data, { cellDates: true });
       ws["!cols"] = [
@@ -2670,7 +2713,8 @@ async function deleteDestination(id){
         { wch: 20 },
         { wch: 12 },
         { wch: 12 },
-        { wch: 10 }
+        { wch: 10 },
+        { wch: 12 }
       ];
 
       for(let r = 1; r < data.length; r++){
@@ -2735,6 +2779,7 @@ async function deleteDestination(id){
         const pause = escapeHTML(fmtHM(Number(r.pause_min||0)));
         const work = escapeHTML(fmtHM(Number(r.work_min||0)));
         const km = escapeHTML(String(Number(r.km||0)));
+        const fLabel = escapeHTML(normalizeFurgone(r.furgone));
         const paidMark = r.paid ? "(v)" : "( )";
         const zebra = i % 2 ? " class=\"alt\"" : "";
         return `<tr${zebra}>
@@ -2745,6 +2790,7 @@ async function deleteDestination(id){
   <td class="center">${pause}</td>
   <td class="center">${work}</td>
   <td class="right">${km}</td>
+  <td class="center">${fLabel}</td>
   <td class="center paidCol">${paidMark}</td>
 </tr>`;
       }).join("");
@@ -2801,6 +2847,7 @@ async function deleteDestination(id){
         <th>Pausa</th>
         <th>Ore</th>
         <th class="right">Km</th>
+        <th class="center">Furgone</th>
         <th class="center paidCol">Confermato</th>
       </tr>
     </thead>
