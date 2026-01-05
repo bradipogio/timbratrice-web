@@ -359,12 +359,16 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       height:11px;
       border-right:2px solid transparent;
       border-bottom:2px solid transparent;
-      transform:rotate(45deg) scale(0);
+      transform:translateY(-1px) rotate(45deg) scale(0);
       transition:transform 120ms ease-out;
+    }
+    input[type="checkbox"]:checked{
+      background:rgba(110,203,255,.35);
+      border-color:rgba(110,203,255,.75);
     }
     input[type="checkbox"]:checked::before{
       border-color:var(--text);
-      transform:rotate(45deg) scale(1);
+      transform:translateY(-1px) rotate(45deg) scale(1);
     }
     input[type="checkbox"]:focus-visible{
       border-color:rgba(210,43,43,.55);
