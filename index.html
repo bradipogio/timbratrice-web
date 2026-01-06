@@ -194,6 +194,7 @@
       color:var(--muted);
       font-weight:900;
       position:relative;
+      line-height:1;
     }
     .driveSwitch input{
       position:absolute;
@@ -203,30 +204,32 @@
       height:1px;
     }
     .driveSwitch .switchTrack{
-      width:34px;
-      height:18px;
+      width:36px;
+      height:20px;
       border-radius:999px;
-      background:rgba(0,0,0,.15);
+      background:rgba(255,255,255,.18);
       border:1px solid var(--line);
       position:relative;
       flex:0 0 auto;
       transition:background .15s ease, border-color .15s ease;
+      box-sizing:border-box;
     }
     .driveSwitch .switchTrack::after{
       content:"";
       position:absolute;
       top:2px;
       left:2px;
-      width:14px;
-      height:14px;
+      width:16px;
+      height:16px;
       border-radius:50%;
-      background:var(--card);
-      border:1px solid rgba(0,0,0,.12);
+      background:var(--card2);
+      border:1px solid var(--line);
+      box-shadow:0 1px 3px rgba(0,0,0,.25);
       transition:transform .15s ease;
     }
     .driveSwitch input:checked + .switchTrack{
-      background:rgba(0,122,255,.55);
-      border-color:rgba(0,122,255,.8);
+      background:rgba(0,122,255,.75);
+      border-color:rgba(0,122,255,.85);
     }
     .driveSwitch input:checked + .switchTrack::after{
       transform:translateX(16px);
@@ -235,6 +238,13 @@
     .driveSwitch.driveInline{
       margin-top:6px;
       justify-content:center;
+    }
+    @media (prefers-color-scheme: light){
+      .driveSwitch .switchTrack{background:rgba(0,0,0,.10)}
+      .driveSwitch .switchTrack::after{
+        background:#ffffff;
+        border-color:rgba(0,0,0,.15);
+      }
     }
     .vehiclePick.blink .vehicleOption{
       animation: vehicleBlink .6s steps(1, end) 2;
@@ -4065,12 +4075,14 @@ $("btnSettings").addEventListener("click", ()=>{
     }
     if(vehicleVanBtn){
       vehicleVanBtn.addEventListener("click", ()=>{
-        const driveOn = !!$("vanDriveToggle")?.checked;
-        setVehicleMode(driveOn ? "guida" : "furgone");
+        setVehicleMode("furgone");
       });
       vehicleVanBtn.addEventListener("keydown", handleVehicleKey);
     }
     if(vanDriveToggle){
+      const driveWrap = vanDriveToggle.closest(".driveSwitch");
+      driveWrap?.addEventListener("click", (e)=> e.stopPropagation());
+      vanDriveToggle.addEventListener("click", (e)=> e.stopPropagation());
       vanDriveToggle.addEventListener("change", (e)=>{
         setVehicleMode(e.currentTarget.checked ? "guida" : "furgone");
       });
