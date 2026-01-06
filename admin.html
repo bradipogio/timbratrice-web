@@ -419,6 +419,22 @@
       min-width:0;
     }
     .chipLabel{font-size:12px; color:var(--muted); font-weight:800; letter-spacing:.2px}
+    .recapToggle{
+      cursor:pointer;
+      user-select:none;
+    }
+    .recapToggle:focus-visible{
+      outline:2px solid rgba(210,43,43,.55);
+      outline-offset:3px;
+    }
+    .recapStack{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      font-size:14px;
+      font-weight:800;
+      align-items:center;
+    }
     .chipValue{
       margin-top:4px;
       font-family:var(--mono);
@@ -451,6 +467,27 @@
     .itemCheck input{width:18px; height:18px; padding:0}
     .paidToggle{display:inline-flex; align-items:center; gap:6px; font-weight:800; color:var(--muted)}
     .paidToggle input{width:18px; height:18px; padding:0}
+    .paidToggle input[type="checkbox"]{
+      border-radius:50%;
+      border:2px solid var(--muted);
+      background:transparent;
+    }
+    .paidToggle input[type="checkbox"]::before,
+    .paidToggle input[type="checkbox"]:checked::before{
+      content:"";
+      width:0;
+      height:0;
+      border:none;
+      transform:none;
+    }
+    .paidToggle input[type="checkbox"]:checked{
+      background:var(--good);
+      border-color:var(--good);
+    }
+    .paidToggle input[type="checkbox"]:focus-visible{
+      border-color:var(--good);
+      box-shadow:0 0 0 3px rgba(61,220,132,.3);
+    }
     .itemTitle{font-weight:900}
     .itemMeta{font-family:var(--mono); color:var(--muted); font-size:12px}
     .itemMetaGrid{
@@ -1005,16 +1042,23 @@
             </div>
             <div class="chipValue" id="sumHours">0:00</div>
           </div>
-          <div class="chip">
+          <div id="sumKmToggle" class="chip recapToggle" role="button" tabindex="0" aria-label="Mostra furgone" aria-pressed="false">
             <div class="chipLabel">
-              <span class="iconLabel">
+              <span class="iconLabel recapLabel recapLabel-km">
                 <svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>
                 Km
               </span>
+              <span class="iconLabel recapLabel recapLabel-van hidden">
+                <svg class="icon xs" aria-hidden="true"><use href="#i-van"></use></svg>
+                Furgone
+              </span>
             </div>
-            <div class="chipValue chipStack">
-              <div>Km: <span id="sumKm">0</span></div>
-              <div>F: <span id="sumVan">0</span>  G: <span id="sumDrive">0</span></div>
+            <div class="chipValue recapView recapView-km">
+              <span id="sumKm">0</span>
+            </div>
+            <div class="chipValue recapView recapView-van recapStack hidden">
+              <div>Furgone: <span id="sumVan">0</span></div>
+              <div>Guida: <span id="sumDrive">0</span></div>
             </div>
           </div>
         </div>
@@ -1585,6 +1629,35 @@ function appPrompt(message, opts = {}){
     showInput: true,
     inputValue: opts.defaultValue || "",
     inputPlaceholder: opts.placeholder || ""
+  });
+}
+
+function initRecapToggle(){
+  const toggle = $("sumKmToggle");
+  if(!toggle || toggle.dataset.bound) return;
+  toggle.dataset.bound = "true";
+  const kmLabel = toggle.querySelector(".recapLabel-km");
+  const vanLabel = toggle.querySelector(".recapLabel-van");
+  const kmView = toggle.querySelector(".recapView-km");
+  const vanView = toggle.querySelector(".recapView-van");
+  let showVan = false;
+  const setView = (nextVan)=>{
+    showVan = !!nextVan;
+    kmLabel?.classList.toggle("hidden", showVan);
+    vanLabel?.classList.toggle("hidden", !showVan);
+    kmView?.classList.toggle("hidden", showVan);
+    vanView?.classList.toggle("hidden", !showVan);
+    toggle.setAttribute("aria-label", showVan ? "Mostra km" : "Mostra furgone");
+    toggle.setAttribute("aria-pressed", showVan ? "true" : "false");
+  };
+  const toggleView = ()=> setView(!showVan);
+  setView(false);
+  toggle.addEventListener("click", toggleView);
+  toggle.addEventListener("keydown", (e)=>{
+    if(e.key === "Enter" || e.key === " "){
+      e.preventDefault();
+      toggleView();
+    }
   });
 }
 
@@ -2864,6 +2937,8 @@ async function deleteDestination(id){
       let sumWork = 0;
       let sumKm = 0;
       let sumPause = 0;
+      let sumVan = 0;
+      let sumDrive = 0;
 
       for(const r of rows){
         const start = r.start_ts ? new Date(r.start_ts) : "";
@@ -2875,6 +2950,8 @@ async function deleteDestination(id){
         sumPause += pauseMin;
         sumWork += workMin;
         sumKm += km;
+        if(fLabel === "furgone") sumVan += 1;
+        if(fLabel === "guida") sumDrive += 1;
 
         data.push([
           getUserLabelFromRecord(r),
@@ -2888,7 +2965,14 @@ async function deleteDestination(id){
         ]);
       }
 
-      data.push(["TOTALE SELEZIONE","","","", sumPause, sumWork / 1440, sumKm, ""]);
+      data.push([]);
+      data.push(["RIEPILOGO", ""]);
+      data.push(["Turni", String(rows.length)]);
+      data.push(["Ore totali (nette)", fmtHM(sumWork)]);
+      data.push(["Pausa totale", fmtHM(sumPause)]);
+      data.push(["Km totali", String(sumKm)]);
+      data.push(["Furgone", String(sumVan)]);
+      data.push(["Guida", String(sumDrive)]);
 
       const ws = XLSX.utils.aoa_to_sheet(data, { cellDates: true });
       ws["!cols"] = [
@@ -2944,10 +3028,15 @@ async function deleteDestination(id){
       let sumWork = 0;
       let sumKm = 0;
       let sumPause = 0;
+      let sumVan = 0;
+      let sumDrive = 0;
       for(const r of rows){
         sumWork += Number(r.work_min||0);
         sumKm += Number(r.km||0);
         sumPause += Number(r.pause_min||0);
+        const fLabel = normalizeFurgone(r.furgone);
+        if(fLabel === "furgone") sumVan += 1;
+        if(fLabel === "guida") sumDrive += 1;
       }
 
       const userFilterId = ($("userSelect").value || "").trim();
@@ -3012,11 +3101,12 @@ async function deleteDestination(id){
     .paidCol{ width:54px; }
     .totals{ margin-top:16px; padding:12px; border:1px solid #d9d9d9; border-radius:12px; background:#f6f6f6; break-inside:avoid; page-break-inside:avoid; }
     .totalsTitle{ font-size:14px; font-weight:800; margin-bottom:10px; text-transform:uppercase; letter-spacing:.6px; }
-    .totalsGrid{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; break-inside:avoid; page-break-inside:avoid; }
+    .totalsGrid{ display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:10px; break-inside:avoid; page-break-inside:avoid; }
     .totalsCard{ background:#fff; border:1px solid #d9d9d9; border-radius:12px; padding:10px; display:flex; gap:8px; align-items:center; break-inside:avoid; page-break-inside:avoid; }
     .totalsIcon{ width:22px; height:22px; color:#555; flex:0 0 auto; }
     .totalsLabel{ font-size:11px; color:#666; font-weight:700; letter-spacing:.4px; text-transform:uppercase; }
     .totalsValue{ font-size:22px; font-weight:900; margin-top:2px; }
+    .totalsValueStack{ font-size:16px; font-weight:900; line-height:1.25; margin-top:2px; }
   </style>
 </head>
 <body>
@@ -3043,6 +3133,20 @@ async function deleteDestination(id){
   <div class="totals">
     <div class="totalsTitle">Riepilogo finale</div>
     <div class="totalsGrid">
+      <div class="totalsCard">
+        <svg class="totalsIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 6h12"></path>
+          <path d="M8 12h12"></path>
+          <path d="M8 18h12"></path>
+          <circle cx="4" cy="6" r="1"></circle>
+          <circle cx="4" cy="12" r="1"></circle>
+          <circle cx="4" cy="18" r="1"></circle>
+        </svg>
+        <div>
+          <div class="totalsLabel">Turni</div>
+          <div class="totalsValue">${rows.length}</div>
+        </div>
+      </div>
       <div class="totalsCard">
         <svg class="totalsIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="9"></circle>
@@ -3076,16 +3180,14 @@ async function deleteDestination(id){
       </div>
       <div class="totalsCard">
         <svg class="totalsIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 6h12"></path>
-          <path d="M8 12h12"></path>
-          <path d="M8 18h12"></path>
-          <circle cx="4" cy="6" r="1"></circle>
-          <circle cx="4" cy="12" r="1"></circle>
-          <circle cx="4" cy="18" r="1"></circle>
+          <rect x="1" y="3" width="15" height="13"></rect>
+          <path d="M16 8h4l3 3v5h-7z"></path>
+          <circle cx="5.5" cy="18.5" r="2.5"></circle>
+          <circle cx="18.5" cy="18.5" r="2.5"></circle>
         </svg>
         <div>
-          <div class="totalsLabel">Record</div>
-          <div class="totalsValue">${rows.length}</div>
+          <div class="totalsLabel">Furgone</div>
+          <div class="totalsValueStack">Furgone: ${sumVan}<br>Guida: ${sumDrive}</div>
         </div>
       </div>
     </div>
@@ -3132,6 +3234,7 @@ async function doLogout(){
   setSettingsMsg("✅ Logout", "ok");
 }
 
+initRecapToggle();
 $("btnLogin").addEventListener("click", async ()=>{
   try{
     setAuthMsg("⏳ Login...", null);
@@ -3382,12 +3485,16 @@ if(btnLogout){
       }
       renderList();
     });
-    $("btnMarkPaid").addEventListener("click", (e)=>{
+    $("btnMarkPaid").addEventListener("click", async (e)=>{
       e.preventDefault();
+      const ok = await appConfirm("Apportare modifiche?", { title: "Conferma" });
+      if(!ok) return;
       bulkSetPaid(true);
     });
-    $("btnMarkUnpaid").addEventListener("click", (e)=>{
+    $("btnMarkUnpaid").addEventListener("click", async (e)=>{
       e.preventDefault();
+      const ok = await appConfirm("Apportare modifiche?", { title: "Conferma" });
+      if(!ok) return;
       bulkSetPaid(false);
     });
 

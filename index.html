@@ -367,6 +367,22 @@
       text-decoration:underline;
     }
     .chipLabel{font-size:12px; color:var(--muted); font-weight:800; letter-spacing:.2px}
+    .recapToggle{
+      cursor:pointer;
+      user-select:none;
+    }
+    .recapToggle:focus-visible{
+      outline:2px solid rgba(210,43,43,.55);
+      outline-offset:3px;
+    }
+    .recapStack{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      font-size:14px;
+      font-weight:800;
+      align-items:center;
+    }
     .chipLabelRow{display:flex; align-items:center; gap:8px}
     .vehicleSelectWrap{
       margin-left:auto;
@@ -1373,16 +1389,23 @@ body{
           </div>
           <div class="chipValue" id="sumHours">0:00</div>
         </div>
-        <div class="chip">
+        <div id="sumKmToggle" class="chip recapToggle" role="button" tabindex="0" aria-label="Mostra furgone" aria-pressed="false">
           <div class="chipLabel">
-            <span class="iconLabel">
+            <span class="iconLabel recapLabel recapLabel-km">
               <svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>
               Km
             </span>
+            <span class="iconLabel recapLabel recapLabel-van hidden">
+              <svg class="icon xs" aria-hidden="true"><use href="#i-van"></use></svg>
+              Furgone
+            </span>
           </div>
-          <div class="chipValue chipStack">
-            <div>Km: <span id="sumKm">0</span></div>
-            <div>F: <span id="sumVan">0</span>  G: <span id="sumDrive">0</span></div>
+          <div class="chipValue recapView recapView-km">
+            <span id="sumKm">0</span>
+          </div>
+          <div class="chipValue recapView recapView-van recapStack hidden">
+            <div>Furgone: <span id="sumVan">0</span></div>
+            <div>Guida: <span id="sumDrive">0</span></div>
           </div>
         </div>
       </div>
@@ -2212,6 +2235,35 @@ function updateStartButtonState(){
   const blocked = !editRow && !hasDraftVehicleSelection();
   btnStart.classList.toggle("is-blocked", blocked);
   btnStart.setAttribute("aria-disabled", blocked ? "true" : "false");
+}
+
+function initRecapToggle(){
+  const toggle = $("sumKmToggle");
+  if(!toggle || toggle.dataset.bound) return;
+  toggle.dataset.bound = "true";
+  const kmLabel = toggle.querySelector(".recapLabel-km");
+  const vanLabel = toggle.querySelector(".recapLabel-van");
+  const kmView = toggle.querySelector(".recapView-km");
+  const vanView = toggle.querySelector(".recapView-van");
+  let showVan = false;
+  const setView = (nextVan)=>{
+    showVan = !!nextVan;
+    kmLabel?.classList.toggle("hidden", showVan);
+    vanLabel?.classList.toggle("hidden", !showVan);
+    kmView?.classList.toggle("hidden", showVan);
+    vanView?.classList.toggle("hidden", !showVan);
+    toggle.setAttribute("aria-label", showVan ? "Mostra km" : "Mostra furgone");
+    toggle.setAttribute("aria-pressed", showVan ? "true" : "false");
+  };
+  const toggleView = ()=> setView(!showVan);
+  setView(false);
+  toggle.addEventListener("click", toggleView);
+  toggle.addEventListener("keydown", (e)=>{
+    if(e.key === "Enter" || e.key === " "){
+      e.preventDefault();
+      toggleView();
+    }
+  });
 }
 
 function setVehicleMode(mode){
@@ -3549,6 +3601,8 @@ list.innerHTML = "";
       const data = [header];
       let sumWork = 0;
       let sumKm = 0;
+      let sumVan = 0;
+      let sumDrive = 0;
 
       for(const r of rows){
         const start = r.startISO ? new Date(r.startISO) : "";
@@ -3558,6 +3612,8 @@ list.innerHTML = "";
         const fLabel = normalizeFurgone(r.furgone);
         sumWork += workMin;
         sumKm += km;
+        if(fLabel === "furgone") sumVan += 1;
+        if(fLabel === "guida") sumDrive += 1;
         data.push([
           r.title || "",
           start instanceof Date && !isNaN(start.getTime()) ? start : "",
@@ -3568,7 +3624,13 @@ list.innerHTML = "";
         ]);
       }
 
-      data.push(["TOTALE SELEZIONE","","", sumWork / 1440, sumKm, ""]);
+      data.push([]);
+      data.push(["RIEPILOGO", ""]);
+      data.push(["Turni", String(rows.length)]);
+      data.push(["Ore totali (nette)", fmtHM(sumWork)]);
+      data.push(["Km totali", String(sumKm)]);
+      data.push(["Furgone", String(sumVan)]);
+      data.push(["Guida", String(sumDrive)]);
 
       const ws = XLSX.utils.aoa_to_sheet(data, { cellDates: true });
       ws["!cols"] = [
@@ -3627,10 +3689,15 @@ list.innerHTML = "";
       let sumWork = 0;
       let sumKm = 0;
       let sumPause = 0;
+      let sumVan = 0;
+      let sumDrive = 0;
       for(const r of rows){
         sumWork += Number(r.workMin||0);
         sumKm += Number(r.km||0);
         sumPause += Number(r.pauseMin||0);
+        const fLabel = normalizeFurgone(r.furgone);
+        if(fLabel === "furgone") sumVan += 1;
+        if(fLabel === "guida") sumDrive += 1;
       }
 
       const title = report.trim() || "Timbratrice";
@@ -3688,11 +3755,12 @@ list.innerHTML = "";
     .nowrap{ white-space:nowrap; }
     .totals{ margin-top:16px; padding:12px; border:1px solid #d9d9d9; border-radius:12px; background:#f6f6f6; break-inside:avoid; page-break-inside:avoid; }
     .totalsTitle{ font-size:14px; font-weight:800; margin-bottom:10px; text-transform:uppercase; letter-spacing:.6px; }
-    .totalsGrid{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; break-inside:avoid; page-break-inside:avoid; }
+    .totalsGrid{ display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:10px; break-inside:avoid; page-break-inside:avoid; }
     .totalsCard{ background:#fff; border:1px solid #d9d9d9; border-radius:12px; padding:10px; display:flex; gap:8px; align-items:center; break-inside:avoid; page-break-inside:avoid; }
     .totalsIcon{ width:22px; height:22px; color:#555; flex:0 0 auto; }
     .totalsLabel{ font-size:11px; color:#666; font-weight:700; letter-spacing:.4px; text-transform:uppercase; }
     .totalsValue{ font-size:22px; font-weight:900; margin-top:2px; }
+    .totalsValueStack{ font-size:16px; font-weight:900; line-height:1.25; margin-top:2px; }
   </style>
 </head>
 <body>
@@ -3760,6 +3828,18 @@ list.innerHTML = "";
         <div>
           <div class="totalsLabel">Km totali</div>
           <div class="totalsValue">${escapeHTML(String(sumKm))}</div>
+        </div>
+      </div>
+      <div class="totalsCard">
+        <svg class="totalsIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="1" y="3" width="15" height="13"></rect>
+          <path d="M16 8h4l3 3v5h-7z"></path>
+          <circle cx="5.5" cy="18.5" r="2.5"></circle>
+          <circle cx="18.5" cy="18.5" r="2.5"></circle>
+        </svg>
+        <div>
+          <div class="totalsLabel">Furgone</div>
+          <div class="totalsValueStack">Furgone: ${sumVan}<br>Guida: ${sumDrive}</div>
         </div>
       </div>
     </div>
@@ -3962,6 +4042,7 @@ $("btnSettings").addEventListener("click", ()=>{
       await doLogout();
     });
 
+    initRecapToggle();
     $("btnStart").addEventListener("click", startShift);
     $("btnBreak").addEventListener("click", toggleBreak);
 
