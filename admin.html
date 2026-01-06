@@ -332,6 +332,28 @@
       max-height:calc(100dvh - 28px);
     }
     .dlgTitle{font-weight:900; font-size:18px}
+    .promptMsg{
+      font-size:14px;
+      line-height:1.4;
+      white-space:pre-line;
+    }
+    .promptActions{
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+    }
+    .promptActions .btn{
+      flex:0 0 auto;
+      min-width:120px;
+    }
+    @media (max-width:520px){
+      .promptActions{
+        flex-direction:column-reverse;
+        align-items:stretch;
+      }
+      .promptActions .btn{width:100%}
+    }
+    body.modalOpen{overflow:hidden}
     .destGrid{
       display:grid;
       grid-template-columns: 1.2fr .6fr 1.6fr auto;
@@ -1124,6 +1146,20 @@
     </div>
   </div>
 
+  <div id="promptOverlay" class="modalOverlay hidden" role="dialog" aria-modal="true" aria-label="Conferma">
+    <div class="modalCard">
+      <div class="dlgInner">
+        <div id="promptTitle" class="dlgTitle">Conferma</div>
+        <div id="promptMsg" class="promptMsg"></div>
+        <input id="promptInput" class="hidden" type="text" />
+        <div class="promptActions">
+          <button id="promptCancel" class="btn" type="button">Annulla</button>
+          <button id="promptOk" class="btn primary" type="button">Ok</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
@@ -1417,6 +1453,155 @@ function setActionMsg(text, kind){
       el.classList.remove("ok","err");
       if(kind) el.classList.add(kind);
     }
+
+let promptActive = false;
+let promptResolve = null;
+let promptAllowCancel = true;
+let promptInputEnabled = false;
+let promptLastFocus = null;
+
+function openPrompt({
+  title = "Conferma",
+  message = "",
+  confirmText = "Ok",
+  cancelText = "Annulla",
+  showCancel = true,
+  showInput = false,
+  inputValue = "",
+  inputPlaceholder = ""
+} = {}){
+  const overlay = $("promptOverlay");
+  const titleEl = $("promptTitle");
+  const msgEl = $("promptMsg");
+  const inputEl = $("promptInput");
+  const okBtn = $("promptOk");
+  const cancelBtn = $("promptCancel");
+  if(!overlay || !titleEl || !msgEl || !inputEl || !okBtn || !cancelBtn){
+    return Promise.resolve(showInput ? null : false);
+  }
+
+  if(promptActive && promptResolve){
+    promptResolve(showInput ? null : false);
+    promptResolve = null;
+  }
+
+  promptActive = true;
+  promptAllowCancel = !!showCancel;
+  promptInputEnabled = !!showInput;
+  promptLastFocus = document.activeElement;
+
+  titleEl.textContent = title;
+  msgEl.textContent = message;
+  okBtn.textContent = confirmText;
+  cancelBtn.textContent = cancelText;
+  cancelBtn.classList.toggle("hidden", !showCancel);
+
+  if(showInput){
+    inputEl.classList.remove("hidden");
+    inputEl.value = inputValue || "";
+    inputEl.placeholder = inputPlaceholder || "";
+  }else{
+    inputEl.classList.add("hidden");
+    inputEl.value = "";
+    inputEl.placeholder = "";
+  }
+
+  overlay.classList.remove("hidden");
+  overlay.setAttribute("aria-hidden", "false");
+  document.body.classList.add("modalOpen");
+
+  return new Promise((resolve)=>{
+    promptResolve = resolve;
+    setTimeout(()=>{
+      if(showInput){
+        inputEl.focus();
+        inputEl.select();
+      }else{
+        okBtn.focus();
+      }
+    }, 0);
+  });
+}
+
+function closePrompt(result){
+  const overlay = $("promptOverlay");
+  const inputEl = $("promptInput");
+  if(!overlay) return;
+  overlay.classList.add("hidden");
+  overlay.setAttribute("aria-hidden", "true");
+  document.body.classList.remove("modalOpen");
+
+  let value = result;
+  if(promptInputEnabled){
+    value = result ? String(inputEl?.value || "") : null;
+  }
+
+  if(promptResolve){
+    promptResolve(value);
+    promptResolve = null;
+  }
+  promptActive = false;
+  promptAllowCancel = true;
+  promptInputEnabled = false;
+
+  if(promptLastFocus && typeof promptLastFocus.focus === "function"){
+    promptLastFocus.focus();
+  }
+  promptLastFocus = null;
+}
+
+function appConfirm(message, opts = {}){
+  return openPrompt({
+    title: opts.title || "Conferma",
+    message,
+    confirmText: opts.confirmText || "Ok",
+    cancelText: opts.cancelText || "Annulla",
+    showCancel: true
+  });
+}
+
+function appAlert(message, opts = {}){
+  return openPrompt({
+    title: opts.title || "Avviso",
+    message,
+    confirmText: opts.confirmText || "Ok",
+    showCancel: false
+  });
+}
+
+function appPrompt(message, opts = {}){
+  return openPrompt({
+    title: opts.title || "Inserisci",
+    message,
+    confirmText: opts.confirmText || "Ok",
+    cancelText: opts.cancelText || "Annulla",
+    showCancel: true,
+    showInput: true,
+    inputValue: opts.defaultValue || "",
+    inputPlaceholder: opts.placeholder || ""
+  });
+}
+
+const promptOverlay = $("promptOverlay");
+if(promptOverlay){
+  promptOverlay.addEventListener("click", (e)=>{
+    if(e.target === promptOverlay && promptAllowCancel){
+      closePrompt(false);
+    }
+  });
+}
+$("promptOk")?.addEventListener("click", ()=> closePrompt(true));
+$("promptCancel")?.addEventListener("click", ()=> closePrompt(false));
+document.addEventListener("keydown", (e)=>{
+  if(!promptActive) return;
+  if(e.key === "Escape"){
+    e.preventDefault();
+    closePrompt(promptAllowCancel ? false : true);
+  }else if(e.key === "Enter"){
+    e.preventDefault();
+    closePrompt(true);
+  }
+});
 
     function setSettingsMsg(text, kind){
       const el = $("settingsMsg");
@@ -1939,10 +2124,13 @@ function setActionMsg(text, kind){
       }
     }
 
-    function exportCalendarPDF(){
+    async function exportCalendarPDF(){
       if(!calendarState.rangeStart || !calendarState.rangeEnd) return;
       const promptDefault = String(calendarState.exportDaysPerRow || 2);
-      const rawDays = prompt("Quanti giorni per riga? (1-5)", promptDefault);
+      const rawDays = await appPrompt("Quanti giorni per riga? (1-5)", {
+        title: "Esporta calendario",
+        defaultValue: promptDefault
+      });
       if(rawDays === null) return;
       let daysPerRow = parseInt(rawDays, 10);
       if(!Number.isFinite(daysPerRow)) daysPerRow = 2;
@@ -2532,7 +2720,7 @@ function renderDestinationsAdmin(){
     delBtn.type = "button";
     delBtn.textContent = "Elimina";
     delBtn.addEventListener("click", async ()=>{
-      if(!confirm("Eliminare questa destinazione?")) return;
+      if(!(await appConfirm("Eliminare questa destinazione?"))) return;
       try{
         await deleteDestination(dest.id);
         await loadDestinationsAdmin();

@@ -740,6 +740,28 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       max-height:calc(100dvh - 28px);
     }
     .dlgTitle{font-weight:900; font-size:18px}
+    .promptMsg{
+      font-size:14px;
+      line-height:1.4;
+      white-space:pre-line;
+    }
+    .promptActions{
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+    }
+    .promptActions .btn{
+      flex:0 0 auto;
+      min-width:120px;
+    }
+    @media (max-width:520px){
+      .promptActions{
+        flex-direction:column-reverse;
+        align-items:stretch;
+      }
+      .promptActions .btn{width:100%}
+    }
+    body.modalOpen{overflow:hidden}
     .msg{
       font-size:13px;
       color:var(--muted);
@@ -1452,6 +1474,20 @@ body{
 
       <div id="settingsMsg" class="msg"></div>
     </form>
+  </div>
+</div>
+
+<div id="promptOverlay" class="modalOverlay hidden" role="dialog" aria-modal="true" aria-label="Conferma">
+  <div class="modalCard">
+    <div class="dlgInner">
+      <div id="promptTitle" class="dlgTitle">Conferma</div>
+      <div id="promptMsg" class="promptMsg"></div>
+      <input id="promptInput" class="hidden" type="text" />
+      <div class="promptActions">
+        <button id="promptCancel" class="btn" type="button">Annulla</button>
+        <button id="promptOk" class="btn primary" type="button">Ok</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2380,6 +2416,155 @@ function enforceAuthGate(){
       el.classList.toggle("hidden", !text);
     }
 
+    let promptActive = false;
+    let promptResolve = null;
+    let promptAllowCancel = true;
+    let promptInputEnabled = false;
+    let promptLastFocus = null;
+
+    function openPrompt({
+      title = "Conferma",
+      message = "",
+      confirmText = "Ok",
+      cancelText = "Annulla",
+      showCancel = true,
+      showInput = false,
+      inputValue = "",
+      inputPlaceholder = ""
+    } = {}){
+      const overlay = $("promptOverlay");
+      const titleEl = $("promptTitle");
+      const msgEl = $("promptMsg");
+      const inputEl = $("promptInput");
+      const okBtn = $("promptOk");
+      const cancelBtn = $("promptCancel");
+      if(!overlay || !titleEl || !msgEl || !inputEl || !okBtn || !cancelBtn){
+        return Promise.resolve(showInput ? null : false);
+      }
+
+      if(promptActive && promptResolve){
+        promptResolve(showInput ? null : false);
+        promptResolve = null;
+      }
+
+      promptActive = true;
+      promptAllowCancel = !!showCancel;
+      promptInputEnabled = !!showInput;
+      promptLastFocus = document.activeElement;
+
+      titleEl.textContent = title;
+      msgEl.textContent = message;
+      okBtn.textContent = confirmText;
+      cancelBtn.textContent = cancelText;
+      cancelBtn.classList.toggle("hidden", !showCancel);
+
+      if(showInput){
+        inputEl.classList.remove("hidden");
+        inputEl.value = inputValue || "";
+        inputEl.placeholder = inputPlaceholder || "";
+      }else{
+        inputEl.classList.add("hidden");
+        inputEl.value = "";
+        inputEl.placeholder = "";
+      }
+
+      overlay.classList.remove("hidden");
+      overlay.setAttribute("aria-hidden", "false");
+      document.body.classList.add("modalOpen");
+
+      return new Promise((resolve)=>{
+        promptResolve = resolve;
+        setTimeout(()=>{
+          if(showInput){
+            inputEl.focus();
+            inputEl.select();
+          }else{
+            okBtn.focus();
+          }
+        }, 0);
+      });
+    }
+
+    function closePrompt(result){
+      const overlay = $("promptOverlay");
+      const inputEl = $("promptInput");
+      if(!overlay) return;
+      overlay.classList.add("hidden");
+      overlay.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("modalOpen");
+
+      let value = result;
+      if(promptInputEnabled){
+        value = result ? String(inputEl?.value || "") : null;
+      }
+
+      if(promptResolve){
+        promptResolve(value);
+        promptResolve = null;
+      }
+      promptActive = false;
+      promptAllowCancel = true;
+      promptInputEnabled = false;
+
+      if(promptLastFocus && typeof promptLastFocus.focus === "function"){
+        promptLastFocus.focus();
+      }
+      promptLastFocus = null;
+    }
+
+    function appConfirm(message, opts = {}){
+      return openPrompt({
+        title: opts.title || "Conferma",
+        message,
+        confirmText: opts.confirmText || "Ok",
+        cancelText: opts.cancelText || "Annulla",
+        showCancel: true
+      });
+    }
+
+    function appAlert(message, opts = {}){
+      return openPrompt({
+        title: opts.title || "Avviso",
+        message,
+        confirmText: opts.confirmText || "Ok",
+        showCancel: false
+      });
+    }
+
+    function appPrompt(message, opts = {}){
+      return openPrompt({
+        title: opts.title || "Inserisci",
+        message,
+        confirmText: opts.confirmText || "Ok",
+        cancelText: opts.cancelText || "Annulla",
+        showCancel: true,
+        showInput: true,
+        inputValue: opts.defaultValue || "",
+        inputPlaceholder: opts.placeholder || ""
+      });
+    }
+
+    const promptOverlay = $("promptOverlay");
+    if(promptOverlay){
+      promptOverlay.addEventListener("click", (e)=>{
+        if(e.target === promptOverlay && promptAllowCancel){
+          closePrompt(false);
+        }
+      });
+    }
+    $("promptOk")?.addEventListener("click", ()=> closePrompt(true));
+    $("promptCancel")?.addEventListener("click", ()=> closePrompt(false));
+    document.addEventListener("keydown", (e)=>{
+      if(!promptActive) return;
+      if(e.key === "Escape"){
+        e.preventDefault();
+        closePrompt(promptAllowCancel ? false : true);
+      }else if(e.key === "Enter"){
+        e.preventDefault();
+        closePrompt(true);
+      }
+    });
+
     async function signUp(email, password){
       if(!sb) throw new Error("Supabase non inizializzato.");
 
@@ -2936,7 +3121,7 @@ startISO: localInputToISO($("startInput").value) || toISO(now),
           await upsertRow(active);
           await refresh();
           setActionMsg("✅ Pausa avviata", "ok");
-        }catch(e){ alert(e.message || String(e)); }
+        }catch(e){ await appAlert(e.message || String(e), { title: "Errore" }); }
         return;
       }
 
@@ -2953,7 +3138,7 @@ startISO: localInputToISO($("startInput").value) || toISO(now),
         await upsertRow(active);
         await refresh();
         setActionMsg("✅ Pausa chiusa", "ok");
-      }catch(e){ alert(e.message || String(e)); }
+      }catch(e){ await appAlert(e.message || String(e), { title: "Errore" }); }
     }
 
     async function stopShift(){
@@ -3245,12 +3430,12 @@ list.innerHTML = "";
         list.querySelectorAll("[data-del]").forEach(btn=>{
           btn.addEventListener("click", async (e)=>{
             const id = e.currentTarget.getAttribute("data-del");
-            if(!confirm("Eliminare questo record?")) return;
+            if(!(await appConfirm("Eliminare questo record?"))) return;
             try{
               await deleteRow(id);
               await refresh();
             }catch(err){
-              alert(err.message || String(err));
+              await appAlert(err.message || String(err), { title: "Errore" });
             }
           });
         });
@@ -3268,12 +3453,15 @@ list.innerHTML = "";
       return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     }
 
-    function getExportName(){
+    async function getExportName(){
       const email = (currentUser?.email || "").trim();
       const fallback = email || "timbratrice";
-      const raw = prompt("Nome export (opzionale). Lascia vuoto per usare email.", "");
+      const raw = await appPrompt("Nome export (opzionale). Lascia vuoto per usare email.", {
+        title: "Esporta",
+        defaultValue: ""
+      });
       if(raw === null) return null;
-      return raw.trim() || fallback;
+      return String(raw).trim() || fallback;
     }
 
     function getVisibleHistory(){
@@ -3289,8 +3477,8 @@ list.innerHTML = "";
     }
 
     // --------- CSV export (turni + ore nette + km) ---------
-    function exportCSV(){
-      const report = getExportName();
+    async function exportCSV(){
+      const report = await getExportName();
       if(report === null) return;
       const sep = ";";
       const rows = getVisibleHistory();
@@ -3343,8 +3531,8 @@ list.innerHTML = "";
     }
 
     // --------- XLSX export (durate numeriche per Excel) ---------
-    function exportXLSX(){
-      const report = getExportName();
+    async function exportXLSX(){
+      const report = await getExportName();
       if(report === null) return;
       if(!window.XLSX){
         setActionMsg("❌ XLSX non disponibile (libreria non caricata).", "err");
@@ -3416,8 +3604,8 @@ list.innerHTML = "";
     }
 
     // --------- PDF export (stampa -> salva PDF) ---------
-    function exportPDF(){
-      const report = getExportName();
+    async function exportPDF(){
+      const report = await getExportName();
       if(report === null) return;
       const rows = getVisibleHistory();
       if(rows.length === 0){
@@ -4027,8 +4215,10 @@ $("endInput").addEventListener("change", async ()=>{
     }
   }
 });
-    $("btnStop").addEventListener("click", ()=>{
-      if(confirm("Finire il turno?")) stopShift();
+    $("btnStop").addEventListener("click", async ()=>{
+      if(await appConfirm("Finire il turno?")){
+        await stopShift();
+      }
     });
 
     function closeExportMenu(){
@@ -4091,14 +4281,14 @@ $("endInput").addEventListener("change", async ()=>{
       e.preventDefault();
       if(selectedIds.size === 0) return;
       const ids = Array.from(selectedIds);
-      if(!confirm(`Eliminare ${ids.length} record selezionati?`)) return;
+      if(!(await appConfirm(`Eliminare ${ids.length} record selezionati?`))) return;
       try{
         await deleteRows(ids);
         selectedIds.clear();
         setSelectionMode(false);
         await refresh();
       }catch(err){
-        alert(err.message || String(err));
+        await appAlert(err.message || String(err), { title: "Errore" });
       }
     });
     $("searchInput").addEventListener("input", ()=> renderAll());
