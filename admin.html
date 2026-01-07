@@ -423,18 +423,17 @@
       cursor:pointer;
       user-select:none;
     }
-    .recapToggle.is-van .chipLabel{display:none}
     .recapToggle:focus-visible{
       outline:2px solid rgba(210,43,43,.55);
       outline-offset:3px;
     }
-    .recapStack{
-      display:flex;
-      flex-direction:column;
-      gap:2px;
-      font-size:12px;
-      font-weight:800;
-      align-items:center;
+    .chips3 .chipLabel,
+    .chips3 .chipValue{
+      text-align:center;
+    }
+    .chips3 .chipLabel .iconLabel{
+      justify-content:center;
+      width:100%;
     }
     .chipValue{
       margin-top:4px;
@@ -919,6 +918,13 @@
       <circle cx="5.5" cy="18.5" r="2.5"></circle>
       <circle cx="18.5" cy="18.5" r="2.5"></circle>
     </symbol>
+    <symbol id="i-wheel" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="7"></circle>
+      <circle cx="12" cy="12" r="2"></circle>
+      <path d="M12 5v5"></path>
+      <path d="M12 12l4.5 3"></path>
+      <path d="M12 12l-4.5 3"></path>
+    </symbol>
   </svg>
   <header class="topbar">
     <div class="brand">Timbratrice Admin</div>
@@ -1043,23 +1049,39 @@
             </div>
             <div class="chipValue" id="sumHours">0:00</div>
           </div>
-          <div id="sumKmToggle" class="chip recapToggle" role="button" tabindex="0" aria-label="Mostra furgone" aria-pressed="false">
-            <div class="chipLabel">
-              <span class="iconLabel recapLabel recapLabel-km">
-                <svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>
-                Km
-              </span>
-              <span class="iconLabel recapLabel recapLabel-van hidden">
-                <svg class="icon xs" aria-hidden="true"><use href="#i-van"></use></svg>
-                Furgone
-              </span>
+          <div id="sumKmToggle" class="chip recapToggle" role="button" tabindex="0" aria-label="Mostra furgone">
+            <div class="recapView recapView-km">
+              <div class="chipLabel">
+                <span class="iconLabel">
+                  <svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>
+                  Km
+                </span>
+              </div>
+              <div class="chipValue">
+                <span id="sumKm">0</span>
+              </div>
             </div>
-            <div class="chipValue recapView recapView-km">
-              <span id="sumKm">0</span>
+            <div class="recapView recapView-van hidden">
+              <div class="chipLabel">
+                <span class="iconLabel">
+                  <svg class="icon xs" aria-hidden="true"><use href="#i-van"></use></svg>
+                  Furgone
+                </span>
+              </div>
+              <div class="chipValue">
+                <span id="sumVan">0</span>
+              </div>
             </div>
-            <div class="chipValue recapView recapView-van recapStack hidden">
-              <div>Furgone: <span id="sumVan">0</span></div>
-              <div>Guida: <span id="sumDrive">0</span></div>
+            <div class="recapView recapView-drive hidden">
+              <div class="chipLabel">
+                <span class="iconLabel">
+                  <svg class="icon xs" aria-hidden="true"><use href="#i-wheel"></use></svg>
+                  Guida
+                </span>
+              </div>
+              <div class="chipValue">
+                <span id="sumDrive">0</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1637,28 +1659,36 @@ function initRecapToggle(){
   const toggle = $("sumKmToggle");
   if(!toggle || toggle.dataset.bound) return;
   toggle.dataset.bound = "true";
-  const kmLabel = toggle.querySelector(".recapLabel-km");
-  const vanLabel = toggle.querySelector(".recapLabel-van");
-  const kmView = toggle.querySelector(".recapView-km");
-  const vanView = toggle.querySelector(".recapView-van");
-  let showVan = false;
-  const setView = (nextVan)=>{
-    showVan = !!nextVan;
-    toggle.classList.toggle("is-van", showVan);
-    kmLabel?.classList.toggle("hidden", showVan);
-    vanLabel?.classList.toggle("hidden", !showVan);
-    kmView?.classList.toggle("hidden", showVan);
-    vanView?.classList.toggle("hidden", !showVan);
-    toggle.setAttribute("aria-label", showVan ? "Mostra km" : "Mostra furgone");
-    toggle.setAttribute("aria-pressed", showVan ? "true" : "false");
+  const views = {
+    km: toggle.querySelector(".recapView-km"),
+    van: toggle.querySelector(".recapView-van"),
+    drive: toggle.querySelector(".recapView-drive")
   };
-  const toggleView = ()=> setView(!showVan);
-  setView(false);
-  toggle.addEventListener("click", toggleView);
+  const order = ["km", "van", "drive"];
+  let state = "km";
+  const setState = (next)=>{
+    state = order.includes(next) ? next : "km";
+    order.forEach((key)=>{
+      views[key]?.classList.toggle("hidden", key !== state);
+    });
+    const labels = {
+      km: "Mostra furgone",
+      van: "Mostra guida",
+      drive: "Mostra km"
+    };
+    toggle.setAttribute("aria-label", labels[state]);
+    toggle.dataset.state = state;
+  };
+  const nextState = ()=>{
+    const idx = order.indexOf(state);
+    setState(order[(idx + 1) % order.length]);
+  };
+  setState("km");
+  toggle.addEventListener("click", nextState);
   toggle.addEventListener("keydown", (e)=>{
     if(e.key === "Enter" || e.key === " "){
       e.preventDefault();
-      toggleView();
+      nextState();
     }
   });
 }
@@ -3231,7 +3261,6 @@ async function doLogout(){
   setSettingsMsg("✅ Logout", "ok");
 }
 
-initRecapToggle();
 $("btnLogin").addEventListener("click", async ()=>{
   try{
     setAuthMsg("⏳ Login...", null);
@@ -3505,6 +3534,8 @@ if(btnLogout){
     $("toDate").addEventListener("change", ()=> refresh());
     $("sortField").addEventListener("change", ()=> refresh());
     $("sortDir").addEventListener("change", ()=> refresh());
+
+    initRecapToggle();
 
 sb?.auth.onAuthStateChange(async (_event, session)=>{
   currentSession = session || null;
