@@ -154,97 +154,6 @@
       background:var(--card);
       border-color:var(--summaryLine);
     }
-    .activeWidgetWrap{
-      position:fixed;
-      left:0;
-      right:0;
-      bottom:0;
-      padding:10px 12px calc(10px + env(safe-area-inset-bottom));
-      z-index:30;
-      pointer-events:none;
-    }
-    .activeWidget{
-      pointer-events:auto;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      padding:10px 12px;
-      border-radius:16px;
-      border:1px solid var(--line);
-      background:rgba(0,0,0,.25);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      box-shadow:var(--shadow);
-    }
-    @media (prefers-color-scheme: light){
-      .activeWidget{
-        background:rgba(255,255,255,.9);
-      }
-    }
-    .activeWidgetInfo{
-      min-width:0;
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-    }
-    .activeWidgetTop{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      min-width:0;
-    }
-    .activeWidgetTitle{
-      font-weight:900;
-      font-size:13px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .activeWidgetPill{
-      padding:4px 8px;
-      border-radius:999px;
-      border:1px solid var(--line);
-      font-size:10px;
-      font-weight:900;
-      letter-spacing:.2px;
-      color:var(--good);
-      background:rgba(61,220,132,.12);
-      white-space:nowrap;
-      flex:0 0 auto;
-    }
-    .activeWidgetPill.pause{
-      color:var(--warn);
-      background:rgba(255,176,32,.15);
-      border-color:rgba(255,176,32,.5);
-    }
-    .activeWidgetMeta{
-      display:flex;
-      align-items:center;
-      gap:6px;
-      color:var(--muted);
-      font-size:12px;
-      font-weight:800;
-    }
-    .activeWidgetMeta .dot{opacity:.4}
-    .activeWidgetTime{
-      font-family:var(--time);
-      font-variant-numeric: tabular-nums;
-    }
-    .activeWidgetActions{
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .activeWidgetActions .miniBtn{
-      padding:8px 10px;
-      border-radius:12px;
-      font-size:12px;
-    }
-    .activeWidgetActions .miniBtn.d{color:#ff6b6b}
-    body.hasActiveWidget #appMain{
-      padding-bottom:calc(110px + env(safe-area-inset-bottom));
-    }
     #pullRefresh{
       position:fixed;
       top:0;
@@ -1662,26 +1571,6 @@ body{
     </section>
   </main>
 
-  <div id="activeWidgetWrap" class="activeWidgetWrap hidden" aria-live="polite" aria-hidden="true">
-    <div class="activeWidget">
-      <div class="activeWidgetInfo">
-        <div class="activeWidgetTop">
-          <div id="activeWidgetTitle" class="activeWidgetTitle">Turno in corso</div>
-          <div id="activeWidgetPill" class="activeWidgetPill">In corso</div>
-        </div>
-        <div class="activeWidgetMeta">
-          <span id="activeWidgetStart">Inizio --:--</span>
-          <span class="dot">•</span>
-          <span id="activeWidgetTime" class="activeWidgetTime">0:00</span>
-        </div>
-      </div>
-      <div class="activeWidgetActions">
-        <button id="activeWidgetPause" class="miniBtn" type="button">Pausa</button>
-        <button id="activeWidgetStop" class="miniBtn d" type="button">Fine turno</button>
-      </div>
-    </div>
-  </div>
-
 <div id="settingsDlg" class="modalOverlay hidden" role="dialog" aria-modal="true" aria-label="Account e impostazioni">
   <div class="modalCard">
     <form class="dlgInner" onsubmit="return false;">
@@ -1726,13 +1615,6 @@ body{
       <div id="logoutRow" class="row hidden">
         <button id="btnLogout" type="button" class="btn danger">Logout</button>
       </div>
-
-      <div class="h2">Preferenze</div>
-      <label class="toggle">
-        <input id="activeWidgetToggle" type="checkbox" />
-        <span>Widget turno attivo</span>
-      </label>
-      <div class="hint">Mostra un mini widget con pausa e fine turno.</div>
 
       <div id="settingsMsg" class="msg"></div>
     </form>
@@ -1896,12 +1778,6 @@ try{
       const mm = m % 60;
       return `${pad2(h)}:${pad2(mm)}`;
     };
-    const fmtShortTime = (iso) => {
-      if(!iso) return "";
-      const d = new Date(iso);
-      if(isNaN(d.getTime())) return "";
-      return d.toLocaleTimeString("it-IT", { hour:"2-digit", minute:"2-digit" });
-    };
     const hhmmToMin = (hhmm) => {
       const s = (hhmm || "").trim();
       if(!s || !s.includes(":")) return 0;
@@ -1948,21 +1824,6 @@ try{
     };
     const isVanMode = (mode) => mode === "furgone" || mode === "guida";
     const toISO = (d) => new Date(d).toISOString();
-    const PREF_ACTIVE_WIDGET = "pref_active_widget";
-    const loadActiveWidgetPref = () => {
-      try{
-        const raw = localStorage.getItem(PREF_ACTIVE_WIDGET);
-        if(raw === null) return true;
-        return raw === "1" || raw === "true";
-      }catch{
-        return true;
-      }
-    };
-    const saveActiveWidgetPref = (on) => {
-      try{
-        localStorage.setItem(PREF_ACTIVE_WIDGET, on ? "1" : "0");
-      }catch{}
-    };
 
     // --------- offline cache + queue (IndexedDB) ---------
     const DB_NAME = "timbratrice-db";
@@ -2341,7 +2202,6 @@ let editRow = null; // record finito che sto modificando (titolo/km/furgone)
 let selectedIds = new Set();
 let visibleIds = [];
 let selectionMode = false;
-let activeWidgetEnabled = true;
 
     // Prevent concurrent network actions (can cause hangs / UI confusion)
     let refreshBusy = false;
@@ -2676,7 +2536,6 @@ function flashVehiclePick(){
       // Always enforce gate after updating currentUser
       if(typeof enforceAuthGate === "function") enforceAuthGate();
       refreshNetStatus();
-      updateActiveWidgetUI();
     }
   function updateSettingsUI(){
     const logged = !!currentUser;
@@ -2766,55 +2625,6 @@ function enforceAuthGate(){
       }
       overlay.classList.add("hidden");
       overlay.setAttribute("aria-hidden", "true");
-    }
-
-    function updateActiveWidgetUI(opts = {}){
-      const wrap = $("activeWidgetWrap");
-      if(!wrap) return;
-      const logged = !!currentUser;
-      const shouldShow = activeWidgetEnabled && logged && !!active;
-      wrap.classList.toggle("hidden", !shouldShow);
-      wrap.setAttribute("aria-hidden", shouldShow ? "false" : "true");
-      document.body.classList.toggle("hasActiveWidget", shouldShow);
-      if(!shouldShow) return;
-
-      const titleEl = $("activeWidgetTitle");
-      const startEl = $("activeWidgetStart");
-      const timeEl = $("activeWidgetTime");
-      const pillEl = $("activeWidgetPill");
-      const pauseBtn = $("activeWidgetPause");
-
-      const isPause = typeof opts.isPause === "boolean" ? opts.isPause : !!active.breakStartISO;
-      let netMin = typeof opts.netMin === "number" ? opts.netMin : null;
-      if(netMin === null){
-        const nowISO = toISO(new Date());
-        let pauseMin = Number(active.pauseMin || 0);
-        if(active.breakStartISO){
-          const bs = new Date(active.breakStartISO);
-          const now = new Date();
-          pauseMin += Math.max(0, Math.floor((now - bs)/60000));
-        }
-        const temp = { ...active, pauseMin };
-        netMin = computeWorkMin(temp, nowISO);
-      }
-
-      if(titleEl) titleEl.textContent = active.title || "Turno in corso";
-      if(startEl){
-        const startLabel = fmtShortTime(active.startISO);
-        startEl.textContent = startLabel ? `Inizio ${startLabel}` : "Inizio --:--";
-      }
-      if(timeEl) timeEl.textContent = fmtHM(netMin || 0);
-      if(pillEl){
-        pillEl.textContent = isPause ? "Pausa" : "In corso";
-        pillEl.classList.toggle("pause", isPause);
-      }
-      if(pauseBtn) pauseBtn.textContent = isPause ? "Fine pausa" : "Pausa";
-    }
-
-    function setActiveWidgetEnabled(on){
-      activeWidgetEnabled = !!on;
-      saveActiveWidgetPref(activeWidgetEnabled);
-      updateActiveWidgetUI();
     }
 
     function initPullToRefresh(){
@@ -3788,7 +3598,6 @@ function updateSelectionUI(){
       updateVehicleUI();
 
       setNetTimeDisplay(netMin);
-      updateActiveWidgetUI({ isPause, netMin });
       const ph = $("pauseHHMMUI");
       if(ph && document.activeElement !== ph){
         ph.value = fmtHHMM(pauseMin);
@@ -4343,8 +4152,6 @@ list.innerHTML = "";
       settingsJustOpenedAt = Date.now();
       updateAuthButtons();
       updateAdminOnlyUI();
-      const widgetToggle = $("activeWidgetToggle");
-      if(widgetToggle) widgetToggle.checked = activeWidgetEnabled;
       settingsDlg.classList.remove("hidden");
     }
 function closeSettings(){
@@ -4472,25 +4279,10 @@ $("btnSettings").addEventListener("click", ()=>{
       await doLogout();
     });
 
-    const activeWidgetToggle = $("activeWidgetToggle");
-    if(activeWidgetToggle){
-      activeWidgetToggle.addEventListener("change", (e)=>{
-        setActiveWidgetEnabled(e.currentTarget.checked);
-      });
-    }
-
     initRecapToggle();
     initPullToRefresh();
     $("btnStart").addEventListener("click", startShift);
     $("btnBreak").addEventListener("click", toggleBreak);
-    $("activeWidgetPause")?.addEventListener("click", (e)=>{
-      e.preventDefault();
-      toggleBreak();
-    });
-    $("activeWidgetStop")?.addEventListener("click", (e)=>{
-      e.preventDefault();
-      stopShift();
-    });
 
     const vehicleCarBtn = $("vehicleCarBtn");
     const vehicleVanBtn = $("vehicleVanBtn");
@@ -4876,9 +4668,6 @@ $("btnSaveEdit").addEventListener("click", async (e)=>{
         if(!draftTitle){
           draftTitle = `Turno ${new Date().toLocaleDateString("it-IT")}`;
         }
-        activeWidgetEnabled = loadActiveWidgetPref();
-        const widgetToggle = $("activeWidgetToggle");
-        if(widgetToggle) widgetToggle.checked = activeWidgetEnabled;
         $("fromDate").value = todayISODate(new Date(new Date().setDate(new Date().getDate()-7)));
         $("toDate").value = todayISODate();
         $("filterBox").classList.add("hidden");
