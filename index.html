@@ -154,6 +154,42 @@
       background:var(--card);
       border-color:var(--summaryLine);
     }
+    #pullRefresh{
+      position:fixed;
+      top:0;
+      left:0;
+      right:0;
+      height:0;
+      overflow:hidden;
+      z-index:25;
+      display:flex;
+      align-items:flex-end;
+      justify-content:center;
+      pointer-events:none;
+    }
+    .pullRefreshInner{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:8px 12px;
+      margin:10px 0;
+      border-radius:999px;
+      border:1px solid rgba(210,43,43,.45);
+      background:rgba(20,20,23,.88);
+      color:var(--text);
+      font-weight:800;
+      font-size:12px;
+      letter-spacing:.2px;
+      box-shadow:var(--shadow);
+      transform: translateY(-6px);
+    }
+    @media (prefers-color-scheme: light){
+      .pullRefreshInner{
+        background:rgba(255,255,255,.92);
+      }
+    }
+    #pullRefresh.active{pointer-events:none}
+    #pullRefresh.ready .pullRefreshInner{border-color:rgba(61,220,132,.55)}
     .listCard{
       position:relative;
       overflow:hidden;
@@ -1257,6 +1293,12 @@ body{
       </button>
     </div>
   </header>
+  <div id="pullRefresh" aria-hidden="true">
+    <div class="pullRefreshInner">
+      <svg id="pullRefreshIcon" class="icon xs" aria-hidden="true"><use href="#i-gear"></use></svg>
+      <span id="pullRefreshText">Trascina per ricaricare</span>
+    </div>
+  </div>
 
 <main id="appMain" class="wrap">
 
@@ -2583,6 +2625,91 @@ function enforceAuthGate(){
       }
       overlay.classList.add("hidden");
       overlay.setAttribute("aria-hidden", "true");
+    }
+
+    function initPullToRefresh(){
+      const wrap = $("pullRefresh");
+      const textEl = $("pullRefreshText");
+      const iconEl = $("pullRefreshIcon");
+      if(!wrap || !textEl || !iconEl) return;
+      const supportsTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+      if(!supportsTouch) return;
+
+      const getScrollTop = () => {
+        const scroller = document.scrollingElement || document.documentElement;
+        return scroller ? scroller.scrollTop : 0;
+      };
+      const isInteractiveTarget = (target) => {
+        if(!target || typeof target.closest !== "function") return false;
+        return !!target.closest("input, textarea, select, button, [contenteditable='true']");
+      };
+
+      const threshold = 70;
+      const maxPull = 120;
+      let startY = 0;
+      let pulling = false;
+      let ready = false;
+
+      const reset = () => {
+        pulling = false;
+        ready = false;
+        wrap.style.height = "0px";
+        wrap.classList.remove("active", "ready");
+        wrap.setAttribute("aria-hidden", "true");
+        textEl.textContent = "Trascina per ricaricare";
+        iconEl.classList.remove("spin");
+      };
+
+      document.addEventListener("touchstart", (e)=>{
+        if(getScrollTop() > 0) return;
+        if(isInteractiveTarget(e.target)) return;
+        startY = e.touches[0].clientY;
+        pulling = true;
+        wrap.classList.add("active");
+        wrap.setAttribute("aria-hidden", "false");
+      }, { passive: true });
+
+      document.addEventListener("touchmove", (e)=>{
+        if(!pulling) return;
+        if(getScrollTop() > 0){
+          reset();
+          return;
+        }
+        const y = e.touches[0].clientY;
+        const dy = y - startY;
+        if(dy <= 0) return;
+        const pull = Math.min(maxPull, dy);
+        wrap.style.height = `${pull}px`;
+        if(pull > 6) e.preventDefault();
+        if(pull >= threshold && !ready){
+          ready = true;
+          wrap.classList.add("ready");
+          textEl.textContent = "Rilascia per ricaricare";
+        }else if(pull < threshold && ready){
+          ready = false;
+          wrap.classList.remove("ready");
+          textEl.textContent = "Trascina per ricaricare";
+        }
+      }, { passive: false });
+
+      const onEnd = () => {
+        if(!pulling) return;
+        if(ready){
+          textEl.textContent = "Ricarico...";
+          iconEl.classList.add("spin");
+          wrap.style.height = "60px";
+          setTimeout(()=> location.reload(), 150);
+          return;
+        }
+        reset();
+      };
+      document.addEventListener("touchend", onEnd);
+      document.addEventListener("touchcancel", onEnd);
+      window.addEventListener("scroll", ()=>{
+        if(pulling && getScrollTop() > 0){
+          reset();
+        }
+      }, { passive: true });
     }
 
     let promptActive = false;
@@ -4153,6 +4280,7 @@ $("btnSettings").addEventListener("click", ()=>{
     });
 
     initRecapToggle();
+    initPullToRefresh();
     $("btnStart").addEventListener("click", startShift);
     $("btnBreak").addEventListener("click", toggleBreak);
 
