@@ -154,6 +154,54 @@
       background:var(--card);
       border-color:var(--summaryLine);
     }
+    .listCard{
+      position:relative;
+      overflow:hidden;
+    }
+    .listLoading{
+      position:absolute;
+      inset:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:16px;
+      background:rgba(0,0,0,.35);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index:10;
+    }
+    @media (prefers-color-scheme: light){
+      .listLoading{
+        background:rgba(255,255,255,.70);
+      }
+    }
+    .listLoadingInner{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 14px;
+      border-radius:999px;
+      border:1px solid rgba(210,43,43,.5);
+      background:rgba(20,20,23,.85);
+      color:var(--text);
+      box-shadow:var(--shadow);
+      font-weight:900;
+      letter-spacing:.2px;
+    }
+    @media (prefers-color-scheme: light){
+      .listLoadingInner{
+        background:rgba(255,255,255,.92);
+      }
+    }
+    .listLoadingIcon{
+      color:var(--red);
+    }
+    .spin{
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin{
+      to{transform: rotate(360deg)}
+    }
     .punch{
       padding:16px;
       border:2px solid rgba(210,43,43,.60);
@@ -1454,7 +1502,7 @@ body{
 
     </section>
 
-    <section class="card">
+    <section class="card listCard">
       <div class="summaryHead">
         <div class="h2">Storico</div>
         <div class="summaryActions listActions">
@@ -1472,6 +1520,12 @@ body{
       </div>
       <div id="list" class="list"></div>
       <div id="empty" class="empty hidden">Nessun record</div>
+      <div id="listLoading" class="listLoading hidden" role="status" aria-live="polite" aria-hidden="true">
+        <div class="listLoadingInner">
+          <svg class="icon sm spin listLoadingIcon" aria-hidden="true"><use href="#i-gear"></use></svg>
+          <span id="listLoadingText">Caricamento storico...</span>
+        </div>
+      </div>
     </section>
   </main>
 
@@ -2110,6 +2164,8 @@ let selectionMode = false;
     // Prevent concurrent network actions (can cause hangs / UI confusion)
     let refreshBusy = false;
     let diagBusy = false;
+    let listLoadingTimer = null;
+    let listLoadingCount = 0;
 
     // Draft values for the NEXT shift (used only when no active shift)
     let draftTitle = "";
@@ -2502,6 +2558,33 @@ function enforceAuthGate(){
       el.classList.toggle("hidden", !text);
     }
 
+    function showListLoading(text){
+      const overlay = $("listLoading");
+      if(!overlay) return;
+      const label = $("listLoadingText");
+      if(label && text) label.textContent = text;
+      listLoadingCount += 1;
+      if(listLoadingCount > 1) return;
+      if(listLoadingTimer) clearTimeout(listLoadingTimer);
+      listLoadingTimer = setTimeout(()=>{
+        overlay.classList.remove("hidden");
+        overlay.setAttribute("aria-hidden", "false");
+      }, 250);
+    }
+
+    function hideListLoading(){
+      const overlay = $("listLoading");
+      if(!overlay) return;
+      listLoadingCount = Math.max(0, listLoadingCount - 1);
+      if(listLoadingCount > 0) return;
+      if(listLoadingTimer){
+        clearTimeout(listLoadingTimer);
+        listLoadingTimer = null;
+      }
+      overlay.classList.add("hidden");
+      overlay.setAttribute("aria-hidden", "true");
+    }
+
     let promptActive = false;
     let promptResolve = null;
     let promptAllowCancel = true;
@@ -2831,88 +2914,86 @@ sb.auth.onAuthStateChange(async (_event, session) => {
         return;
       }
       refreshBusy = true;
-      const user = await requireUser();
-      console.log("[refresh] start", { hasSb: !!sb, userId: user?.id || null });
-
-      if(!sb){
-        console.warn("Supabase non inizializzato: controlla connessione/CDN/config");
-        await loadFromCache(user);
-        refreshBusy = false;
-        return;
-      }
-      if(!user){
-        active = null;
-        history = [];
-        renderAll();
-        // always release lock
-        refreshBusy = false;
-        return;
-      }
-
-      const token = await getAccessToken();
-      if(!token || !navigator.onLine){
-        console.warn("[refresh] offline or missing token");
-        await loadFromCache(user);
-        refreshBusy = false;
-        return;
-      }
-
-      // Build query (RLS already restricts by auth.uid(), but we also filter by user_id)
-      const fromISO = getFilterFromISO();
-      const toISO = getFilterToISO();
-
-      let qs = `select=*&user_id=eq.${encodeURIComponent(user.id)}&order=start_ts.desc`;
-      if(fromISO && toISO){
-        qs += `&start_ts=gte.${encodeURIComponent(fromISO)}&start_ts=lte.${encodeURIComponent(toISO)}`;
-      }
-
-      console.log("[refresh] executing REST", { fromISO, toISO });
-
-      let data;
+      showListLoading("Caricamento storico...");
       try{
-        data = await withTimeout(
-          restJSON("GET", `/rest/v1/work_records?${qs}`, token),
-          17000,
-          "Caricamento"
-        );
-      }catch(e){
-        console.error(e);
-        if(isNetworkError(e)){
+        const user = await requireUser();
+        console.log("[refresh] start", { hasSb: !!sb, userId: user?.id || null });
+
+        if(!sb){
+          console.warn("Supabase non inizializzato: controlla connessione/CDN/config");
           await loadFromCache(user);
-        }else{
-          setActionMsg("❌ " + (e.message || String(e)), "err");
+          return;
         }
+        if(!user){
+          active = null;
+          history = [];
+          renderAll();
+          return;
+        }
+
+        const token = await getAccessToken();
+        if(!token || !navigator.onLine){
+          console.warn("[refresh] offline or missing token");
+          await loadFromCache(user);
+          return;
+        }
+
+        // Build query (RLS already restricts by auth.uid(), but we also filter by user_id)
+        const fromISO = getFilterFromISO();
+        const toISO = getFilterToISO();
+
+        let qs = `select=*&user_id=eq.${encodeURIComponent(user.id)}&order=start_ts.desc`;
+        if(fromISO && toISO){
+          qs += `&start_ts=gte.${encodeURIComponent(fromISO)}&start_ts=lte.${encodeURIComponent(toISO)}`;
+        }
+
+        console.log("[refresh] executing REST", { fromISO, toISO });
+
+        let data;
+        try{
+          data = await withTimeout(
+            restJSON("GET", `/rest/v1/work_records?${qs}`, token),
+            17000,
+            "Caricamento"
+          );
+        }catch(e){
+          console.error(e);
+          if(isNetworkError(e)){
+            await loadFromCache(user);
+          }else{
+            setActionMsg("❌ " + (e.message || String(e)), "err");
+          }
+          return;
+        }
+
+        console.log("[refresh] REST returned", { rows: (data||[]).length });
+
+        const rows = (data || []).map(r => ({
+          id: r.id,
+          title: r.title || "",
+          startISO: r.start_ts ? new Date(r.start_ts).toISOString() : "",
+          endISO: r.end_ts ? new Date(r.end_ts).toISOString() : "",
+          pauseMin: Number(r.pause_min || 0),
+          workMin: Number(r.work_min || 0),
+          km: Number(r.km || 0),
+          furgone: normalizeFurgone(r.furgone || ""),
+          notes: r.notes || "",
+          breakStartISO: r.break_start_ts ? new Date(r.break_start_ts).toISOString() : "",
+          updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : "",
+          userId: user.id
+        }));
+
+        active = rows.find(r => !r.endISO) || null;
+        history = rows.filter(r => !!r.endISO);
+
+        await cacheRecordsForUser(user.id, rows);
+        await refreshNetStatus();
+        syncInputsWithState();
+        renderAll();
+      }finally{
         refreshBusy = false;
-        return;
+        hideListLoading();
       }
-
-      console.log("[refresh] REST returned", { rows: (data||[]).length });
-
-      const rows = (data || []).map(r => ({
-        id: r.id,
-        title: r.title || "",
-        startISO: r.start_ts ? new Date(r.start_ts).toISOString() : "",
-        endISO: r.end_ts ? new Date(r.end_ts).toISOString() : "",
-        pauseMin: Number(r.pause_min || 0),
-        workMin: Number(r.work_min || 0),
-        km: Number(r.km || 0),
-        furgone: normalizeFurgone(r.furgone || ""),
-        notes: r.notes || "",
-        breakStartISO: r.break_start_ts ? new Date(r.break_start_ts).toISOString() : "",
-        updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : "",
-        userId: user.id
-      }));
-
-      active = rows.find(r => !r.endISO) || null;
-      history = rows.filter(r => !!r.endISO);
-
-      await cacheRecordsForUser(user.id, rows);
-      await refreshNetStatus();
-      syncInputsWithState();
-      renderAll();
-
-      // always release lock
-      refreshBusy = false;
     }
 
     async function upsertRowRemote(row, user, token){
