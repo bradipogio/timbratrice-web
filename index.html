@@ -723,6 +723,13 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
 
     .filterBox{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
     @media (max-width:520px){.filterBox{grid-template-columns:1fr 1fr}}
+    .filterRow{
+      grid-column:1 / -1;
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      align-items:center;
+    }
     .row{display:flex; gap:10px; margin-top:12px}
 
     .list{display:flex; flex-direction:column; gap:10px; margin-top:10px}
@@ -1608,6 +1615,20 @@ body{
           </span>
           <input id="toDate" type="date" />
         </label>
+        <div class="filterRow">
+          <label class="toggle">
+            <input id="filterCar" type="checkbox" checked />
+            <span>Macchina</span>
+          </label>
+          <label class="toggle">
+            <input id="filterVan" type="checkbox" checked />
+            <span>Furgone</span>
+          </label>
+          <label class="toggle">
+            <input id="filterDrive" type="checkbox" checked />
+            <span>Guida</span>
+          </label>
+        </div>
       </div>
 
     </section>
@@ -1701,6 +1722,10 @@ body{
             <label class="field">
               <span>Paga lorda (€/h)</span>
               <input id="payHourly" type="text" inputmode="decimal" placeholder="0">
+            </label>
+            <label class="field">
+              <span>Paga Magazzino (€/h)</span>
+              <input id="payMagazzino" type="text" inputmode="decimal" placeholder="0">
             </label>
             <label class="field">
               <span>€/km</span>
@@ -1992,6 +2017,7 @@ try{
     const PAY_SETTINGS_KEY = "timbratricePaySettings";
     const PAY_DEFAULTS = {
       hourly: 0,
+      magazzino: 0,
       km: 0,
       van: 0,
       drive: 0
@@ -2003,6 +2029,10 @@ try{
     };
     let paySettings = { ...PAY_DEFAULTS };
 
+    function isMagazzinoTitle(title){
+      const key = String(title || "").trim().toLowerCase();
+      return key.includes("magazzino");
+    }
     function parseMoneyInput(value){
       const raw = String(value || "").trim().replace(",", ".");
       const num = parseFloat(raw);
@@ -2030,6 +2060,7 @@ try{
         const parsed = JSON.parse(raw);
         paySettings = {
           hourly: Number(parsed.hourly || 0),
+          magazzino: Number(parsed.magazzino || 0),
           km: Number(parsed.km || 0),
           van: Number(parsed.van || 0),
           drive: Number(parsed.drive || 0)
@@ -2043,21 +2074,25 @@ try{
     }
     function syncPayInputs(){
       const hourly = $("payHourly");
+      const magazzino = $("payMagazzino");
       const km = $("payKm");
       const van = $("payVan");
       const drive = $("payDrive");
-      if(!hourly || !km || !van || !drive) return;
+      if(!hourly || !magazzino || !km || !van || !drive) return;
       hourly.value = paySettings.hourly ? String(paySettings.hourly) : "";
+      magazzino.value = paySettings.magazzino ? String(paySettings.magazzino) : "";
       km.value = paySettings.km ? String(paySettings.km) : "";
       van.value = paySettings.van ? String(paySettings.van) : "";
       drive.value = paySettings.drive ? String(paySettings.drive) : "";
     }
     function readPayInputs(){
       const hourly = $("payHourly");
+      const magazzino = $("payMagazzino");
       const km = $("payKm");
       const van = $("payVan");
       const drive = $("payDrive");
       paySettings.hourly = parseMoneyInput(hourly?.value);
+      paySettings.magazzino = parseMoneyInput(magazzino?.value);
       paySettings.km = parseMoneyInput(km?.value);
       paySettings.van = parseMoneyInput(van?.value);
       paySettings.drive = parseMoneyInput(drive?.value);
@@ -2072,7 +2107,7 @@ try{
         readPayInputs();
         updatePayRecap();
       };
-      ["payHourly","payKm","payVan","payDrive"].forEach((id)=>{
+      ["payHourly","payMagazzino","payKm","payVan","payDrive"].forEach((id)=>{
         const el = $(id);
         if(el) el.addEventListener("input", onInput);
       });
@@ -2081,14 +2116,17 @@ try{
     function updatePayRecap(){
       const grossEl = $("payGrossTotal");
       if(!grossEl) return;
-      const rows = history || [];
+      const rows = getVisibleHistory();
       const sumWorkMin = rows.reduce((a,r)=>a + Number(r.workMin||0), 0);
       const sumKm = rows.reduce((a,r)=>a + Number(r.km||0), 0);
       const sumVan = rows.filter(r => normalizeFurgone(r.furgone) === "furgone").length;
       const sumDrive = rows.filter(r => normalizeFurgone(r.furgone) === "guida").length;
-      const hoursDec = sumWorkMin / 60;
-
-      const grossHours = hoursDec * paySettings.hourly;
+      const magazzinoRate = paySettings.magazzino || paySettings.hourly;
+      const grossHours = rows.reduce((total, r)=>{
+        const hoursDec = Number(r.workMin || 0) / 60;
+        const rate = isMagazzinoTitle(r.title) ? magazzinoRate : paySettings.hourly;
+        return total + (hoursDec * rate);
+      }, 0);
       const grossKm = sumKm * paySettings.km;
       const grossVan = sumVan * paySettings.van;
       const grossDrive = sumDrive * paySettings.drive;
@@ -2099,7 +2137,15 @@ try{
       const inps = imponibile * PAY_TAX.inps;
       const netto = grossTotal - imposta - inps;
 
-      const scopeText = $("rangeText")?.textContent || "Storico: tutti";
+      let scopeText = $("rangeText")?.textContent || "Storico: tutti";
+      const searchText = ($("searchInput")?.value || "").trim();
+      if(searchText){
+        scopeText += ` | Cerca: ${searchText}`;
+      }
+      const vehicleLabel = getVehicleFilterLabel();
+      if(vehicleLabel){
+        scopeText += ` | ${vehicleLabel}`;
+      }
       const scopeEl = $("payScopeText");
       if(scopeEl) scopeEl.textContent = scopeText;
 
@@ -3287,6 +3333,35 @@ sb.auth.onAuthStateChange(async (_event, session) => {
       if(!v) return "";
       return new Date(v + "T23:59:59").toISOString();
     }
+    function getVehicleFilterState(){
+      const filterOn = $("filterToggle")?.checked;
+      if(!filterOn) return { active: false, car: true, van: true, drive: true };
+      const car = $("filterCar") ? $("filterCar").checked : true;
+      const van = $("filterVan") ? $("filterVan").checked : true;
+      const drive = $("filterDrive") ? $("filterDrive").checked : true;
+      const active = !(car && van && drive);
+      return { active, car, van, drive };
+    }
+    function filterRowsByVehicle(rows){
+      const state = getVehicleFilterState();
+      if(!state.active) return rows;
+      return rows.filter(r => {
+        const mode = normalizeFurgone(r.furgone);
+        if(mode === "furgone") return state.van;
+        if(mode === "guida") return state.drive;
+        return state.car;
+      });
+    }
+    function getVehicleFilterLabel(){
+      const state = getVehicleFilterState();
+      if(!state.active) return "";
+      const parts = [];
+      if(state.car) parts.push("Macchina");
+      if(state.van) parts.push("Furgone");
+      if(state.drive) parts.push("Guida");
+      if(parts.length === 0) return "Veicoli: nessuno";
+      return `Veicoli: ${parts.join(", ")}`;
+    }
 
     async function loadFromCache(user){
       if(!user) return;
@@ -3316,7 +3391,8 @@ sb.auth.onAuthStateChange(async (_event, session) => {
         }));
 
         active = rows.find(r => !r.endISO) || null;
-        history = rows.filter(r => !!r.endISO);
+        const ended = rows.filter(r => !!r.endISO);
+        history = filterRowsByVehicle(ended);
 
         syncInputsWithState();
         renderAll();
@@ -3406,7 +3482,8 @@ sb.auth.onAuthStateChange(async (_event, session) => {
         }));
 
         active = rows.find(r => !r.endISO) || null;
-        history = rows.filter(r => !!r.endISO);
+        const ended = rows.filter(r => !!r.endISO);
+        history = filterRowsByVehicle(ended);
 
         await cacheRecordsForUser(user.id, rows);
         await refreshNetStatus();
@@ -4954,6 +5031,15 @@ $("btnSaveEdit").addEventListener("click", async (e)=>{
         $("fromDate").value = $("toDate").value;
       }
       await refresh();
+    });
+
+    ["filterCar","filterVan","filterDrive"].forEach((id)=>{
+      const el = $(id);
+      if(!el) return;
+      el.addEventListener("change", async ()=>{
+        if(!$("filterToggle").checked) return;
+        await refresh();
+      });
     });
 
     // live updates while active (solo UI, non scrive su DB)
