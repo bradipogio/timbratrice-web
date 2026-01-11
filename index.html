@@ -892,6 +892,74 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     @media (prefers-color-scheme: light){
       .hint{background:rgba(0,0,0,.03)}
     }
+    .settingsDetails{
+      border:1px solid var(--line);
+      border-radius:16px;
+      padding:10px 12px;
+      background:var(--card2);
+    }
+    .settingsSummary{
+      list-style:none;
+      cursor:pointer;
+      font-weight:900;
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .settingsSummary::-webkit-details-marker{display:none}
+    .settingsDetails[open] .settingsSummary{margin-bottom:8px}
+    .settingsBox{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .payScope{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .payScopeText{
+      font-weight:900;
+      font-size:14px;
+    }
+    .payGrid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+    @media (max-width:520px){
+      .payGrid{grid-template-columns:1fr}
+    }
+    .payRow{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:var(--card);
+    }
+    .payLabel{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:800;
+    }
+    .payValue{
+      font-family:var(--time);
+      font-variant-numeric: tabular-nums;
+      font-size:14px;
+      font-weight:800;
+      text-align:right;
+    }
+    .payRow.is-total{
+      border-color:rgba(210,43,43,.55);
+      background:rgba(210,43,43,.08);
+    }
+    .payRow.is-net{
+      border-color:rgba(61,220,132,.55);
+      background:rgba(61,220,132,.12);
+    }
     /* ============================= */
 /* iOS-like theme overrides      */
 /* ============================= */
@@ -1616,6 +1684,103 @@ body{
         <button id="btnLogout" type="button" class="btn danger">Logout</button>
       </div>
 
+      <details id="paySheetDetails" class="settingsDetails">
+        <summary class="settingsSummary">
+          <span class="iconLabel">
+            <svg class="icon xs" aria-hidden="true"><use href="#i-list"></use></svg>
+            <span>Prospetto paga</span>
+          </span>
+        </summary>
+        <div class="settingsBox">
+          <div class="payScope">
+            <div class="chipLabel">Selezione home</div>
+            <div id="payScopeText" class="payScopeText">Storico: tutti</div>
+          </div>
+
+          <div class="payGrid">
+            <label class="field">
+              <span>Paga lorda (€/h)</span>
+              <input id="payHourly" type="text" inputmode="decimal" placeholder="0">
+            </label>
+            <label class="field">
+              <span>€/km</span>
+              <input id="payKm" type="text" inputmode="decimal" placeholder="0">
+            </label>
+            <label class="field">
+              <span>Paga furgone (€/turno)</span>
+              <input id="payVan" type="text" inputmode="decimal" placeholder="0">
+            </label>
+            <label class="field">
+              <span>Paga guida furgone (€/turno)</span>
+              <input id="payDrive" type="text" inputmode="decimal" placeholder="0">
+            </label>
+          </div>
+
+          <div class="payGrid">
+            <div class="payRow">
+              <span class="payLabel">Ore (nette)</span>
+              <span id="payHours" class="payValue">0:00</span>
+            </div>
+            <div class="payRow">
+              <span class="payLabel">Km</span>
+              <span id="payKmTotal" class="payValue">0</span>
+            </div>
+            <div class="payRow">
+              <span class="payLabel">Furgone</span>
+              <span id="payVanTotal" class="payValue">0</span>
+            </div>
+            <div class="payRow">
+              <span class="payLabel">Guida</span>
+              <span id="payDriveTotal" class="payValue">0</span>
+            </div>
+          </div>
+
+          <div class="payGrid">
+            <div class="payRow">
+              <span class="payLabel">Lordo ore</span>
+              <span id="payGrossHours" class="payValue">€ 0,00</span>
+            </div>
+            <div class="payRow">
+              <span class="payLabel">Rimborso km</span>
+              <span id="payGrossKm" class="payValue">€ 0,00</span>
+            </div>
+            <div class="payRow">
+              <span class="payLabel">Furgone</span>
+              <span id="payGrossVan" class="payValue">€ 0,00</span>
+            </div>
+            <div class="payRow">
+              <span class="payLabel">Guida furgone</span>
+              <span id="payGrossDrive" class="payValue">€ 0,00</span>
+            </div>
+            <div class="payRow is-total">
+              <span class="payLabel">Guadagno lordo (G)</span>
+              <span id="payGrossTotal" class="payValue">€ 0,00</span>
+            </div>
+          </div>
+
+          <div class="payGrid">
+            <div class="payRow">
+              <span class="payLabel">Reddito imponibile (67%)</span>
+              <span id="payImponibile" class="payValue">€ 0,00</span>
+            </div>
+            <div class="payRow">
+              <span class="payLabel">Imposta 5%</span>
+              <span id="payImposta" class="payValue">€ 0,00</span>
+            </div>
+            <div class="payRow">
+              <span class="payLabel">Contributi INPS 26,07%</span>
+              <span id="payInps" class="payValue">€ 0,00</span>
+            </div>
+            <div class="payRow is-net">
+              <span class="payLabel">Netto in tasca (N)</span>
+              <span id="payNet" class="payValue">€ 0,00</span>
+            </div>
+          </div>
+
+          <div class="hint">ATECO 90.39.09 · coeff. redditività 67% · imposta 5% · INPS 26,07%</div>
+        </div>
+      </details>
+
       <div id="settingsMsg" class="msg"></div>
     </form>
   </div>
@@ -1824,6 +1989,136 @@ try{
     };
     const isVanMode = (mode) => mode === "furgone" || mode === "guida";
     const toISO = (d) => new Date(d).toISOString();
+    const PAY_SETTINGS_KEY = "timbratricePaySettings";
+    const PAY_DEFAULTS = {
+      hourly: 0,
+      km: 0,
+      van: 0,
+      drive: 0
+    };
+    const PAY_TAX = {
+      coeff: 0.67,
+      rate: 0.05,
+      inps: 0.2607
+    };
+    let paySettings = { ...PAY_DEFAULTS };
+
+    function parseMoneyInput(value){
+      const raw = String(value || "").trim().replace(",", ".");
+      const num = parseFloat(raw);
+      if(!Number.isFinite(num) || num < 0) return 0;
+      return num;
+    }
+    function formatNumber(value, decimals = 2){
+      const num = Number.isFinite(value) ? value : 0;
+      return num.toLocaleString("it-IT", {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals
+      });
+    }
+    function formatPlain(value){
+      const num = Number.isFinite(value) ? value : 0;
+      return num.toLocaleString("it-IT", { maximumFractionDigits: 2 });
+    }
+    function formatEuro(value){
+      return `€ ${formatNumber(value, 2)}`;
+    }
+    function loadPaySettings(){
+      try{
+        const raw = localStorage.getItem(PAY_SETTINGS_KEY);
+        if(!raw) return;
+        const parsed = JSON.parse(raw);
+        paySettings = {
+          hourly: Number(parsed.hourly || 0),
+          km: Number(parsed.km || 0),
+          van: Number(parsed.van || 0),
+          drive: Number(parsed.drive || 0)
+        };
+      }catch(err){}
+    }
+    function savePaySettings(){
+      try{
+        localStorage.setItem(PAY_SETTINGS_KEY, JSON.stringify(paySettings));
+      }catch(err){}
+    }
+    function syncPayInputs(){
+      const hourly = $("payHourly");
+      const km = $("payKm");
+      const van = $("payVan");
+      const drive = $("payDrive");
+      if(!hourly || !km || !van || !drive) return;
+      hourly.value = paySettings.hourly ? String(paySettings.hourly) : "";
+      km.value = paySettings.km ? String(paySettings.km) : "";
+      van.value = paySettings.van ? String(paySettings.van) : "";
+      drive.value = paySettings.drive ? String(paySettings.drive) : "";
+    }
+    function readPayInputs(){
+      const hourly = $("payHourly");
+      const km = $("payKm");
+      const van = $("payVan");
+      const drive = $("payDrive");
+      paySettings.hourly = parseMoneyInput(hourly?.value);
+      paySettings.km = parseMoneyInput(km?.value);
+      paySettings.van = parseMoneyInput(van?.value);
+      paySettings.drive = parseMoneyInput(drive?.value);
+      savePaySettings();
+    }
+    function initPaySheet(){
+      const hourly = $("payHourly");
+      if(!hourly) return;
+      loadPaySettings();
+      syncPayInputs();
+      const onInput = ()=>{
+        readPayInputs();
+        updatePayRecap();
+      };
+      ["payHourly","payKm","payVan","payDrive"].forEach((id)=>{
+        const el = $(id);
+        if(el) el.addEventListener("input", onInput);
+      });
+      updatePayRecap();
+    }
+    function updatePayRecap(){
+      const grossEl = $("payGrossTotal");
+      if(!grossEl) return;
+      const rows = history || [];
+      const sumWorkMin = rows.reduce((a,r)=>a + Number(r.workMin||0), 0);
+      const sumKm = rows.reduce((a,r)=>a + Number(r.km||0), 0);
+      const sumVan = rows.filter(r => normalizeFurgone(r.furgone) === "furgone").length;
+      const sumDrive = rows.filter(r => normalizeFurgone(r.furgone) === "guida").length;
+      const hoursDec = sumWorkMin / 60;
+
+      const grossHours = hoursDec * paySettings.hourly;
+      const grossKm = sumKm * paySettings.km;
+      const grossVan = sumVan * paySettings.van;
+      const grossDrive = sumDrive * paySettings.drive;
+      const grossTotal = grossHours + grossKm + grossVan + grossDrive;
+
+      const imponibile = grossTotal * PAY_TAX.coeff;
+      const imposta = imponibile * PAY_TAX.rate;
+      const inps = imponibile * PAY_TAX.inps;
+      const netto = grossTotal - imposta - inps;
+
+      const scopeText = $("rangeText")?.textContent || "Storico: tutti";
+      const scopeEl = $("payScopeText");
+      if(scopeEl) scopeEl.textContent = scopeText;
+
+      $("payHours").textContent = fmtHM(sumWorkMin);
+      $("payKmTotal").textContent = formatPlain(sumKm);
+      $("payVanTotal").textContent = String(sumVan);
+      $("payDriveTotal").textContent = String(sumDrive);
+
+      $("payGrossHours").textContent = formatEuro(grossHours);
+      $("payGrossKm").textContent = formatEuro(grossKm);
+      $("payGrossVan").textContent = formatEuro(grossVan);
+      $("payGrossDrive").textContent = formatEuro(grossDrive);
+      grossEl.textContent = formatEuro(grossTotal);
+
+      $("payImponibile").textContent = formatEuro(imponibile);
+      $("payImposta").textContent = formatEuro(imposta);
+      $("payInps").textContent = formatEuro(inps);
+      $("payNet").textContent = formatEuro(netto);
+    }
 
     // --------- offline cache + queue (IndexedDB) ---------
     const DB_NAME = "timbratrice-db";
@@ -3741,6 +4036,7 @@ list.innerHTML = "";
 });
         updateSelectionUI();
       }
+      updatePayRecap();
     }
 
     function escapeHTML(s){
@@ -4279,6 +4575,7 @@ $("btnSettings").addEventListener("click", ()=>{
       await doLogout();
     });
 
+    initPaySheet();
     initRecapToggle();
     initPullToRefresh();
     $("btnStart").addEventListener("click", startShift);
