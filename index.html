@@ -650,6 +650,39 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     .summaryHead > div:first-child{min-width:0; flex:1 1 auto}
     #rangeText{display:block; white-space:normal; overflow-wrap:anywhere}
     .summaryActions{display:flex; align-items:center; gap:10px; flex:0 0 auto; white-space:nowrap}
+    .summaryActions .btn{flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center}
+    .summaryActions .iconOnly{
+      padding:10px;
+      min-width:40px;
+      justify-content:center;
+    }
+    .summaryActions .iconOnly span{gap:0}
+    .summaryActions .searchAction{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .summaryActions .searchAction .searchBar{
+      width:0;
+      min-width:0;
+      max-width:0;
+      padding:0;
+      opacity:0;
+      border-color:transparent;
+      pointer-events:none;
+      transition:width .2s ease, opacity .2s ease, padding .2s ease, border-color .2s ease;
+    }
+    .summaryActions .searchAction.is-open .searchBar{
+      width:180px;
+      max-width:180px;
+      padding:10px 12px;
+      opacity:1;
+      border-color:var(--line);
+      pointer-events:auto;
+    }
+    @media (max-width:520px){
+      .summaryActions .searchAction.is-open .searchBar{width:140px; max-width:140px}
+    }
     .listActions{flex:1 1 auto; justify-content:flex-end; min-width:0}
     .listActions .miniBtn{flex:0 0 auto}
     .listActions .searchBarInline{flex:1 1 140px; min-width:0; max-width:240px}
@@ -817,6 +850,14 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       cursor:pointer;
       font-weight:900;
     }
+    .miniBtn.iconOnly{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:8px;
+      min-width:34px;
+    }
+    .miniBtn.iconOnly .icon{margin:0}
     .miniBtn.d{border-color:rgba(255,70,70,.25); background:rgba(255,70,70,.08)}
     .empty{
       text-align:center;
@@ -1354,6 +1395,21 @@ body{
       <path d="M6 12h12"></path>
       <path d="M10 19h4"></path>
     </symbol>
+    <symbol id="i-search" viewBox="0 0 24 24">
+      <circle cx="11" cy="11" r="7"></circle>
+      <path d="M20 20l-4.2-4.2"></path>
+    </symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24">
+      <path d="M3 17.5l.5 3.5 3.5-.5L19 8.5l-3-3L3 17.5z"></path>
+      <path d="M14.5 5.5l3 3"></path>
+    </symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24">
+      <path d="M3 6h18"></path>
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+      <path d="M10 11v6"></path>
+      <path d="M14 11v6"></path>
+      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+    </symbol>
     <symbol id="i-x" viewBox="0 0 24 24">
       <path d="M6 6l12 12"></path>
       <path d="M18 6l-12 12"></path>
@@ -1521,12 +1577,15 @@ body{
         </div>
 
         <div class="summaryActions">
+          <div id="searchWrap" class="searchAction" role="search">
+            <button id="btnSearchToggle" class="btn iconOnly" type="button" aria-label="Cerca" title="Cerca">
+              <svg class="icon xs" aria-hidden="true"><use href="#i-search"></use></svg>
+            </button>
+            <input id="searchInput" class="searchBar" type="search" placeholder="Cerca..." autocomplete="off" aria-label="Cerca" />
+          </div>
           <div id="exportWrap" class="exportWrap">
-            <button id="btnExportMenu" class="btn exportBtn" type="button" aria-haspopup="menu" aria-expanded="false">
-              <span class="iconLabel">
-                <svg class="icon xs" aria-hidden="true"><use href="#i-download"></use></svg>
-                <span>Esporta</span>
-              </span>
+            <button id="btnExportMenu" class="btn exportBtn iconOnly" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Esporta" title="Esporta">
+              <svg class="icon xs" aria-hidden="true"><use href="#i-download"></use></svg>
             </button>
             <div id="exportMenu" class="exportMenu hidden" role="menu" aria-label="Esporta">
               <button id="btnExportCsv" class="menuBtn" type="button" role="menuitem">CSV (Excel)</button>
@@ -1534,11 +1593,10 @@ body{
               <button id="btnExportPdf" class="menuBtn" type="button" role="menuitem">PDF</button>
             </div>
           </div>
-          <label id="filterLabel" class="toggle">
+          <label id="filterLabel" class="toggle iconOnly" aria-label="Filtra" title="Filtra">
             <input id="filterToggle" type="checkbox" />
             <span>
               <svg class="icon xs" aria-hidden="true"><use href="#i-filter"></use></svg>
-              <span>Filtra</span>
             </span>
           </label>
         </div>
@@ -1638,7 +1696,6 @@ body{
         <div class="h2">Storico</div>
         <div class="summaryActions listActions">
           <button id="btnSelectMode" class="miniBtn" type="button">Seleziona</button>
-          <input id="searchInput" class="searchBar searchBarInline" type="search" placeholder="Cerca..." autocomplete="off" />
         </div>
       </div>
       <div class="row listTools">
@@ -2138,7 +2195,7 @@ try{
       const netto = grossTotal - imposta - inps;
 
       let scopeText = $("rangeText")?.textContent || "Storico: tutti";
-      const searchText = ($("searchInput")?.value || "").trim();
+      const searchText = getSearchQuery();
       if(searchText){
         scopeText += ` | Cerca: ${searchText}`;
       }
@@ -3975,12 +4032,15 @@ function updateSelectionUI(){
         ph.value = fmtHHMM(pauseMin);
       }
 
+      const searchText = getSearchQuery();
+      const filteredHistory = getSearchFilteredHistory();
+
       // summary (solo turni chiusi)
-      const turns = history.length;
-      const sumWorkMin = history.reduce((a,r)=>a + Number(r.workMin||0), 0);
-      const sumKm = history.reduce((a,r)=>a + Number(r.km||0), 0);
-      const sumVan = history.filter(r => normalizeFurgone(r.furgone) === "furgone").length;
-      const sumDrive = history.filter(r => normalizeFurgone(r.furgone) === "guida").length;
+      const turns = filteredHistory.length;
+      const sumWorkMin = filteredHistory.reduce((a,r)=>a + Number(r.workMin||0), 0);
+      const sumKm = filteredHistory.reduce((a,r)=>a + Number(r.km||0), 0);
+      const sumVan = filteredHistory.filter(r => normalizeFurgone(r.furgone) === "furgone").length;
+      const sumDrive = filteredHistory.filter(r => normalizeFurgone(r.furgone) === "guida").length;
       $("sumTurns").textContent = String(turns);
       $("sumHours").textContent = fmtHM(sumWorkMin);
       $("sumKm").textContent = String(sumKm);
@@ -4002,22 +4062,14 @@ function updateSelectionUI(){
 const list = $("list");
 list.innerHTML = "";
 
-  const q = ($("searchInput")?.value || "").trim().toLowerCase();
-  const filtered = q
-    ? history.filter(r =>
-        (r.title||"").toLowerCase().includes(q) ||
-        (r.notes||"").toLowerCase().includes(q)
-      )
-    : history;
-
-  if(filtered.length === 0){
+  if(filteredHistory.length === 0){
     $("empty").classList.remove("hidden");
-    $("empty").textContent = q ? "Nessun record trovato" : "Nessun record";
+    $("empty").textContent = searchText ? "Nessun record trovato" : "Nessun record";
     visibleIds = [];
     updateSelectionUI();
   }else{
   $("empty").classList.add("hidden");
-  const sorted = [...filtered].sort((a,b)=> (b.startISO||"").localeCompare(a.startISO||""));
+  const sorted = [...filteredHistory].sort((a,b)=> (b.startISO||"").localeCompare(a.startISO||""));
   visibleIds = sorted.map(r => String(r.id));
   const fmtShortDT = (iso)=>{
     if(!iso) return "—";
@@ -4045,8 +4097,12 @@ list.innerHTML = "";
                 <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
               </div>
               <div class="itemBtns">
-                <button class="miniBtn" data-edit="${r.id}">Modifica</button>
-<button class="miniBtn d" data-del="${r.id}">Elimina</button>
+                <button class="miniBtn iconOnly" data-edit="${r.id}" aria-label="Modifica" title="Modifica">
+                  ${iconSvg("i-edit","icon xs")}
+                </button>
+                <button class="miniBtn d iconOnly" data-del="${r.id}" aria-label="Elimina" title="Elimina">
+                  ${iconSvg("i-trash","icon xs")}
+                </button>
               </div>
             </div>
             <div class="itemMetaGrid">
@@ -4131,15 +4187,20 @@ list.innerHTML = "";
       return String(raw).trim() || fallback;
     }
 
-    function getVisibleHistory(){
-      const q = ($("searchInput")?.value || "").trim().toLowerCase();
+    function getSearchQuery(){
+      return ($("searchInput")?.value || "").trim();
+    }
+    function getSearchFilteredHistory(){
+      const q = getSearchQuery().toLowerCase();
       const base = [...history];
-      const filtered = q
-        ? base.filter(r =>
-            (r.title||"").toLowerCase().includes(q) ||
-            (r.notes||"").toLowerCase().includes(q)
-          )
-        : base;
+      if(!q) return base;
+      return base.filter(r =>
+        (r.title||"").toLowerCase().includes(q) ||
+        (r.notes||"").toLowerCase().includes(q)
+      );
+    }
+    function getVisibleHistory(){
+      const filtered = getSearchFilteredHistory();
       return filtered.sort((a,b)=> (a.startISO||"").localeCompare(b.startISO||""));
     }
 
@@ -4986,7 +5047,39 @@ $("endInput").addEventListener("change", async ()=>{
         await appAlert(err.message || String(err), { title: "Errore" });
       }
     });
-    $("searchInput").addEventListener("input", ()=> renderAll());
+    const searchWrap = $("searchWrap");
+    const searchBtn = $("btnSearchToggle");
+    const searchInput = $("searchInput");
+    if(searchBtn && searchWrap && searchInput){
+      const openSearch = ()=>{
+        searchWrap.classList.add("is-open");
+        searchInput.focus();
+      };
+      const maybeCloseSearch = ()=>{
+        if(!searchInput.value.trim()){
+          searchWrap.classList.remove("is-open");
+        }
+      };
+      searchBtn.addEventListener("click", (e)=>{
+        e.preventDefault();
+        if(searchWrap.classList.contains("is-open")){
+          maybeCloseSearch();
+          if(searchWrap.classList.contains("is-open")){
+            searchInput.focus();
+          }
+        }else{
+          openSearch();
+        }
+      });
+      searchInput.addEventListener("focus", ()=> searchWrap.classList.add("is-open"));
+      searchInput.addEventListener("blur", ()=> setTimeout(maybeCloseSearch, 120));
+      if(searchInput.value.trim()){
+        searchWrap.classList.add("is-open");
+      }
+    }
+    if(searchInput){
+      searchInput.addEventListener("input", ()=> renderAll());
+    }
     $("btnCancelEdit").addEventListener("click", (e)=>{
   e.preventDefault();
   stopEditEndedRecord();
