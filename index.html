@@ -799,23 +799,30 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       box-shadow:var(--shadow);
     }
     body.selecting #list{padding-bottom:110px}
-    .itemInfo{display:flex; flex-direction:column; gap:2px; min-width:0; flex:1}
+    .itemInfo{display:flex; flex-direction:column; gap:6px; min-width:0; flex:1}
+    .itemRow{display:flex; align-items:center; gap:10px; min-width:0}
+    .itemRow.sub{align-items:baseline}
     .itemStart{
       font-weight:900;
       font-family:var(--time);
-      font-size:15px;
+      font-size:17px;
       line-height:1.1;
     }
     .itemTitle{
-      font-weight:700;
-      font-size:13px;
+      font-weight:800;
+      font-size:15px;
       line-height:1.2;
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
     }
     .itemEnd{
       display:flex;
       align-items:center;
       gap:6px;
-      font-size:12px;
+      margin-left:auto;
+      font-size:13px;
       color:var(--muted);
       font-weight:800;
       white-space:nowrap;
@@ -847,6 +854,7 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       padding:8px 10px;
       min-width:0;
     }
+    .itemMetaGrid .metaBox{text-align:center}
     .metaLabel{
       display:flex;
       align-items:center;
@@ -856,6 +864,7 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       font-weight:800;
       letter-spacing:.2px;
     }
+    .itemMetaGrid .metaLabel{justify-content:center}
     .metaValue{
       margin-top:3px;
       font-family:var(--time);
@@ -866,6 +875,7 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       overflow:hidden;
       text-overflow:ellipsis;
     }
+    .itemMetaGrid .metaValue{text-align:center}
     .itemBtns{display:flex; gap:10px}
     .miniBtn{
       padding:10px 12px;
@@ -4113,9 +4123,13 @@ list.innerHTML = "";
                   <input class="rowCheck" type="checkbox" data-check="${r.id}" ${isChecked ? "checked" : ""}>
                 </label>
                 <div class="itemInfo">
-                  <div class="itemStart">${escapeHTML(start)}</div>
-                  <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
-                  <div class="itemEnd"><span class="itemEndLabel">Fine</span><span class="itemEndValue">${escapeHTML(end)}</span></div>
+                  <div class="itemRow">
+                    <div class="itemStart">${escapeHTML(start)}</div>
+                  </div>
+                  <div class="itemRow sub">
+                    <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
+                    <div class="itemEnd"><span class="itemEndLabel">Fine</span><span class="itemEndValue">${escapeHTML(end)}</span></div>
+                  </div>
                 </div>
               </div>
               <div class="itemBtns">
