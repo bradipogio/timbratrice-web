@@ -776,9 +776,34 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       gap:8px;
     }
     body.selecting .item{cursor:pointer}
-    .itemTop{display:flex; justify-content:space-between; gap:10px; align-items:flex-start}
-    .itemLeft{display:flex; align-items:flex-start; gap:10px; min-width:0}
+    .itemTop{
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      grid-template-rows:auto auto;
+      column-gap:10px;
+      row-gap:6px;
+      align-items:start;
+    }
+    .itemCheck{grid-column:1; grid-row:1}
     .itemCheck input{width:18px; height:18px; padding:0}
+    .itemStart{
+      grid-column:2;
+      grid-row:1;
+      font-weight:900;
+      font-family:var(--time);
+      font-size:25px;
+      line-height:1.05;
+    }
+    .itemBtns{grid-column:3; grid-row:1; justify-self:end}
+    .itemSub{
+      grid-column:2 / -1;
+      grid-row:2;
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:10px;
+      align-items:baseline;
+      min-width:0;
+    }
     .listTools{align-items:center; flex-wrap:wrap}
     .selectedCount{font-size:12px; color:var(--muted); font-weight:800}
     body:not(.selecting) .listTools{display:none}
@@ -799,33 +824,24 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       box-shadow:var(--shadow);
     }
     body.selecting #list{padding-bottom:110px}
-    .itemInfo{display:flex; flex-direction:column; gap:6px; min-width:0; flex:1}
-    .itemRow{display:flex; align-items:center; gap:10px; min-width:0}
-    .itemRow.sub{align-items:baseline}
-    .itemStart{
-      font-weight:900;
-      font-family:var(--time);
-      font-size:20px;
-      line-height:1.1;
-    }
     .itemTitle{
       font-weight:800;
       font-size:15px;
       line-height:1.2;
       min-width:0;
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
+      white-space:normal;
+      overflow-wrap:break-word;
+      word-break:break-word;
     }
     .itemEnd{
       display:flex;
       align-items:center;
       gap:6px;
-      margin-left:auto;
       font-size:13px;
       color:var(--muted);
       font-weight:800;
       white-space:nowrap;
+      justify-self:end;
     }
     .itemEndValue{
       font-family:var(--time);
@@ -4118,20 +4134,10 @@ list.innerHTML = "";
           el.setAttribute("data-row-id", r.id);
           el.innerHTML = `
             <div class="itemTop">
-              <div class="itemLeft">
-                <label class="itemCheck">
-                  <input class="rowCheck" type="checkbox" data-check="${r.id}" ${isChecked ? "checked" : ""}>
-                </label>
-                <div class="itemInfo">
-                  <div class="itemRow">
-                    <div class="itemStart">${escapeHTML(start)}</div>
-                  </div>
-                  <div class="itemRow sub">
-                    <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
-                    <div class="itemEnd"><span class="itemEndLabel">Fine</span><span class="itemEndValue">${escapeHTML(end)}</span></div>
-                  </div>
-                </div>
-              </div>
+              <label class="itemCheck">
+                <input class="rowCheck" type="checkbox" data-check="${r.id}" ${isChecked ? "checked" : ""}>
+              </label>
+              <div class="itemStart">${escapeHTML(start)}</div>
               <div class="itemBtns">
                 <button class="miniBtn iconOnly" data-edit="${r.id}" aria-label="Modifica" title="Modifica">
                   ${iconSvg("i-edit","icon xs")}
@@ -4139,6 +4145,10 @@ list.innerHTML = "";
                 <button class="miniBtn d iconOnly" data-del="${r.id}" aria-label="Elimina" title="Elimina">
                   ${iconSvg("i-trash","icon xs")}
                 </button>
+              </div>
+              <div class="itemSub">
+                <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
+                <div class="itemEnd"><span class="itemEndLabel">Fine</span><span class="itemEndValue">${escapeHTML(end)}</span></div>
               </div>
             </div>
             <div class="itemMetaGrid">
