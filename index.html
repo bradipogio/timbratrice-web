@@ -195,16 +195,16 @@
       overflow:hidden;
     }
     .listLoading{
-      position:absolute;
+      position:fixed;
       inset:0;
       display:flex;
       align-items:center;
       justify-content:center;
       padding:16px;
-      background:rgba(0,0,0,.35);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      z-index:10;
+      background:rgba(0,0,0,.45);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index:60;
     }
     @media (prefers-color-scheme: light){
       .listLoading{
@@ -1415,6 +1415,12 @@ body{
       <path d="M18 6l-12 12"></path>
     </symbol>
   </svg>
+  <div id="listLoading" class="listLoading" role="status" aria-live="polite" aria-hidden="false">
+    <div class="listLoadingInner">
+      <svg class="icon sm spin listLoadingIcon" aria-hidden="true"><use href="#i-gear"></use></svg>
+      <span id="listLoadingText">Caricamento storico...</span>
+    </div>
+  </div>
   <header class="topbar">
     <div class="brand">Timbratrice</div>
     <div class="right">
@@ -1708,12 +1714,6 @@ body{
       </div>
       <div id="list" class="list"></div>
       <div id="empty" class="empty hidden">Nessun record</div>
-      <div id="listLoading" class="listLoading hidden" role="status" aria-live="polite" aria-hidden="true">
-        <div class="listLoadingInner">
-          <svg class="icon sm spin listLoadingIcon" aria-hidden="true"><use href="#i-gear"></use></svg>
-          <span id="listLoadingText">Caricamento storico...</span>
-        </div>
-      </div>
     </section>
   </main>
 
@@ -2604,7 +2604,6 @@ let selectionMode = false;
     // Prevent concurrent network actions (can cause hangs / UI confusion)
     let refreshBusy = false;
     let diagBusy = false;
-    let listLoadingTimer = null;
     let listLoadingCount = 0;
 
     // Draft values for the NEXT shift (used only when no active shift)
@@ -3005,11 +3004,8 @@ function enforceAuthGate(){
       if(label && text) label.textContent = text;
       listLoadingCount += 1;
       if(listLoadingCount > 1) return;
-      if(listLoadingTimer) clearTimeout(listLoadingTimer);
-      listLoadingTimer = setTimeout(()=>{
-        overlay.classList.remove("hidden");
-        overlay.setAttribute("aria-hidden", "false");
-      }, 250);
+      overlay.classList.remove("hidden");
+      overlay.setAttribute("aria-hidden", "false");
     }
 
     function hideListLoading(){
@@ -3017,10 +3013,6 @@ function enforceAuthGate(){
       if(!overlay) return;
       listLoadingCount = Math.max(0, listLoadingCount - 1);
       if(listLoadingCount > 0) return;
-      if(listLoadingTimer){
-        clearTimeout(listLoadingTimer);
-        listLoadingTimer = null;
-      }
       overlay.classList.add("hidden");
       overlay.setAttribute("aria-hidden", "true");
     }
