@@ -4519,8 +4519,25 @@ list.innerHTML = "";
       win.document.write(html);
       win.document.close();
       win.document.title = `${safeTitle}-${Date.now()}`;
-      win.focus();
-      win.onload = () => win.print();
+      win.onload = () => {
+        const printStartedAt = Date.now();
+        let closed = false;
+        const closeIfReady = () => {
+          if(closed) return;
+          if(Date.now() - printStartedAt < 700) return;
+          closed = true;
+          try{ win.close(); }catch(_e){}
+        };
+        if(typeof win.addEventListener === "function"){
+          win.addEventListener("afterprint", closeIfReady);
+          win.addEventListener("focus", closeIfReady);
+        }else{
+          win.onafterprint = closeIfReady;
+          win.onfocus = closeIfReady;
+        }
+        win.focus();
+        win.print();
+      };
     }
 
     function csvEscape(s, sep){
