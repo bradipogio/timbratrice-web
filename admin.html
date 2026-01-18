@@ -356,14 +356,14 @@
     body.modalOpen{overflow:hidden}
     .destGrid{
       display:grid;
-      grid-template-columns: 1.2fr .6fr 1.6fr auto;
+      grid-template-columns: 1.2fr .6fr .7fr 1.4fr auto;
       gap:10px;
       align-items:center;
       margin-top:10px;
     }
     .destRow{
       display:grid;
-      grid-template-columns: 1.2fr .6fr 1.6fr auto;
+      grid-template-columns: 1.2fr .6fr .7fr 1.4fr auto;
       gap:10px;
       align-items:center;
       padding:10px;
@@ -1194,7 +1194,7 @@
           </div>
 
           <div class="h2" style="margin-top:8px">Destinazioni</div>
-          <div class="sub">Gestisci nomi, km e link Google Maps</div>
+          <div class="sub">Gestisci nomi, km, durata e link Google Maps</div>
           <div class="row">
             <input id="destSearchInput" type="text" placeholder="Cerca destinazione" style="flex:1">
             <select id="destSortSelect" style="flex:0 0 150px">
@@ -1206,6 +1206,7 @@
           <div class="destGrid">
             <input id="destNameInput" type="text" placeholder="Nome destinazione">
             <input id="destKmInput" type="number" step="0.1" min="0" placeholder="Km">
+            <input id="destDurationInput" type="text" placeholder="Durata (hh:mm)">
             <input id="destMapsInput" type="url" placeholder="Link Google Maps (opzionale)">
             <button id="btnAddDestination" class="miniBtn" type="button">Aggiungi</button>
           </div>
@@ -1266,6 +1267,24 @@
       const h = Math.floor(m / 60);
       const mm = m % 60;
       return `${h}:${pad2(mm)}`;
+    };
+    const fmtHHMM = (min) => {
+      const m = Math.max(0, Math.floor(Number(min || 0)));
+      const h = Math.floor(m / 60);
+      const mm = m % 60;
+      return `${pad2(h)}:${pad2(mm)}`;
+    };
+    const parseDurationInput = (value) => {
+      const raw = (value || "").trim();
+      if(!raw) return 0;
+      if(raw.includes(":")){
+        const [H, M] = raw.split(":");
+        const h = Math.max(0, parseInt(H, 10) || 0);
+        const m = Math.max(0, parseInt(M, 10) || 0);
+        return h * 60 + m;
+      }
+      const n = parseInt(raw.replace(",", "."), 10);
+      return Math.max(0, n || 0);
     };
     const normalizeFurgone = (value) => {
       const v = String(value || "").trim().toLowerCase();
@@ -2736,7 +2755,7 @@ async function loadDestinationsAdmin(){
   try{
     setDestMsg("⏳ Caricamento destinazioni...", null);
     const data = await restGet(
-      "/rest/v1/destinations?select=id,name,km,maps_url&order=name.asc",
+      "/rest/v1/destinations?select=id,name,km,maps_url,travel_min&order=name.asc",
       token,
       12000,
       "Caricamento destinazioni"
@@ -2745,6 +2764,7 @@ async function loadDestinationsAdmin(){
       id: d.id,
       name: String(d.name || ""),
       km: Number(d.km || 0),
+      travel_min: d.travel_min == null ? null : Number(d.travel_min || 0),
       maps_url: String(d.maps_url || "")
     }));
     renderDestinationsAdmin();
@@ -2792,6 +2812,12 @@ function renderDestinationsAdmin(){
     kmInput.value = String(Number(dest.km || 0));
     kmInput.setAttribute("data-field", "km");
 
+    const durationInput = document.createElement("input");
+    durationInput.type = "text";
+    durationInput.value = dest.travel_min == null ? "" : fmtHHMM(dest.travel_min);
+    durationInput.placeholder = "Durata (hh:mm)";
+    durationInput.setAttribute("data-field", "travel");
+
     const mapsInput = document.createElement("input");
     mapsInput.type = "url";
     mapsInput.value = dest.maps_url || "";
@@ -2812,12 +2838,14 @@ function renderDestinationsAdmin(){
         return;
       }
       const km = parseFloat(String(kmInput.value || "0").replace(",", "."));
+      const travelMin = parseDurationInput(durationInput.value);
       const mapsUrl = (mapsInput.value || "").trim();
       try{
         await upsertDestination({
           id: dest.id,
           name,
           km: isFinite(km) ? km : 0,
+          travel_min: travelMin,
           maps_url: mapsUrl
         });
         await loadDestinationsAdmin();
@@ -2844,6 +2872,7 @@ function renderDestinationsAdmin(){
     actions.appendChild(delBtn);
     row.appendChild(nameInput);
     row.appendChild(kmInput);
+    row.appendChild(durationInput);
     row.appendChild(mapsInput);
     row.appendChild(actions);
     wrap.appendChild(row);
@@ -2857,6 +2886,7 @@ async function upsertDestination(dest){
     id: dest.id || newId(),
     name: dest.name || "",
     km: Number(dest.km || 0),
+    travel_min: dest.travel_min == null ? null : Number(dest.travel_min || 0),
     maps_url: dest.maps_url || null,
     updated_at: new Date().toISOString()
   };
@@ -3423,6 +3453,7 @@ if(btnLogout){
     $("btnAddDestination")?.addEventListener("click", async ()=>{
       const nameEl = $("destNameInput");
       const kmEl = $("destKmInput");
+      const durationEl = $("destDurationInput");
       const mapsEl = $("destMapsInput");
       const name = (nameEl?.value || "").trim();
       if(!name){
@@ -3430,15 +3461,18 @@ if(btnLogout){
         return;
       }
       const km = parseFloat(String(kmEl?.value || "0").replace(",", "."));
+      const travelMin = parseDurationInput(durationEl?.value || "");
       const mapsUrl = (mapsEl?.value || "").trim();
       try{
         await upsertDestination({
           name,
           km: isFinite(km) ? km : 0,
+          travel_min: travelMin,
           maps_url: mapsUrl
         });
         if(nameEl) nameEl.value = "";
         if(kmEl) kmEl.value = "";
+        if(durationEl) durationEl.value = "";
         if(mapsEl) mapsEl.value = "";
         await loadDestinationsAdmin();
       }catch(err){
