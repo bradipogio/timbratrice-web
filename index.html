@@ -417,6 +417,13 @@
       gap:12px;
     }
     .travelTime{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:8px;
+      color:var(--muted);
+    }
+    .travelTimeText{
       font-family:var(--time);
       font-variant-numeric: tabular-nums;
       font-size:14px;
@@ -425,11 +432,13 @@
       text-align:right;
       min-width:84px;
     }
+    .travelToggle{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+    }
     @media (max-width:520px){
-      .travelTime{
-        font-size:12px;
-        min-width:0;
-      }
+      .travelTimeText{font-size:12px; min-width:0;}
     }
     .bigIcon{
       width:52px;height:52px;
@@ -1641,7 +1650,12 @@ body{
       <div class="netRow">
         <div class="netTime" id="netTime">0:00</div>
         <div class="netRight">
-          <div id="travelTime" class="travelTime hidden"></div>
+          <div id="travelTime" class="travelTime hidden">
+            <span id="travelTimeText" class="travelTimeText"></span>
+            <label id="travelToggleWrap" class="travelToggle hidden" title="Applica viaggio">
+              <input id="travelToggle" type="checkbox" aria-label="Applica viaggio">
+            </label>
+          </div>
           <div class="bigIcon" id="bigIcon">
             <svg class="icon lg" aria-hidden="true"><use href="#i-check-circle"></use></svg>
           </div>
@@ -2226,6 +2240,23 @@ try{
       const h = Math.max(0, parseInt(H, 10) || 0);
       const m = Math.max(0, parseInt(M, 10) || 0);
       return h * 60 + m;
+    };
+    const normalizeTravelMin = (min) => {
+      if(min == null) return null;
+      const v = Math.max(0, Math.floor(Number(min || 0)));
+      return v > 0 ? v : null;
+    };
+    const splitTravelMin = (min) => {
+      const out = Math.floor(min / 2);
+      const back = Math.max(0, min - out);
+      return { out, back };
+    };
+    const shiftISO = (iso, deltaMin) => {
+      if(!iso) return "";
+      const d = new Date(iso);
+      if(isNaN(d.getTime())) return iso;
+      d.setMinutes(d.getMinutes() + deltaMin);
+      return d.toISOString();
     };
     const parseDurationInput = (value) => {
       const raw = (value || "").trim();
@@ -2881,6 +2912,93 @@ try{
       return destinationsByName.get(key) || null;
     }
 
+    function getTravelMinForTitle(title){
+      const dest = getDestinationByTitle(title);
+      return dest ? normalizeTravelMin(dest.travel_min) : null;
+    }
+
+    function getTravelMinForRow(row){
+      if(!row) return null;
+      const fromRow = normalizeTravelMin(row.travelMin);
+      if(fromRow != null) return fromRow;
+      return getTravelMinForTitle(row.title || "");
+    }
+
+    function applyTravelDelta(row, min, apply){
+      if(!row?.startISO || !row?.endISO) return false;
+      const travelMin = normalizeTravelMin(min);
+      if(!travelMin) return false;
+      const { out, back } = splitTravelMin(travelMin);
+      const startDelta = apply ? -out : out;
+      const endDelta = apply ? back : -back;
+      row.startISO = shiftISO(row.startISO, startDelta);
+      row.endISO = shiftISO(row.endISO, endDelta);
+      row.workMin = computeWorkMin(row, row.endISO);
+      return true;
+    }
+
+    function setTravelApplied(row, apply, minOverride){
+      if(!row) return false;
+      const travelMin = normalizeTravelMin(minOverride != null ? minOverride : row.travelMin);
+      if(!travelMin){
+        row.travelApplied = false;
+        row.travelMin = null;
+        return false;
+      }
+      row.travelMin = travelMin;
+      if(!row.endISO){
+        row.travelApplied = false;
+        return false;
+      }
+      const want = !!apply;
+      if(!!row.travelApplied === want) return true;
+      if(!applyTravelDelta(row, travelMin, want)){
+        row.travelApplied = false;
+        return false;
+      }
+      row.travelApplied = want;
+      return true;
+    }
+
+    function refreshTravelUI(){
+      const wrap = $("travelTime");
+      if(!wrap) return;
+      const textEl = $("travelTimeText");
+      const toggleWrap = $("travelToggleWrap");
+      const toggle = $("travelToggle");
+      const row = editRow || active;
+      const travelMin = row ? getTravelMinForRow(row) : null;
+      const shouldShow = !!row && travelMin != null;
+
+      wrap.classList.toggle("hidden", !shouldShow);
+      if(!shouldShow){
+        if(textEl) textEl.textContent = "";
+        if(toggleWrap) toggleWrap.classList.add("hidden");
+        if(toggle){
+          toggle.checked = false;
+          toggle.disabled = true;
+        }
+        return;
+      }
+
+      if(textEl) textEl.textContent = `Viaggio ${fmtHM(travelMin)}`;
+
+      if(editRow){
+        if(toggleWrap) toggleWrap.classList.remove("hidden");
+        const canApply = !isVanMode(getCurrentVehicleMode());
+        if(toggle){
+          toggle.disabled = !canApply;
+          toggle.checked = !!editRow.travelApplied;
+        }
+      }else{
+        if(toggleWrap) toggleWrap.classList.add("hidden");
+        if(toggle){
+          toggle.checked = false;
+          toggle.disabled = true;
+        }
+      }
+    }
+
     function setKmLocked(locked){
       const kmInput = $("kmInput");
       if(!kmInput) return;
@@ -2920,20 +3038,11 @@ try{
       }
       if(active){
         updateMapsChip(dest);
+        active.travelMin = dest ? normalizeTravelMin(dest.travel_min) : null;
       }else{
         updateMapsChip(null);
       }
-      const travelEl = $("travelTime");
-      if(travelEl){
-        const showTravel = (active || editRow) && dest && dest.travel_min != null;
-        if(showTravel){
-          travelEl.textContent = `Viaggio ${fmtHM(dest.travel_min || 0)}`;
-          travelEl.classList.remove("hidden");
-        }else{
-          travelEl.textContent = "";
-          travelEl.classList.add("hidden");
-        }
-      }
+      refreshTravelUI();
       return dest;
     }
 
@@ -3002,9 +3111,9 @@ function localInputToISO(v){
 }
 
     // --------- app state ---------
-    let active = null;   // {id,title,startISO,endISO,pauseMin,workMin,km,furgone,notes,breakStartISO}
+    let active = null;   // {id,title,startISO,endISO,pauseMin,workMin,km,furgone,travelMin,travelApplied,notes,breakStartISO}
     let history = [];    // ended only
-let editRow = null; // record finito che sto modificando (titolo/km/furgone)
+let editRow = null; // record finito che sto modificando (titolo/km/furgone/viaggio)
 let selectedIds = new Set();
 let visibleIds = [];
 let selectionMode = false;
@@ -3062,6 +3171,7 @@ if(st) st.value = (editRow.startISO ? isoToLocalInput(editRow.startISO).slice(11
 if(ed) ed.value = (editRow.endISO ? isoToLocalInput(editRow.endISO).slice(0,10) : "");
 if(et) et.value = (editRow.endISO ? isoToLocalInput(editRow.endISO).slice(11,16) : "");
 if(ph) ph.value = fmtHHMM(editRow.pauseMin||0);
+    updateDestinationFromTitle(t.value || "", false);
     return;
   }
 
@@ -3096,6 +3206,26 @@ if(ph) ph.value = "00:00";
   updateDestinationFromTitle(t.value || "", false);
   updateTitleClearVisibility();
   updateVehicleUI();
+}
+
+function syncDateTimeInputsFromRow(row){
+  if(!row) return;
+  const s = $("startInput");
+  const e = $("endInput");
+  const sd = $("startDateUI");
+  const st = $("startTimeUI");
+  const ed = $("endDateUI");
+  const et = $("endTimeUI");
+
+  const startLocal = row.startISO ? isoToLocalInput(row.startISO) : "";
+  const endLocal = row.endISO ? isoToLocalInput(row.endISO) : "";
+
+  if(s) s.value = startLocal;
+  if(e) e.value = endLocal;
+  if(sd) sd.value = startLocal ? startLocal.slice(0,10) : "";
+  if(st) st.value = startLocal ? startLocal.slice(11,16) : "";
+  if(ed) ed.value = endLocal ? endLocal.slice(0,10) : "";
+  if(et) et.value = endLocal ? endLocal.slice(11,16) : "";
 }
 
 function getDraftVehicleMode(){
@@ -3213,9 +3343,22 @@ function setVehicleMode(mode){
   if(editRow){
     editRow.furgone = furgoneFromMode(normalized);
     if(isVanMode(normalized)){
+      let travelChanged = false;
       editRow.km = 0;
       const kmInput = $("kmInput");
       if(kmInput) kmInput.value = "0";
+      if(editRow.travelApplied){
+        const travelMin = getTravelMinForRow(editRow);
+        if(travelMin != null){
+          setTravelApplied(editRow, false, travelMin);
+          syncDateTimeInputsFromRow(editRow);
+          travelChanged = true;
+        }
+        editRow.travelApplied = false;
+      }
+      if(travelChanged){
+        renderAll();
+      }
     }
     updateVehicleUI();
     updateDestinationFromTitle(($("titleInput")?.value || "").trim(), normalized === "car");
@@ -3844,6 +3987,8 @@ sb.auth.onAuthStateChange(async (_event, session) => {
           workMin: Number(r.workMin || 0),
           km: Number(r.km || 0),
           furgone: normalizeFurgone(r.furgone || ""),
+          travelMin: r.travelMin == null ? null : Number(r.travelMin || 0),
+          travelApplied: !!r.travelApplied,
           notes: r.notes || "",
           breakStartISO: r.breakStartISO || "",
           updatedAt: r.updatedAt || "",
@@ -3935,6 +4080,8 @@ sb.auth.onAuthStateChange(async (_event, session) => {
           workMin: Number(r.work_min || 0),
           km: Number(r.km || 0),
           furgone: normalizeFurgone(r.furgone || ""),
+          travelMin: r.travel_min == null ? null : Number(r.travel_min || 0),
+          travelApplied: !!r.travel_applied,
           notes: r.notes || "",
           breakStartISO: r.break_start_ts ? new Date(r.break_start_ts).toISOString() : "",
           updatedAt: r.updated_at ? new Date(r.updated_at).toISOString() : "",
@@ -3966,6 +4113,8 @@ sb.auth.onAuthStateChange(async (_event, session) => {
         work_min: Number(row.workMin || 0),
         km: Number(row.km || 0),
         furgone: normalizeFurgone(row.furgone || ""),
+        travel_min: normalizeTravelMin(row.travelMin),
+        travel_applied: !!row.travelApplied,
         notes: row.notes || "",
         break_start_ts: row.breakStartISO || null,
         updated_at: new Date().toISOString()
@@ -4216,6 +4365,8 @@ startISO: localInputToISO($("startInput").value) || toISO(now),
         workMin: 0,
         km,
         furgone: furgoneFromMode(draftMode),
+        travelMin: getTravelMinForTitle(title),
+        travelApplied: false,
         notes:"",
         breakStartISO:""
       };
@@ -4267,6 +4418,19 @@ startISO: localInputToISO($("startInput").value) || toISO(now),
       }catch(e){ await appAlert(e.message || String(e), { title: "Errore" }); }
     }
 
+    function finalizeActiveShift(endISO){
+      if(!active) return;
+      active.endISO = endISO;
+      active.workMin = computeWorkMin(active, endISO);
+      const travelMin = getTravelMinForRow(active);
+      active.travelMin = travelMin;
+      active.travelApplied = false;
+      const canApply = travelMin != null && !isVanMode(vehicleModeFromRow(active));
+      if(canApply){
+        setTravelApplied(active, true, travelMin);
+      }
+    }
+
     async function stopShift(){
       const user = await requireUser();
       if(!user){ setActionMsg("❌ Fai login (Impostazioni).", "err"); return; }
@@ -4283,8 +4447,7 @@ startISO: localInputToISO($("startInput").value) || toISO(now),
         active.breakStartISO = "";
       }
 
-      active.endISO = nowISO;
-      active.workMin = computeWorkMin(active, nowISO);
+      finalizeActiveShift(nowISO);
 
       try{
         setActionMsg("⏳ Chiusura turno...", null);
@@ -4428,6 +4591,7 @@ function updateSelectionUI(){
         punch.classList.toggle("is-editing", !!editRow);
       }
       updateVehicleUI();
+      refreshTravelUI();
 
       setNetTimeDisplay(netMin);
       const ph = $("pauseHHMMUI");
@@ -5253,7 +5417,16 @@ $("clearTitleBtn").addEventListener("click", (e)=>{
 $("titleInput").addEventListener("input", ()=>{
   const v = $("titleInput").value || "";
   if(editRow){
+    const prevTravelMin = getTravelMinForRow(editRow);
+    const wasApplied = !!editRow.travelApplied;
     editRow.title = v;
+    if(wasApplied && prevTravelMin != null){
+      setTravelApplied(editRow, false, prevTravelMin);
+      syncDateTimeInputsFromRow(editRow);
+    }
+    editRow.travelApplied = false;
+    const dest = getDestinationByTitle(v);
+    editRow.travelMin = dest ? normalizeTravelMin(dest.travel_min) : null;
     updateDestinationFromTitle(v, true);
     updateTitleClearVisibility();
     return;
@@ -5267,6 +5440,27 @@ $("titleInput").addEventListener("input", ()=>{
   updateDestinationFromTitle(v, true);
   updateTitleClearVisibility();
 });
+
+const travelToggle = $("travelToggle");
+if(travelToggle){
+  travelToggle.addEventListener("change", ()=>{
+    if(!editRow){
+      travelToggle.checked = false;
+      return;
+    }
+    const travelMin = getTravelMinForRow(editRow);
+    const canApply = !isVanMode(getCurrentVehicleMode());
+    if(travelMin == null || !canApply){
+      editRow.travelApplied = false;
+      travelToggle.checked = false;
+      refreshTravelUI();
+      return;
+    }
+    setTravelApplied(editRow, travelToggle.checked, travelMin);
+    syncDateTimeInputsFromRow(editRow);
+    renderAll();
+  });
+}
 
 $("kmInput").addEventListener("input", ()=>{
   const input = $("kmInput");
@@ -5405,8 +5599,7 @@ $("endInput").addEventListener("change", async ()=>{
       active.breakStartISO = "";
     }
 
-    active.endISO = iso;
-    active.workMin = computeWorkMin(active, active.endISO);
+    finalizeActiveShift(iso);
 
     try{
       setActionMsg("⏳ Chiusura turno...", null);
