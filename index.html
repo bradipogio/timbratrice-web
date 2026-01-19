@@ -411,6 +411,26 @@
       font-weight:900;
       letter-spacing:-.5px;
     }
+    .netRight{
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .travelTime{
+      font-family:var(--time);
+      font-variant-numeric: tabular-nums;
+      font-size:14px;
+      font-weight:800;
+      color:var(--muted);
+      text-align:right;
+      min-width:84px;
+    }
+    @media (max-width:520px){
+      .travelTime{
+        font-size:12px;
+        min-width:0;
+      }
+    }
     .bigIcon{
       width:52px;height:52px;
       border-radius:16px;
@@ -1620,8 +1640,11 @@ body{
 
       <div class="netRow">
         <div class="netTime" id="netTime">0:00</div>
-        <div class="bigIcon" id="bigIcon">
-          <svg class="icon lg" aria-hidden="true"><use href="#i-check-circle"></use></svg>
+        <div class="netRight">
+          <div id="travelTime" class="travelTime hidden"></div>
+          <div class="bigIcon" id="bigIcon">
+            <svg class="icon lg" aria-hidden="true"><use href="#i-check-circle"></use></svg>
+          </div>
         </div>
       </div>
 
@@ -2899,6 +2922,17 @@ try{
         updateMapsChip(dest);
       }else{
         updateMapsChip(null);
+      }
+      const travelEl = $("travelTime");
+      if(travelEl){
+        const showTravel = (active || editRow) && dest && dest.travel_min != null;
+        if(showTravel){
+          travelEl.textContent = `Viaggio ${fmtHM(dest.travel_min || 0)}`;
+          travelEl.classList.remove("hidden");
+        }else{
+          travelEl.textContent = "";
+          travelEl.classList.add("hidden");
+        }
       }
       return dest;
     }
