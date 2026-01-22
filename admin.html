@@ -1286,6 +1286,50 @@
       const n = parseInt(raw.replace(",", "."), 10);
       return Math.max(0, n || 0);
     };
+    function shouldSelectAllInput(el){
+      if(!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement)) return false;
+      if(el.readOnly || el.disabled) return false;
+      if(el instanceof HTMLTextAreaElement) return true;
+      const type = (el.type || "text").toLowerCase();
+      const blocked = new Set([
+        "checkbox",
+        "radio",
+        "file",
+        "button",
+        "submit",
+        "reset",
+        "range",
+        "color",
+        "date",
+        "datetime-local",
+        "month",
+        "week",
+        "time",
+        "hidden"
+      ]);
+      return !blocked.has(type);
+    }
+    function scheduleSelectAll(el){
+      if(!el || !el.value) return;
+      if(el.dataset.selectAllOnce === "1") return;
+      el.dataset.selectAllOnce = "1";
+      setTimeout(()=>{
+        if(document.activeElement === el && typeof el.select === "function"){
+          el.select();
+        }
+      }, 0);
+    }
+    document.addEventListener("focusin", (e)=>{
+      const el = e.target;
+      if(!shouldSelectAllInput(el)) return;
+      scheduleSelectAll(el);
+    });
+    document.addEventListener("focusout", (e)=>{
+      const el = e.target;
+      if(el && el.dataset && el.dataset.selectAllOnce){
+        delete el.dataset.selectAllOnce;
+      }
+    });
     const normalizeFurgone = (value) => {
       const v = String(value || "").trim().toLowerCase();
       if(v === "guida") return "guida";
