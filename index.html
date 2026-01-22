@@ -2085,6 +2085,7 @@ body{
       <input id="promptInput" class="hidden" type="text" />
       <div class="promptActions">
         <button id="promptCancel" class="btn" type="button">Annulla</button>
+        <button id="promptExtra" class="btn danger hidden" type="button">Elimina</button>
         <button id="promptOk" class="btn primary" type="button">Ok</button>
       </div>
     </div>
@@ -3671,7 +3672,9 @@ function enforceAuthGate(){
       showCancel = true,
       showInput = false,
       inputValue = "",
-      inputPlaceholder = ""
+      inputPlaceholder = "",
+      extraText = "",
+      extraClass = ""
     } = {}){
       const overlay = $("promptOverlay");
       const titleEl = $("promptTitle");
@@ -3679,7 +3682,8 @@ function enforceAuthGate(){
       const inputEl = $("promptInput");
       const okBtn = $("promptOk");
       const cancelBtn = $("promptCancel");
-      if(!overlay || !titleEl || !msgEl || !inputEl || !okBtn || !cancelBtn){
+      const extraBtn = $("promptExtra");
+      if(!overlay || !titleEl || !msgEl || !inputEl || !okBtn || !cancelBtn || !extraBtn){
         return Promise.resolve(showInput ? null : false);
       }
 
@@ -3698,6 +3702,10 @@ function enforceAuthGate(){
       okBtn.textContent = confirmText;
       cancelBtn.textContent = cancelText;
       cancelBtn.classList.toggle("hidden", !showCancel);
+      const showExtra = !!extraText;
+      extraBtn.textContent = extraText || "";
+      extraBtn.className = `btn ${showExtra ? (extraClass || "danger") : ""}`.trim();
+      extraBtn.classList.toggle("hidden", !showExtra);
 
       if(showInput){
         inputEl.classList.remove("hidden");
@@ -3736,7 +3744,13 @@ function enforceAuthGate(){
 
       let value = result;
       if(promptInputEnabled){
-        value = result ? String(inputEl?.value || "") : null;
+        if(result === true){
+          value = String(inputEl?.value || "");
+        }else if(result === "extra"){
+          value = "extra";
+        }else{
+          value = null;
+        }
       }
 
       if(promptResolve){
@@ -3759,6 +3773,18 @@ function enforceAuthGate(){
         message,
         confirmText: opts.confirmText || "Ok",
         cancelText: opts.cancelText || "Annulla",
+        showCancel: true
+      });
+    }
+
+    function appConfirmWithExtra(message, opts = {}){
+      return openPrompt({
+        title: opts.title || "Conferma",
+        message,
+        confirmText: opts.confirmText || "Ok",
+        cancelText: opts.cancelText || "Annulla",
+        extraText: opts.extraText || "Elimina",
+        extraClass: opts.extraClass || "danger",
         showCancel: true
       });
     }
@@ -3795,6 +3821,7 @@ function enforceAuthGate(){
     }
     $("promptOk")?.addEventListener("click", ()=> closePrompt(true));
     $("promptCancel")?.addEventListener("click", ()=> closePrompt(false));
+    $("promptExtra")?.addEventListener("click", ()=> closePrompt("extra"));
     document.addEventListener("keydown", (e)=>{
       if(!promptActive) return;
       if(e.key === "Escape"){
@@ -4457,6 +4484,24 @@ startISO: localInputToISO($("startInput").value) || toISO(now),
         syncInputsWithState();
         await refresh();
         setActionMsg("✅ Turno chiuso", "ok");
+      }catch(e){
+        setActionMsg("❌ " + (e.message || String(e)), "err");
+      }
+    }
+
+    async function deleteActiveShift(){
+      const user = await requireUser();
+      if(!user){ setActionMsg("❌ Fai login (Impostazioni).", "err"); return; }
+      if(!active) return;
+
+      const id = active.id;
+      try{
+        setActionMsg("⏳ Eliminazione turno...", null);
+        await deleteRow(id);
+        active = null;
+        syncInputsWithState();
+        await refresh();
+        setActionMsg("✅ Turno eliminato", "ok");
       }catch(e){
         setActionMsg("❌ " + (e.message || String(e)), "err");
       }
@@ -5616,8 +5661,19 @@ $("endInput").addEventListener("change", async ()=>{
   }
 });
     $("btnStop").addEventListener("click", async ()=>{
-      if(await appConfirm("Finire il turno?")){
+      const res = await appConfirmWithExtra("Finire il turno?", { extraText: "Elimina" });
+      if(res === true){
         await stopShift();
+        return;
+      }
+      if(res === "extra"){
+        const confirmDelete = await appConfirm("Eliminare questo turno?", {
+          confirmText: "Elimina",
+          cancelText: "Annulla"
+        });
+        if(confirmDelete){
+          await deleteActiveShift();
+        }
       }
     });
 
@@ -5732,6 +5788,8 @@ $("endInput").addEventListener("change", async ()=>{
 $("btnSaveEdit").addEventListener("click", async (e)=>{
   e.preventDefault();
   if(!editRow) return;
+  const ok = await appConfirm("Sei sicuro di salvare le modifiche?", { confirmText: "Salva" });
+  if(!ok) return;
 
   try{
     setActionMsg("⏳ Salvataggio modifiche...", null);
