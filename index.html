@@ -678,7 +678,15 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
 
     .summaryHead{display:flex; align-items:center; justify-content:space-between; gap:10px}
     .summaryHead > div:first-child{min-width:0; flex:1 1 auto}
-    #rangeText{display:block; white-space:normal; overflow-wrap:anywhere}
+    #rangeText{
+      display:block;
+      white-space:normal;
+      overflow-wrap:anywhere;
+      font-size:18px;
+      font-weight:900;
+      color:var(--text);
+      margin-top:4px;
+    }
     .summaryActions{display:flex; align-items:center; gap:10px; flex:0 0 auto; white-space:nowrap}
     .summaryActions .btn{flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center}
     .summaryActions .iconOnly{
@@ -5112,6 +5120,55 @@ list.innerHTML = "";
   </div>
 </body>
 </html>`;
+
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent || "");
+      const isStandalone = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || window.navigator.standalone === true;
+      if(isIOS && isStandalone){
+        const frame = document.createElement("iframe");
+        frame.style.position = "fixed";
+        frame.style.right = "0";
+        frame.style.bottom = "0";
+        frame.style.width = "0";
+        frame.style.height = "0";
+        frame.style.border = "0";
+        frame.setAttribute("aria-hidden", "true");
+        document.body.appendChild(frame);
+
+        const frameWin = frame.contentWindow;
+        const frameDoc = frame.contentDocument || frameWin?.document;
+        if(frameDoc){
+          frameDoc.open();
+          frameDoc.write(html);
+          frameDoc.close();
+        }
+
+        const printStartedAt = Date.now();
+        let cleaned = false;
+        const cleanup = () => {
+          if(cleaned) return;
+          cleaned = true;
+          frame.remove();
+        };
+        const closeIfReady = () => {
+          if(cleaned) return;
+          if(Date.now() - printStartedAt < 700) return;
+          cleanup();
+        };
+        if(frameWin){
+          if(typeof frameWin.addEventListener === "function"){
+            frameWin.addEventListener("afterprint", closeIfReady);
+            frameWin.addEventListener("focus", closeIfReady);
+          }else{
+            frameWin.onafterprint = closeIfReady;
+            frameWin.onfocus = closeIfReady;
+          }
+          frameWin.focus();
+          frameWin.print();
+        }else{
+          cleanup();
+        }
+        return;
+      }
 
       const win = window.open("", "_blank");
       if(!win){
