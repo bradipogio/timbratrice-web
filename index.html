@@ -4971,13 +4971,11 @@ list.innerHTML = "";
 
       let sumWork = 0;
       let sumKm = 0;
-      let sumPause = 0;
       let sumVan = 0;
       let sumDrive = 0;
       for(const r of rows){
         sumWork += Number(r.workMin||0);
         sumKm += Number(r.km||0);
-        sumPause += Number(r.pauseMin||0);
         const fLabel = normalizeFurgone(r.furgone);
         if(fLabel === "furgone") sumVan += 1;
         if(fLabel === "guida") sumDrive += 1;
@@ -5038,7 +5036,7 @@ list.innerHTML = "";
     .nowrap{ white-space:nowrap; }
     .totals{ margin-top:16px; padding:12px; border:1px solid #d9d9d9; border-radius:12px; background:#f6f6f6; break-inside:avoid; page-break-inside:avoid; }
     .totalsTitle{ font-size:14px; font-weight:800; margin-bottom:10px; text-transform:uppercase; letter-spacing:.6px; }
-    .totalsGrid{ display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:10px; break-inside:avoid; page-break-inside:avoid; }
+    .totalsGrid{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; break-inside:avoid; page-break-inside:avoid; }
     .totalsCard{ background:#fff; border:1px solid #d9d9d9; border-radius:12px; padding:10px; display:flex; gap:8px; align-items:center; break-inside:avoid; page-break-inside:avoid; }
     .totalsIcon{ width:22px; height:22px; color:#555; flex:0 0 auto; }
     .totalsLabel{ font-size:11px; color:#666; font-weight:700; letter-spacing:.4px; text-transform:uppercase; }
@@ -5068,7 +5066,7 @@ list.innerHTML = "";
     </tbody>
   </table>
   <div class="totals">
-    <div class="totalsTitle">Riepilogo finale</div>
+    <div class="totalsTitle">Riepilogo</div>
     <div class="totalsGrid">
       <div class="totalsCard">
         <svg class="totalsIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
@@ -5092,16 +5090,6 @@ list.innerHTML = "";
         <div>
           <div class="totalsLabel">Ore totali</div>
           <div class="totalsValue">${escapeHTML(fmtHM(sumWork))}</div>
-        </div>
-      </div>
-      <div class="totalsCard">
-        <svg class="totalsIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 6v12"></path>
-          <path d="M15 6v12"></path>
-        </svg>
-        <div>
-          <div class="totalsLabel">Pausa</div>
-          <div class="totalsValue">${escapeHTML(fmtHM(sumPause))}</div>
         </div>
       </div>
       <div class="totalsCard">
