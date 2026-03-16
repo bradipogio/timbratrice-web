@@ -3576,6 +3576,11 @@ function enforceAuthGate(){
       overlay.setAttribute("aria-hidden", "false");
     }
 
+    function setListLoadingText(text){
+      const label = $("listLoadingText");
+      if(label && text) label.textContent = text;
+    }
+
     function hideListLoading(){
       const overlay = $("listLoading");
       if(!overlay) return;
@@ -4083,7 +4088,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
 
         if(!sb){
           console.warn("Supabase non inizializzato: controlla connessione/CDN/config");
-          showListLoading("Caricamento dati locali...");
+          setListLoadingText("Caricamento dati locali...");
           await loadFromCache(user);
           return;
         }
@@ -4097,7 +4102,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
         const token = await getAccessToken();
         if(!token || !navigator.onLine){
           console.warn("[refresh] offline or missing token");
-          showListLoading("Caricamento dati locali...");
+          setListLoadingText("Caricamento dati locali...");
           await loadFromCache(user);
           return;
         }
@@ -4123,7 +4128,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
         }catch(e){
           console.error(e);
           if(isNetworkError(e)){
-            showListLoading("Caricamento dati locali...");
+            setListLoadingText("Caricamento dati locali...");
             await loadFromCache(user);
           }else{
             setActionMsg("❌ " + (e.message || String(e)), "err");
