@@ -2653,18 +2653,17 @@ try{
         return;
       }
       if(syncBusy){
-        pill.textContent = queueCount ? `Sync... (${queueCount})` : "Sync...";
+        pill.textContent = queueCount ? `Online · Sync... (${queueCount})` : "Online · Sync...";
         pill.classList.add("sync");
         return;
       }
       if(queueCount > 0){
-        pill.textContent = `In coda: ${queueCount}`;
+        pill.textContent = `Online · ${queueCount} in coda`;
         pill.classList.add("sync");
         return;
       }
       pill.textContent = "Online";
       pill.classList.add("ok");
-      pill.classList.add("hidden");
     }
 
     async function refreshNetStatus(){
@@ -3561,6 +3560,11 @@ function enforceAuthGate(){
       el.classList.toggle("hidden", !text);
     }
 
+    function showPersistResult(result, syncedText, queuedText){
+      const queued = !!result?.queued;
+      setActionMsg(queued ? queuedText : syncedText, queued ? null : "ok");
+    }
+
     function showListLoading(text){
       const overlay = $("listLoading");
       if(!overlay) return;
@@ -4072,13 +4076,14 @@ sb.auth.onAuthStateChange(async (_event, session) => {
         return;
       }
       refreshBusy = true;
-      showListLoading("Caricamento storico...");
+      showListLoading(navigator.onLine ? "Caricamento storico..." : "Caricamento dati locali...");
       try{
         const user = await requireUser();
         console.log("[refresh] start", { hasSb: !!sb, userId: user?.id || null });
 
         if(!sb){
           console.warn("Supabase non inizializzato: controlla connessione/CDN/config");
+          showListLoading("Caricamento dati locali...");
           await loadFromCache(user);
           return;
         }
@@ -4092,6 +4097,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
         const token = await getAccessToken();
         if(!token || !navigator.onLine){
           console.warn("[refresh] offline or missing token");
+          showListLoading("Caricamento dati locali...");
           await loadFromCache(user);
           return;
         }
@@ -4117,6 +4123,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
         }catch(e){
           console.error(e);
           if(isNetworkError(e)){
+            showListLoading("Caricamento dati locali...");
             await loadFromCache(user);
           }else{
             setActionMsg("❌ " + (e.message || String(e)), "err");
@@ -4345,6 +4352,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
 
       syncBusy = true;
       updateNetPill();
+      let syncedItems = 0;
       try{
         const ordered = [...queue].sort((a,b)=> (a.queuedAt || "").localeCompare(b.queuedAt || ""));
         for(const item of ordered){
@@ -4360,6 +4368,7 @@ sb.auth.onAuthStateChange(async (_event, session) => {
               }
             }
             await deleteQueueItem(item.id);
+            syncedItems += 1;
           }catch(err){
             console.error("Sync item error:", err);
             if(isNetworkError(err)) break;
@@ -4373,6 +4382,9 @@ sb.auth.onAuthStateChange(async (_event, session) => {
 
       if(refreshAfter){
         await refresh();
+      }
+      if(syncedItems > 0 && queueCount === 0){
+        setActionMsg("✅ Sincronizzazione completata", "ok");
       }
     }
 
@@ -4430,9 +4442,13 @@ startISO: localInputToISO($("startInput").value) || toISO(now),
       syncInputsWithState();
       try{
         setActionMsg("⏳ Avvio turno...", null);
-        await upsertRow(row);
+        const result = await upsertRow(row);
         await refresh();
-        setActionMsg("✅ Turno avviato", "ok");
+        showPersistResult(
+          result,
+          "✅ Turno avviato",
+          "📴 Turno avviato in locale · sync automatica appena torna online"
+        );
       }catch(e){
         setActionMsg("❌ " + (e.message || String(e)), "err");
       }
@@ -4450,9 +4466,13 @@ startISO: localInputToISO($("startInput").value) || toISO(now),
         active.breakStartISO = nowISO;
         try{
           setActionMsg("⏳ Pausa...", null);
-          await upsertRow(active);
+          const result = await upsertRow(active);
           await refresh();
-          setActionMsg("✅ Pausa avviata", "ok");
+          showPersistResult(
+            result,
+            "✅ Pausa avviata",
+            "📴 Pausa avviata in locale · sync automatica appena torna online"
+          );
         }catch(e){ await appAlert(e.message || String(e), { title: "Errore" }); }
         return;
       }
@@ -4467,9 +4487,13 @@ startISO: localInputToISO($("startInput").value) || toISO(now),
 
       try{
         setActionMsg("⏳ Fine pausa...", null);
-        await upsertRow(active);
+        const result = await upsertRow(active);
         await refresh();
-        setActionMsg("✅ Pausa chiusa", "ok");
+        showPersistResult(
+          result,
+          "✅ Pausa chiusa",
+          "📴 Fine pausa salvata in locale · sync automatica appena torna online"
+        );
       }catch(e){ await appAlert(e.message || String(e), { title: "Errore" }); }
     }
 
@@ -4506,11 +4530,15 @@ startISO: localInputToISO($("startInput").value) || toISO(now),
 
       try{
         setActionMsg("⏳ Chiusura turno...", null);
-        await upsertRow(active);
+        const result = await upsertRow(active);
         active = null;
         syncInputsWithState();
         await refresh();
-        setActionMsg("✅ Turno chiuso", "ok");
+        showPersistResult(
+          result,
+          "✅ Turno chiuso",
+          "📴 Turno chiuso in locale · sync automatica appena torna online"
+        );
       }catch(e){
         setActionMsg("❌ " + (e.message || String(e)), "err");
       }
@@ -4524,11 +4552,15 @@ startISO: localInputToISO($("startInput").value) || toISO(now),
       const id = active.id;
       try{
         setActionMsg("⏳ Eliminazione turno...", null);
-        await deleteRow(id);
+        const result = await deleteRow(id);
         active = null;
         syncInputsWithState();
         await refresh();
-        setActionMsg("✅ Turno eliminato", "ok");
+        showPersistResult(
+          result,
+          "✅ Turno eliminato",
+          "📴 Eliminazione salvata in locale · sync automatica appena torna online"
+        );
       }catch(e){
         setActionMsg("❌ " + (e.message || String(e)), "err");
       }
@@ -4788,8 +4820,13 @@ list.innerHTML = "";
             const id = e.currentTarget.getAttribute("data-del");
             if(!(await appConfirm("Eliminare questo record?"))) return;
             try{
-              await deleteRow(id);
+              const result = await deleteRow(id);
               await refresh();
+              showPersistResult(
+                result,
+                "✅ Record eliminato",
+                "📴 Eliminazione salvata in locale · sync automatica appena torna online"
+              );
             }catch(err){
               await appAlert(err.message || String(err), { title: "Errore" });
             }
@@ -5760,11 +5797,15 @@ $("endInput").addEventListener("change", async ()=>{
 
     try{
       setActionMsg("⏳ Chiusura turno...", null);
-      await upsertRow(active);
+      const result = await upsertRow(active);
       active = null;
       syncInputsWithState();
       await refresh();
-      setActionMsg("✅ Turno chiuso", "ok");
+      showPersistResult(
+        result,
+        "✅ Turno chiuso",
+        "📴 Turno chiuso in locale · sync automatica appena torna online"
+      );
     }catch(err){
       console.error(err);
       setActionMsg("❌ " + (err.message || String(err)), "err");
@@ -5850,10 +5891,15 @@ $("endInput").addEventListener("change", async ()=>{
       const ids = Array.from(selectedIds);
       if(!(await appConfirm(`Eliminare ${ids.length} record selezionati?`))) return;
       try{
-        await deleteRows(ids);
+        const result = await deleteRows(ids);
         selectedIds.clear();
         setSelectionMode(false);
         await refresh();
+        showPersistResult(
+          result,
+          "✅ Record eliminati",
+          "📴 Eliminazioni salvate in locale · sync automatica appena torna online"
+        );
       }catch(err){
         await appAlert(err.message || String(err), { title: "Errore" });
       }
@@ -5905,10 +5951,14 @@ $("btnSaveEdit").addEventListener("click", async (e)=>{
   try{
     setActionMsg("⏳ Salvataggio modifiche...", null);
     if(editRow.endISO) editRow.workMin = computeWorkMin(editRow, editRow.endISO);
-    await upsertRow(editRow);      // stesso id => aggiorna
+    const result = await upsertRow(editRow);      // stesso id => aggiorna
     stopEditEndedRecord();
     await refresh();
-    setActionMsg("✅ Modifiche salvate", "ok");
+    showPersistResult(
+      result,
+      "✅ Modifiche salvate",
+      "📴 Modifiche salvate in locale · sync automatica appena torna online"
+    );
   }catch(err){
     console.error(err);
     setActionMsg("❌ " + (err.message || String(err)), "err");
