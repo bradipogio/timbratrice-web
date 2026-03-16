@@ -976,9 +976,15 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       flex-direction:column;
       gap:12px;
       overflow:auto;
+      overscroll-behavior:contain;
       -webkit-overflow-scrolling:touch;
       max-height:calc(100vh - 28px);
       max-height:calc(100dvh - 28px);
+    }
+    .dlgInner input,
+    .dlgInner textarea,
+    .dlgInner select{
+      touch-action:pan-y;
     }
     .dlgTitle{font-weight:900; font-size:18px}
     .promptMsg{
