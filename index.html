@@ -3597,6 +3597,20 @@ function enforceAuthGate(){
         if(!target || typeof target.closest !== "function") return false;
         return !!target.closest("input, textarea, select, button, [contenteditable='true']");
       };
+      const isModalOpen = () => {
+        if(document.body && document.body.classList.contains("modalOpen")) return true;
+        const settings = document.getElementById("settingsDlg");
+        if(settings && !settings.classList.contains("hidden")) return true;
+        const prompt = document.getElementById("promptOverlay");
+        if(prompt && !prompt.classList.contains("hidden")) return true;
+        const loading = document.getElementById("listLoading");
+        if(loading && !loading.classList.contains("hidden")) return true;
+        return false;
+      };
+      const isOverlayTarget = (target) => {
+        if(!target || typeof target.closest !== "function") return false;
+        return !!target.closest(".modalOverlay, .listLoading");
+      };
 
       const threshold = 70;
       const maxPull = 120;
@@ -3615,6 +3629,7 @@ function enforceAuthGate(){
       };
 
       document.addEventListener("touchstart", (e)=>{
+        if(isModalOpen() || isOverlayTarget(e.target)) return;
         if(getScrollTop() > 0) return;
         if(isInteractiveTarget(e.target)) return;
         startY = e.touches[0].clientY;
@@ -3625,6 +3640,10 @@ function enforceAuthGate(){
 
       document.addEventListener("touchmove", (e)=>{
         if(!pulling) return;
+        if(isModalOpen() || isOverlayTarget(e.target)){
+          reset();
+          return;
+        }
         if(getScrollTop() > 0){
           reset();
           return;
