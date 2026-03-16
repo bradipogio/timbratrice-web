@@ -1068,6 +1068,25 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       flex-direction:column;
       gap:8px;
     }
+    .destToolbar{
+      display:flex;
+      align-items:flex-end;
+      gap:8px;
+    }
+    .destToolbar .field{
+      flex:1 1 auto;
+      min-width:0;
+    }
+    .destToggleBtn{
+      flex:0 0 auto;
+      min-width:44px;
+      padding:10px;
+      justify-content:center;
+    }
+    .destToggleBtn.is-active{
+      background:rgba(210,43,43,.12);
+      border-color:rgba(210,43,43,.55);
+    }
     .destGrid,
     .destRow{
       display:grid;
@@ -1118,6 +1137,8 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       justify-content:flex-end;
     }
     @media (max-width:700px){
+      .destToolbar{align-items:stretch}
+      .destToggleBtn{align-self:flex-end}
       .destGrid,
       .destRow,
       .destRow.readOnly{
@@ -2067,13 +2088,18 @@ body{
           </span>
         </summary>
         <div class="settingsBox">
-          <label class="field">
-            <span class="iconLabel">
-              <svg class="icon xs" aria-hidden="true"><use href="#i-search"></use></svg>
-              <span>Cerca</span>
-            </span>
-            <input id="destSettingsSearch" type="text" placeholder="Cerca destinazione">
-          </label>
+          <div class="destToolbar">
+            <label class="field">
+              <span class="iconLabel">
+                <svg class="icon xs" aria-hidden="true"><use href="#i-search"></use></svg>
+                <span>Cerca</span>
+              </span>
+              <input id="destSettingsSearch" type="text" placeholder="Cerca destinazione">
+            </label>
+            <button id="btnDestSettingsToggle" class="miniBtn iconOnly destToggleBtn hidden" type="button" aria-label="Nuova destinazione" aria-expanded="false" title="Nuova destinazione">
+              <svg class="icon sm" aria-hidden="true"><use href="#i-edit"></use></svg>
+            </button>
+          </div>
           <div id="destSettingsAdd" class="destGrid hidden">
             <input id="destSettingsName" type="text" placeholder="Nome destinazione">
             <input id="destSettingsKm" type="number" step="0.1" min="0" placeholder="Km">
@@ -2783,8 +2809,6 @@ try{
       if(!wrap) return;
       wrap.innerHTML = "";
       const isAdmin = isAdminUser();
-      const addWrap = $("destSettingsAdd");
-      if(addWrap) addWrap.classList.toggle("hidden", !isAdmin);
       const q = ($("destSettingsSearch")?.value || "").trim().toLowerCase();
       const list = [...destinations]
         .filter(d => !q || (d.name || "").toLowerCase().includes(q))
@@ -3455,6 +3479,7 @@ function flashVehiclePick(){
     let currentUser = null;
     let currentSession = null; // cache in memoria sessione (token)
     let recoveryMode = false;
+    let destinationAddExpanded = false;
 
     async function getUser(){
       // Prefer cached values to avoid hangs
@@ -3481,12 +3506,29 @@ function flashVehiclePick(){
       const email = (user?.email || "").trim().toLowerCase();
       return !!email && email === ADMIN_EMAIL_NORM;
     }
+    function setDestinationAddExpanded(expanded){
+      const canEdit = isAdminUser();
+      const addWrap = $("destSettingsAdd");
+      const toggleBtn = $("btnDestSettingsToggle");
+      const nameEl = $("destSettingsName");
+      destinationAddExpanded = !!expanded && canEdit;
+      if(addWrap) addWrap.classList.toggle("hidden", !destinationAddExpanded);
+      if(toggleBtn){
+        toggleBtn.classList.toggle("hidden", !canEdit);
+        toggleBtn.classList.toggle("is-active", destinationAddExpanded);
+        toggleBtn.setAttribute("aria-expanded", destinationAddExpanded ? "true" : "false");
+        toggleBtn.setAttribute("title", destinationAddExpanded ? "Chiudi nuova destinazione" : "Nuova destinazione");
+        toggleBtn.setAttribute("aria-label", destinationAddExpanded ? "Chiudi nuova destinazione" : "Nuova destinazione");
+      }
+      if(destinationAddExpanded){
+        setTimeout(()=> nameEl?.focus(), 0);
+      }
+    }
     function updateAdminOnlyUI(){
       const isAdmin = isAdminUser();
       const btnDiag = $("btnDiag");
       if(btnDiag) btnDiag.classList.toggle("hidden", !isAdmin);
-      const destAdd = $("destSettingsAdd");
-      if(destAdd) destAdd.classList.toggle("hidden", !isAdmin);
+      setDestinationAddExpanded(destinationAddExpanded);
       renderDestinationsSettings();
     }
     function setUserUI(user){
@@ -5362,6 +5404,17 @@ $("btnSettings").addEventListener("click", ()=>{
 });
 
     $("destSettingsSearch")?.addEventListener("input", ()=> renderDestinationsSettings());
+    $("btnDestSettingsToggle")?.addEventListener("click", ()=>{
+      if(!isAdminUser()){
+        setDestSettingsMsg("❌ Solo admin.", "err");
+        return;
+      }
+      const next = !destinationAddExpanded;
+      setDestinationAddExpanded(next);
+      if(next){
+        setDestSettingsMsg("", null);
+      }
+    });
     $("btnDestSettingsAdd")?.addEventListener("click", async ()=>{
       if(!isAdminUser()){
         setDestSettingsMsg("❌ Solo admin.", "err");
@@ -5391,6 +5444,7 @@ $("btnSettings").addEventListener("click", ()=>{
         if(durationEl) durationEl.value = "";
         if(mapsEl) mapsEl.value = "";
         setDestSettingsMsg("✅ Destinazione salvata.", "ok");
+        setDestinationAddExpanded(false);
         await loadDestinations({ force: true });
       }catch(err){
         setDestSettingsMsg(`❌ ${err.message || String(err)}`, "err");
