@@ -5152,15 +5152,53 @@ list.innerHTML = "";
       return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     }
 
-    async function getExportName(){
+    function formatExportRangeDate(value){
+      const raw = String(value || "").trim();
+      if(!raw) return "";
+      const direct = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if(direct) return `${direct[3]}/${direct[2]}`;
+      const d = new Date(raw);
+      if(isNaN(d.getTime())) return "";
+      return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}`;
+    }
+    function getExportRangeLabel(rows = []){
+      const filterOn = $("filterToggle")?.checked;
+      const fromValue = $("fromDate")?.value || "";
+      const toValue = $("toDate")?.value || "";
+      if(filterOn && fromValue && toValue){
+        const from = formatExportRangeDate(fromValue);
+        const to = formatExportRangeDate(toValue);
+        if(from && to) return `${from}-${to}`;
+      }
+      const dates = (rows || [])
+        .map(r => r?.startISO || "")
+        .filter(Boolean)
+        .sort((a,b)=> a.localeCompare(b));
+      const first = formatExportRangeDate(dates[0] || "");
+      const last = formatExportRangeDate(dates[dates.length - 1] || dates[0] || "");
+      if(first && last) return `${first}-${last}`;
+      const today = formatExportRangeDate(new Date().toISOString());
+      return today ? `${today}-${today}` : "";
+    }
+    function getDefaultPdfReportName(rows = []){
+      const range = getExportRangeLabel(rows);
+      return range ? `Recap Giovanni Mazzanti - ${range}` : "Recap Giovanni Mazzanti";
+    }
+    async function getExportName({
+      title = "Esporta",
+      message = "Nome export (opzionale). Lascia vuoto per usare email.",
+      defaultValue = "",
+      fallback = ""
+    } = {}){
       const email = (currentUser?.email || "").trim();
-      const fallback = email || "timbratrice";
-      const raw = await appPrompt("Nome export (opzionale). Lascia vuoto per usare email.", {
-        title: "Esporta",
-        defaultValue: ""
+      const defaultName = String(defaultValue || "").trim();
+      const finalFallback = String(fallback || "").trim() || defaultName || email || "timbratrice";
+      const raw = await appPrompt(message, {
+        title,
+        defaultValue: defaultName
       });
       if(raw === null) return null;
-      return String(raw).trim() || fallback;
+      return String(raw).trim() || finalFallback;
     }
 
     function getSearchQuery(){
@@ -5319,13 +5357,19 @@ list.innerHTML = "";
 
     // --------- PDF export (stampa -> salva PDF) ---------
     async function exportPDF(){
-      const report = await getExportName();
-      if(report === null) return;
       const rows = getVisibleHistory();
       if(rows.length === 0){
         setActionMsg("Nessun record da esportare.", "err");
         return;
       }
+      const defaultReportName = getDefaultPdfReportName(rows);
+      const report = await getExportName({
+        title: "Esporta PDF",
+        message: "Nome file PDF. Puoi modificarlo prima di esportare.",
+        defaultValue: defaultReportName,
+        fallback: defaultReportName
+      });
+      if(report === null) return;
 
       const dt = (iso)=>{
         if(!iso) return "";
@@ -5350,8 +5394,7 @@ list.innerHTML = "";
         if(fLabel === "guida") sumDrive += 1;
       }
 
-      const title = report.trim() || "Timbratrice";
-      const safeTitle = report.replace(/[^\w\-]+/g, "-");
+      const title = report.trim() || defaultReportName;
       const rangeText = ($("rangeText")?.textContent || "").trim();
       const q = ($("searchInput")?.value || "").trim();
       const nowText = new Date().toLocaleString("it-IT");
@@ -5386,7 +5429,7 @@ list.innerHTML = "";
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <title>${escapeHTML(title)}-PDF</title>
+  <title>${escapeHTML(title)}</title>
   <style>
     @page { size: A4; margin: 18mm 14mm; }
     body{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color:#111; }
@@ -5539,7 +5582,7 @@ list.innerHTML = "";
       win.document.open();
       win.document.write(html);
       win.document.close();
-      win.document.title = `${safeTitle}-${Date.now()}`;
+      win.document.title = title;
       win.onload = () => {
         const printStartedAt = Date.now();
         let closed = false;
