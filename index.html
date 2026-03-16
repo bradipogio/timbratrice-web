@@ -1087,12 +1087,61 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       background:rgba(210,43,43,.12);
       border-color:rgba(210,43,43,.55);
     }
+    .destItem{
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:var(--card);
+      overflow:hidden;
+    }
+    .destHead{
+      width:100%;
+      border:none;
+      background:transparent;
+      color:var(--text);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:12px 14px;
+      cursor:pointer;
+      text-align:left;
+      font:inherit;
+    }
+    .destHeadTitle{
+      min-width:0;
+      font-weight:900;
+      font-size:15px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .destHeadIcon{
+      flex:0 0 auto;
+      color:var(--muted);
+      transition:transform .18s ease;
+    }
+    .destItem.is-open .destHeadIcon{
+      transform:rotate(180deg);
+    }
+    .destBody{
+      padding:0 12px 12px;
+      border-top:1px solid var(--line);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
     .destGrid,
     .destRow{
       display:grid;
       grid-template-columns:1.2fr .6fr .7fr 1.4fr auto;
       gap:8px;
       align-items:center;
+    }
+    .destInfoGrid{
+      display:grid;
+      grid-template-columns:1.2fr .6fr .7fr 1.4fr;
+      gap:8px;
+      align-items:start;
     }
     .destRow{
       padding:8px;
@@ -1139,6 +1188,7 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     @media (max-width:700px){
       .destToolbar{align-items:stretch}
       .destToggleBtn{align-self:flex-end}
+      .destInfoGrid,
       .destGrid,
       .destRow,
       .destRow.readOnly{
@@ -1157,6 +1207,10 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       }
     }
     @media (min-width:900px){
+      .destInfoGrid{
+        grid-template-columns:1.4fr .7fr .8fr 1.6fr;
+        gap:10px;
+      }
       .destGrid,
       .destRow{
         grid-template-columns:1.4fr .7fr .8fr 1.6fr auto;
@@ -1622,6 +1676,9 @@ body{
     <symbol id="i-x" viewBox="0 0 24 24">
       <path d="M6 6l12 12"></path>
       <path d="M18 6l-12 12"></path>
+    </symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24">
+      <path d="M6 9l6 6 6-6"></path>
     </symbol>
   </svg>
   <div id="listLoading" class="listLoading" role="status" aria-live="polite" aria-hidden="false">
@@ -2813,6 +2870,9 @@ try{
       const list = [...destinations]
         .filter(d => !q || (d.name || "").toLowerCase().includes(q))
         .sort((a,b)=> (a.name || "").localeCompare(b.name || "", "it", { sensitivity: "base" }));
+      if(expandedDestinationId && !list.some(d => String(d.id) === String(expandedDestinationId))){
+        expandedDestinationId = null;
+      }
       if(list.length === 0){
         const empty = document.createElement("div");
         empty.className = "empty";
@@ -2822,9 +2882,31 @@ try{
       }
 
       for(const dest of list){
-        const row = document.createElement("div");
-        row.className = `destRow ${isAdmin ? "admin" : "readOnly"}`;
-        row.dataset.id = dest.id;
+        const item = document.createElement("div");
+        const expanded = String(expandedDestinationId || "") === String(dest.id);
+        item.className = `destItem ${expanded ? "is-open" : ""}`;
+        item.dataset.id = dest.id;
+
+        const head = document.createElement("button");
+        head.type = "button";
+        head.className = "destHead";
+        head.setAttribute("aria-expanded", expanded ? "true" : "false");
+        head.innerHTML = `
+          <span class="destHeadTitle">${escapeHTML(dest.name || "—")}</span>
+          <span class="destHeadIcon" aria-hidden="true">
+            <svg class="icon sm"><use href="#i-chevron-down"></use></svg>
+          </span>
+        `;
+        head.addEventListener("click", ()=> toggleDestinationExpanded(dest.id));
+        item.appendChild(head);
+
+        if(!expanded){
+          wrap.appendChild(item);
+          continue;
+        }
+
+        const body = document.createElement("div");
+        body.className = "destBody";
 
         if(isAdmin){
           const nameInput = document.createElement("input");
@@ -2880,12 +2962,15 @@ try{
           });
 
           const delBtn = document.createElement("button");
-          delBtn.className = "miniBtn danger";
+          delBtn.className = "miniBtn d";
           delBtn.type = "button";
           delBtn.textContent = "Elimina";
           delBtn.addEventListener("click", async ()=>{
             if(!(await appConfirm("Eliminare questa destinazione?"))) return;
             try{
+              if(String(expandedDestinationId || "") === String(dest.id)){
+                expandedDestinationId = null;
+              }
               await deleteDestinationSettings(dest.id);
               setDestSettingsMsg("✅ Destinazione eliminata.", "ok");
               await loadDestinations({ force: true });
@@ -2896,12 +2981,18 @@ try{
 
           actions.appendChild(saveBtn);
           actions.appendChild(delBtn);
-          row.appendChild(nameInput);
-          row.appendChild(kmInput);
-          row.appendChild(durationInput);
-          row.appendChild(mapsInput);
-          row.appendChild(actions);
+          const editor = document.createElement("div");
+          editor.className = "destGrid";
+          editor.appendChild(nameInput);
+          editor.appendChild(kmInput);
+          editor.appendChild(durationInput);
+          editor.appendChild(mapsInput);
+          editor.appendChild(actions);
+          body.appendChild(editor);
         }else{
+          const infoGrid = document.createElement("div");
+          infoGrid.className = "destInfoGrid";
+
           const nameCell = document.createElement("div");
           nameCell.className = "destCell";
           nameCell.innerHTML = `<div class="destLabel">Nome</div><div class="destValue">${escapeHTML(dest.name || "—")}</div>`;
@@ -2936,12 +3027,14 @@ try{
           mapsCell.appendChild(label);
           mapsCell.appendChild(value);
 
-          row.appendChild(nameCell);
-          row.appendChild(kmCell);
-          row.appendChild(durCell);
-          row.appendChild(mapsCell);
+          infoGrid.appendChild(nameCell);
+          infoGrid.appendChild(kmCell);
+          infoGrid.appendChild(durCell);
+          infoGrid.appendChild(mapsCell);
+          body.appendChild(infoGrid);
         }
-        wrap.appendChild(row);
+        item.appendChild(body);
+        wrap.appendChild(item);
       }
     }
 
@@ -3480,6 +3573,7 @@ function flashVehiclePick(){
     let currentSession = null; // cache in memoria sessione (token)
     let recoveryMode = false;
     let destinationAddExpanded = false;
+    let expandedDestinationId = null;
 
     async function getUser(){
       // Prefer cached values to avoid hangs
@@ -3523,6 +3617,11 @@ function flashVehiclePick(){
       if(destinationAddExpanded){
         setTimeout(()=> nameEl?.focus(), 0);
       }
+    }
+    function toggleDestinationExpanded(id){
+      const key = id == null ? null : String(id);
+      expandedDestinationId = expandedDestinationId === key ? null : key;
+      renderDestinationsSettings();
     }
     function updateAdminOnlyUI(){
       const isAdmin = isAdminUser();
