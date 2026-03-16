@@ -834,6 +834,27 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       line-height:1.05;
     }
     .itemBtns{grid-column:3; grid-row:1; justify-self:end; align-self:center}
+    .itemActions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .itemMenuActions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .miniBtn.textIcon{
+      min-width:34px;
+      padding:8px 10px;
+      font-size:14px;
+      font-weight:900;
+      line-height:1;
+    }
+    .miniBtn.textIcon span{
+      display:inline-block;
+      transform:translateY(.5px);
+    }
     .itemSub{
       grid-column:2 / -1;
       grid-row:2;
@@ -932,6 +953,39 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     }
     .itemMetaGrid .metaValue{text-align:center}
     .itemBtns{display:flex; gap:10px}
+    .itemPaySummary{
+      margin-top:10px;
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:8px;
+    }
+    .itemPayCard{
+      border:1px solid var(--line);
+      background:var(--card);
+      border-radius:12px;
+      padding:9px 10px;
+      min-width:0;
+      text-align:center;
+    }
+    .itemPayLabel{
+      font-size:11px;
+      color:var(--muted);
+      font-weight:800;
+      letter-spacing:.2px;
+    }
+    .itemPayValue{
+      margin-top:4px;
+      font-family:var(--time);
+      font-variant-numeric: tabular-nums;
+      font-size:14px;
+      font-weight:900;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    @media (max-width:520px){
+      .itemPaySummary{grid-template-columns:1fr}
+    }
     .miniBtn{
       padding:10px 12px;
       border-radius:14px;
@@ -1680,6 +1734,11 @@ body{
     <symbol id="i-chevron-down" viewBox="0 0 24 24">
       <path d="M6 9l6 6 6-6"></path>
     </symbol>
+    <symbol id="i-more-vertical" viewBox="0 0 24 24">
+      <circle cx="12" cy="5" r="1.7"></circle>
+      <circle cx="12" cy="12" r="1.7"></circle>
+      <circle cx="12" cy="19" r="1.7"></circle>
+    </symbol>
   </svg>
   <div id="listLoading" class="listLoading" role="status" aria-live="polite" aria-hidden="false">
     <div class="listLoadingInner">
@@ -1861,7 +1920,7 @@ body{
             <button id="btnSearchToggle" class="btn iconOnly" type="button" aria-label="Cerca" title="Cerca">
               <svg class="icon xs" aria-hidden="true"><use href="#i-search"></use></svg>
             </button>
-            <input id="searchInput" class="searchBar" type="search" placeholder="Cerca..." autocomplete="off" aria-label="Cerca" />
+            <input id="searchInput" class="searchBar" type="text" placeholder="Cerca..." autocomplete="off" aria-label="Cerca" list="destinationsList" />
           </div>
           <div id="exportWrap" class="exportWrap">
             <button id="btnExportMenu" class="btn exportBtn iconOnly" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Esporta" title="Esporta">
@@ -2151,7 +2210,7 @@ body{
                 <svg class="icon xs" aria-hidden="true"><use href="#i-search"></use></svg>
                 <span>Cerca</span>
               </span>
-              <input id="destSettingsSearch" type="text" placeholder="Cerca destinazione">
+              <input id="destSettingsSearch" type="text" placeholder="Cerca destinazione" list="destinationsList">
             </label>
             <button id="btnDestSettingsToggle" class="miniBtn iconOnly destToggleBtn hidden" type="button" aria-label="Nuova destinazione" aria-expanded="false" title="Nuova destinazione">
               <svg class="icon sm" aria-hidden="true"><use href="#i-edit"></use></svg>
@@ -2554,6 +2613,30 @@ try{
       $("payImposta").textContent = formatEuro(imposta);
       $("payInps").textContent = formatEuro(inps);
       $("payNet").textContent = formatEuro(netto);
+    }
+    function computeRowPaySummary(row){
+      const workMin = Number(row?.workMin || 0);
+      const km = Number(row?.km || 0);
+      const vehicle = normalizeFurgone(row?.furgone);
+      const vanCount = vehicle === "furgone" ? 1 : 0;
+      const driveCount = vehicle === "guida" ? 1 : 0;
+      const magazzinoRate = paySettings.magazzino || paySettings.hourly;
+      const hourlyRate = isMagazzinoTitle(row?.title) ? magazzinoRate : paySettings.hourly;
+      const grossHours = (workMin / 60) * hourlyRate;
+      const grossKm = km * paySettings.km;
+      const grossVan = vanCount * paySettings.van;
+      const grossDrive = driveCount * paySettings.drive;
+      const transportPay = grossKm + grossVan + grossDrive;
+      const grossTotal = grossHours + transportPay;
+      const imponibile = grossTotal * PAY_TAX.coeff;
+      const imposta = imponibile * PAY_TAX.rate;
+      const inps = imponibile * PAY_TAX.inps;
+      const netTotal = grossTotal - imposta - inps;
+      return {
+        transportPay,
+        grossTotal,
+        netTotal
+      };
     }
 
     // --------- offline cache + queue (IndexedDB) ---------
@@ -3249,6 +3332,8 @@ let editRow = null; // record finito che sto modificando (titolo/km/furgone/viag
 let selectedIds = new Set();
 let visibleIds = [];
 let selectionMode = false;
+let openItemMenuId = null;
+let expandedPayRowId = null;
 
     // Prevent concurrent network actions (can cause hangs / UI confusion)
     let refreshBusy = false;
@@ -4766,6 +4851,9 @@ function syncSelectionWithHistory(){
 }
 function setSelectionMode(on){
   selectionMode = !!on;
+  if(selectionMode){
+    openItemMenuId = null;
+  }
   document.body.classList.toggle("selecting", selectionMode);
   const btn = $("btnSelectMode");
   if(btn) btn.textContent = selectionMode ? "Fine" : "Seleziona";
@@ -4905,6 +4993,8 @@ list.innerHTML = "";
   $("empty").classList.add("hidden");
   const sorted = [...filteredHistory].sort((a,b)=> (b.startISO||"").localeCompare(a.startISO||""));
   visibleIds = sorted.map(r => String(r.id));
+  if(openItemMenuId && !visibleIds.includes(String(openItemMenuId))) openItemMenuId = null;
+  if(expandedPayRowId && !visibleIds.includes(String(expandedPayRowId))) expandedPayRowId = null;
   const fmtListDT = (iso)=>{
     if(!iso) return "—";
     const d = new Date(iso);
@@ -4919,6 +5009,9 @@ list.innerHTML = "";
           const isChecked = selectedIds.has(String(r.id));
           const fLabel = normalizeFurgone(r.furgone);
           const kmDisplay = fLabel ? fLabel : String(r.km||0);
+          const menuOpen = openItemMenuId === String(r.id);
+          const payOpen = expandedPayRowId === String(r.id);
+          const paySummary = computeRowPaySummary(r);
           const el = document.createElement("div");
           el.className = "item";
           el.setAttribute("data-row-id", r.id);
@@ -4929,12 +5022,24 @@ list.innerHTML = "";
               </label>
               <div class="itemStart">${escapeHTML(start)}</div>
               <div class="itemBtns">
-                <button class="miniBtn iconOnly" data-edit="${r.id}" aria-label="Modifica" title="Modifica">
-                  ${iconSvg("i-edit","icon xs")}
-                </button>
-                <button class="miniBtn d iconOnly" data-del="${r.id}" aria-label="Elimina" title="Elimina">
-                  ${iconSvg("i-trash","icon xs")}
-                </button>
+                <div class="itemActions">
+                  ${menuOpen ? `
+                    <div class="itemMenuActions">
+                      <button class="miniBtn textIcon" data-pay="${r.id}" aria-label="Paga" title="Prospetto paga">
+                        <span>&euro;</span>
+                      </button>
+                      <button class="miniBtn iconOnly" data-edit="${r.id}" aria-label="Modifica" title="Modifica">
+                        ${iconSvg("i-edit","icon xs")}
+                      </button>
+                      <button class="miniBtn d iconOnly" data-del="${r.id}" aria-label="Elimina" title="Elimina">
+                        ${iconSvg("i-trash","icon xs")}
+                      </button>
+                    </div>
+                  ` : ""}
+                  <button class="miniBtn iconOnly" data-more="${r.id}" aria-label="Opzioni" title="Opzioni" aria-expanded="${menuOpen ? "true" : "false"}">
+                    ${iconSvg("i-more-vertical","icon xs")}
+                  </button>
+                </div>
               </div>
               <div class="itemSub">
                 <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
@@ -4955,6 +5060,22 @@ list.innerHTML = "";
                 <div class="metaValue">${escapeHTML(kmDisplay)}</div>
               </div>
             </div>
+            ${payOpen ? `
+              <div class="itemPaySummary">
+                <div class="itemPayCard">
+                  <div class="itemPayLabel">Paga trasporto</div>
+                  <div class="itemPayValue">${escapeHTML(formatEuro(paySummary.transportPay))}</div>
+                </div>
+                <div class="itemPayCard">
+                  <div class="itemPayLabel">Paga lorda</div>
+                  <div class="itemPayValue">${escapeHTML(formatEuro(paySummary.grossTotal))}</div>
+                </div>
+                <div class="itemPayCard">
+                  <div class="itemPayLabel">Paga netta</div>
+                  <div class="itemPayValue">${escapeHTML(formatEuro(paySummary.netTotal))}</div>
+                </div>
+              </div>
+            ` : ""}
           `;
           list.appendChild(el);
         }
@@ -4979,9 +5100,12 @@ list.innerHTML = "";
         });
         list.querySelectorAll("[data-del]").forEach(btn=>{
           btn.addEventListener("click", async (e)=>{
+            e.stopPropagation();
             const id = e.currentTarget.getAttribute("data-del");
             if(!(await appConfirm("Eliminare questo record?"))) return;
             try{
+              if(openItemMenuId === String(id)) openItemMenuId = null;
+              if(expandedPayRowId === String(id)) expandedPayRowId = null;
               const result = await deleteRow(id);
               await refresh();
               showPersistResult(
@@ -4996,10 +5120,29 @@ list.innerHTML = "";
         });
         list.querySelectorAll("[data-edit]").forEach(btn=>{
   btn.addEventListener("click", (e)=>{
+    e.stopPropagation();
     const id = e.currentTarget.getAttribute("data-edit");
+    openItemMenuId = null;
     startEditEndedRecord(id);
   });
 });
+        list.querySelectorAll("[data-more]").forEach(btn=>{
+          btn.addEventListener("click", (e)=>{
+            e.stopPropagation();
+            const id = String(e.currentTarget.getAttribute("data-more"));
+            openItemMenuId = openItemMenuId === id ? null : id;
+            renderAll();
+          });
+        });
+        list.querySelectorAll("[data-pay]").forEach(btn=>{
+          btn.addEventListener("click", (e)=>{
+            e.stopPropagation();
+            const id = String(e.currentTarget.getAttribute("data-pay"));
+            expandedPayRowId = expandedPayRowId === id ? null : id;
+            openItemMenuId = null;
+            renderAll();
+          });
+        });
         updateSelectionUI();
       }
       updatePayRecap();
