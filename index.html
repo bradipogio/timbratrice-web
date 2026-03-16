@@ -3574,6 +3574,7 @@ function enforceAuthGate(){
       if(listLoadingCount > 1) return;
       overlay.classList.remove("hidden");
       overlay.setAttribute("aria-hidden", "false");
+      syncModalOpenState();
     }
 
     function setListLoadingText(text){
@@ -3588,6 +3589,7 @@ function enforceAuthGate(){
       if(listLoadingCount > 0) return;
       overlay.classList.add("hidden");
       overlay.setAttribute("aria-hidden", "true");
+      syncModalOpenState();
     }
 
     function initPullToRefresh(){
@@ -3700,6 +3702,14 @@ function enforceAuthGate(){
     let promptInputEnabled = false;
     let promptLastFocus = null;
 
+    function syncModalOpenState(){
+      const hasOpenOverlay =
+        !$("settingsDlg")?.classList.contains("hidden") ||
+        !$("promptOverlay")?.classList.contains("hidden") ||
+        !$("listLoading")?.classList.contains("hidden");
+      document.body.classList.toggle("modalOpen", !!hasOpenOverlay);
+    }
+
     function openPrompt({
       title = "Conferma",
       message = "",
@@ -3755,7 +3765,7 @@ function enforceAuthGate(){
 
       overlay.classList.remove("hidden");
       overlay.setAttribute("aria-hidden", "false");
-      document.body.classList.add("modalOpen");
+      syncModalOpenState();
 
       return new Promise((resolve)=>{
         promptResolve = resolve;
@@ -3776,7 +3786,7 @@ function enforceAuthGate(){
       if(!overlay) return;
       overlay.classList.add("hidden");
       overlay.setAttribute("aria-hidden", "true");
-      document.body.classList.remove("modalOpen");
+      syncModalOpenState();
 
       let value = result;
       if(promptInputEnabled){
@@ -5317,6 +5327,7 @@ list.innerHTML = "";
       updateAuthButtons();
       updateAdminOnlyUI();
       settingsDlg.classList.remove("hidden");
+      syncModalOpenState();
     }
 function closeSettings(){
   if(!currentUser){
@@ -5324,6 +5335,7 @@ function closeSettings(){
     return;
   }
   settingsDlg.classList.add("hidden");
+  syncModalOpenState();
 }
 settingsDlg.addEventListener("click", (e)=>{
   if(e.target === settingsDlg){
