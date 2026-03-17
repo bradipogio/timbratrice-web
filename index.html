@@ -5139,7 +5139,7 @@ list.innerHTML = "";
             e.stopPropagation();
             const id = String(e.currentTarget.getAttribute("data-pay"));
             expandedPayRowId = expandedPayRowId === id ? null : id;
-            openItemMenuId = null;
+            openItemMenuId = id;
             renderAll();
           });
         });
