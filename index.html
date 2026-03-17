@@ -5461,22 +5461,6 @@ list.innerHTML = "";
 <body>
   <h1>${escapeHTML(title)}</h1>
   ${metaLines}
-  <table>
-    <thead>
-      <tr>
-        <th>Titolo</th>
-        <th>Inizio</th>
-        <th>Fine</th>
-        <th>Pausa</th>
-        <th>Ore</th>
-        <th class="right">Km</th>
-        <th class="center">Furgone</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${rowsHtml}
-    </tbody>
-  </table>
   <div class="totals">
     <div class="totalsTitle">Riepilogo</div>
     <div class="totalsGrid">
@@ -5522,6 +5506,22 @@ list.innerHTML = "";
       </div>
     </div>
   </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Titolo</th>
+        <th>Inizio</th>
+        <th>Fine</th>
+        <th>Pausa</th>
+        <th>Ore</th>
+        <th class="right">Km</th>
+        <th class="center">Furgone</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml}
+    </tbody>
+  </table>
 </body>
 </html>`;
 
