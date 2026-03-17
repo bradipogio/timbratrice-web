@@ -1041,6 +1041,65 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       touch-action:pan-y;
     }
     .dlgTitle{font-weight:900; font-size:18px}
+    .settingsInner{
+      gap:14px;
+      padding-top:0;
+    }
+    .settingsTopbar{
+      position:sticky;
+      top:0;
+      z-index:2;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin:0 -16px;
+      padding:16px 16px 12px;
+      background:var(--card);
+      border-bottom:1px solid var(--line);
+    }
+    .settingsIntro{
+      margin-top:4px;
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.35;
+    }
+    .settingsCloseBtn{
+      flex:0 0 auto;
+      min-width:42px;
+      padding:10px;
+    }
+    .settingsPanel{
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:var(--card2);
+      padding:14px;
+    }
+    .settingsPanel-account{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .settingsSectionHead{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:2px;
+    }
+    .settingsSectionTitle{
+      display:block;
+      font-size:17px;
+      font-weight:900;
+      letter-spacing:-.2px;
+    }
+    .settingsSectionText{
+      display:block;
+      margin-top:3px;
+      font-size:13px;
+      color:var(--muted);
+      line-height:1.35;
+    }
     .promptMsg{
       font-size:14px;
       line-height:1.4;
@@ -1093,24 +1152,62 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     }
     .settingsDetails{
       border:1px solid var(--line);
-      border-radius:16px;
-      padding:10px 12px;
+      border-radius:18px;
+      padding:0;
       background:var(--card2);
+      overflow:hidden;
     }
     .settingsSummary{
       list-style:none;
       cursor:pointer;
-      font-weight:900;
       display:flex;
       align-items:center;
-      gap:8px;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px;
     }
     .settingsSummary::-webkit-details-marker{display:none}
-    .settingsDetails[open] .settingsSummary{margin-bottom:8px}
+    .settingsSummaryMain{
+      min-width:0;
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+    }
+    .settingsSummaryText{
+      min-width:0;
+    }
+    .settingsSummaryCaret{
+      flex:0 0 auto;
+      color:var(--muted);
+      transition:transform .18s ease;
+    }
+    .settingsDetails[open] .settingsSummaryCaret{
+      transform:rotate(180deg);
+    }
     .settingsBox{
       display:flex;
       flex-direction:column;
       gap:12px;
+      padding:0 14px 14px;
+      border-top:1px solid var(--line);
+    }
+    .settingsGroup{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .settingsGroupTitle{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:900;
+      letter-spacing:.3px;
+      text-transform:uppercase;
+    }
+    .settingsScope{
+      padding:10px 12px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:var(--card);
     }
     @media (min-width:900px){
       #settingsDlg .modalCard{
@@ -2052,143 +2149,181 @@ body{
 
 <div id="settingsDlg" class="modalOverlay hidden" role="dialog" aria-modal="true" aria-label="Account e impostazioni">
   <div class="modalCard">
-    <form class="dlgInner" onsubmit="return false;">
-      <div class="dlgTitle">Account & Impostazioni</div>
-      <div id="authFields">
-        <label class="field">
-          <span>Email</span>
-          <input id="emailInput" type="email" placeholder="tuo@email.com" autocomplete="email">
-        </label>
-
-        <label id="passField" class="field">
-          <span>Password</span>
-          <input id="passInput" type="password" placeholder="min 6 caratteri" autocomplete="current-password">
-        </label>
-      </div>
-
-      <div id="recoveryBox" class="hidden">
-        <div class="hint">Inserisci la nuova password per completare il recupero.</div>
-        <label class="field">
-          <span>Nuova password</span>
-          <input id="newPassInput" type="password" placeholder="min 6 caratteri" autocomplete="new-password">
-        </label>
-        <label class="field">
-          <span>Conferma nuova password</span>
-          <input id="newPassConfirm" type="password" placeholder="ripeti password" autocomplete="new-password">
-        </label>
-        <div class="row">
-          <button id="btnSetPassword" type="button" class="btn primary">Imposta nuova password</button>
+    <form class="dlgInner settingsInner" onsubmit="return false;">
+      <div class="settingsTopbar">
+        <div>
+          <div class="dlgTitle">Impostazioni</div>
+          <div class="settingsIntro">Account, compensi e destinazioni in un unico pannello.</div>
         </div>
+        <button id="btnSettingsClose" class="iconBtn settingsCloseBtn" type="button" aria-label="Chiudi impostazioni" title="Chiudi">
+          <svg class="icon" aria-hidden="true"><use href="#i-x"></use></svg>
+        </button>
       </div>
 
-      <div id="loginRow" class="row">
-        <button id="btnLogin" type="button" class="btn primary">Login</button>
-        <button id="btnSignup" type="button" class="btn hidden" disabled>Registrati</button>
-      </div>
+      <section class="settingsPanel settingsPanel-account">
+        <div class="settingsSectionHead">
+          <div>
+            <div class="settingsSectionTitle">Account</div>
+            <div class="settingsSectionText">Accesso, recupero password e stato dell’account.</div>
+          </div>
+        </div>
 
-      <div id="resetRow" class="row">
-        <button id="btnReset" type="button" class="btn">Recupera password</button>
-        <button id="btnDiag" type="button" class="btn">Diagnostica</button>
-      </div>
+        <div id="authFields">
+          <label class="field">
+            <span>Email</span>
+            <input id="emailInput" type="email" placeholder="tuo@email.com" autocomplete="email">
+          </label>
 
-      <div id="logoutRow" class="row hidden">
-        <button id="btnLogout" type="button" class="btn danger">Logout</button>
-      </div>
+          <label id="passField" class="field">
+            <span>Password</span>
+            <input id="passInput" type="password" placeholder="min 6 caratteri" autocomplete="current-password">
+          </label>
+        </div>
 
-      <details id="paySheetDetails" class="settingsDetails">
+        <div id="recoveryBox" class="hidden">
+          <div class="hint">Inserisci la nuova password per completare il recupero.</div>
+          <label class="field">
+            <span>Nuova password</span>
+            <input id="newPassInput" type="password" placeholder="min 6 caratteri" autocomplete="new-password">
+          </label>
+          <label class="field">
+            <span>Conferma nuova password</span>
+            <input id="newPassConfirm" type="password" placeholder="ripeti password" autocomplete="new-password">
+          </label>
+          <div class="row">
+            <button id="btnSetPassword" type="button" class="btn primary">Imposta nuova password</button>
+          </div>
+        </div>
+
+        <div id="loginRow" class="row">
+          <button id="btnLogin" type="button" class="btn primary">Login</button>
+          <button id="btnSignup" type="button" class="btn hidden" disabled>Registrati</button>
+        </div>
+
+        <div id="resetRow" class="row">
+          <button id="btnReset" type="button" class="btn">Recupera password</button>
+          <button id="btnDiag" type="button" class="btn">Diagnostica</button>
+        </div>
+
+        <div id="logoutRow" class="row hidden">
+          <button id="btnLogout" type="button" class="btn danger">Logout</button>
+        </div>
+
+        <div id="settingsMsg" class="msg"></div>
+      </section>
+
+      <details id="paySheetDetails" class="settingsDetails" open>
         <summary class="settingsSummary">
-          <span class="iconLabel">
-            <svg class="icon xs" aria-hidden="true"><use href="#i-list"></use></svg>
-            <span>Prospetto paga</span>
-          </span>
+          <div class="settingsSummaryMain">
+            <span class="iconLabel">
+              <svg class="icon xs" aria-hidden="true"><use href="#i-list"></use></svg>
+            </span>
+            <div class="settingsSummaryText">
+              <span class="settingsSectionTitle">Compensi</span>
+              <span class="settingsSectionText">Valori usati per i recap e riepilogo economico.</span>
+            </div>
+          </div>
+          <svg class="icon xs settingsSummaryCaret" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
         </summary>
         <div class="settingsBox">
-          <div class="payScope">
+          <div class="payScope settingsScope">
             <div class="chipLabel">Selezione home</div>
             <div id="payScopeText" class="payScopeText">Storico: tutti</div>
           </div>
 
-          <div class="payGrid">
-            <label class="field">
-              <span>Paga lorda (€/h)</span>
-              <input id="payHourly" type="text" inputmode="decimal" placeholder="0">
-            </label>
-            <label class="field">
-              <span>Paga Magazzino (€/h)</span>
-              <input id="payMagazzino" type="text" inputmode="decimal" placeholder="0">
-            </label>
-            <label class="field">
-              <span>€/km</span>
-              <input id="payKm" type="text" inputmode="decimal" placeholder="0">
-            </label>
-            <label class="field">
-              <span>Paga furgone (€/turno)</span>
-              <input id="payVan" type="text" inputmode="decimal" placeholder="0">
-            </label>
-            <label class="field">
-              <span>Paga guida furgone (€/turno)</span>
-              <input id="payDrive" type="text" inputmode="decimal" placeholder="0">
-            </label>
-          </div>
-
-          <div class="payGrid">
-            <div class="payRow">
-              <span class="payLabel">Ore (nette)</span>
-              <span id="payHours" class="payValue">0:00</span>
-            </div>
-            <div class="payRow">
-              <span class="payLabel">Km</span>
-              <span id="payKmTotal" class="payValue">0</span>
-            </div>
-            <div class="payRow">
-              <span class="payLabel">Furgone</span>
-              <span id="payVanTotal" class="payValue">0</span>
-            </div>
-            <div class="payRow">
-              <span class="payLabel">Guida</span>
-              <span id="payDriveTotal" class="payValue">0</span>
+          <div class="settingsGroup">
+            <div class="settingsGroupTitle">Valori base</div>
+            <div class="payGrid">
+              <label class="field">
+                <span>Paga lorda (€/h)</span>
+                <input id="payHourly" type="text" inputmode="decimal" placeholder="0">
+              </label>
+              <label class="field">
+                <span>Paga Magazzino (€/h)</span>
+                <input id="payMagazzino" type="text" inputmode="decimal" placeholder="0">
+              </label>
+              <label class="field">
+                <span>€/km</span>
+                <input id="payKm" type="text" inputmode="decimal" placeholder="0">
+              </label>
+              <label class="field">
+                <span>Paga furgone (€/turno)</span>
+                <input id="payVan" type="text" inputmode="decimal" placeholder="0">
+              </label>
+              <label class="field">
+                <span>Paga guida furgone (€/turno)</span>
+                <input id="payDrive" type="text" inputmode="decimal" placeholder="0">
+              </label>
             </div>
           </div>
 
-          <div class="payGrid">
-            <div class="payRow">
-              <span class="payLabel">Lordo ore</span>
-              <span id="payGrossHours" class="payValue">€ 0,00</span>
-            </div>
-            <div class="payRow">
-              <span class="payLabel">Rimborso km</span>
-              <span id="payGrossKm" class="payValue">€ 0,00</span>
-            </div>
-            <div class="payRow">
-              <span class="payLabel">Furgone</span>
-              <span id="payGrossVan" class="payValue">€ 0,00</span>
-            </div>
-            <div class="payRow">
-              <span class="payLabel">Guida furgone</span>
-              <span id="payGrossDrive" class="payValue">€ 0,00</span>
-            </div>
-            <div class="payRow is-total">
-              <span class="payLabel">Guadagno lordo (G)</span>
-              <span id="payGrossTotal" class="payValue">€ 0,00</span>
+          <div class="settingsGroup">
+            <div class="settingsGroupTitle">Riepilogo attivita</div>
+            <div class="payGrid">
+              <div class="payRow">
+                <span class="payLabel">Ore (nette)</span>
+                <span id="payHours" class="payValue">0:00</span>
+              </div>
+              <div class="payRow">
+                <span class="payLabel">Km</span>
+                <span id="payKmTotal" class="payValue">0</span>
+              </div>
+              <div class="payRow">
+                <span class="payLabel">Furgone</span>
+                <span id="payVanTotal" class="payValue">0</span>
+              </div>
+              <div class="payRow">
+                <span class="payLabel">Guida</span>
+                <span id="payDriveTotal" class="payValue">0</span>
+              </div>
             </div>
           </div>
 
-          <div class="payGrid">
-            <div class="payRow">
-              <span class="payLabel">Reddito imponibile (67%)</span>
-              <span id="payImponibile" class="payValue">€ 0,00</span>
+          <div class="settingsGroup">
+            <div class="settingsGroupTitle">Compensi lordi</div>
+            <div class="payGrid">
+              <div class="payRow">
+                <span class="payLabel">Lordo ore</span>
+                <span id="payGrossHours" class="payValue">€ 0,00</span>
+              </div>
+              <div class="payRow">
+                <span class="payLabel">Rimborso km</span>
+                <span id="payGrossKm" class="payValue">€ 0,00</span>
+              </div>
+              <div class="payRow">
+                <span class="payLabel">Furgone</span>
+                <span id="payGrossVan" class="payValue">€ 0,00</span>
+              </div>
+              <div class="payRow">
+                <span class="payLabel">Guida furgone</span>
+                <span id="payGrossDrive" class="payValue">€ 0,00</span>
+              </div>
+              <div class="payRow is-total">
+                <span class="payLabel">Guadagno lordo (G)</span>
+                <span id="payGrossTotal" class="payValue">€ 0,00</span>
+              </div>
             </div>
-            <div class="payRow">
-              <span class="payLabel">Imposta 5%</span>
-              <span id="payImposta" class="payValue">€ 0,00</span>
-            </div>
-            <div class="payRow">
-              <span class="payLabel">Contributi INPS 26,07%</span>
-              <span id="payInps" class="payValue">€ 0,00</span>
-            </div>
-            <div class="payRow is-net">
-              <span class="payLabel">Netto in tasca (N)</span>
-              <span id="payNet" class="payValue">€ 0,00</span>
+          </div>
+
+          <div class="settingsGroup">
+            <div class="settingsGroupTitle">Netto e contributi</div>
+            <div class="payGrid">
+              <div class="payRow">
+                <span class="payLabel">Reddito imponibile (67%)</span>
+                <span id="payImponibile" class="payValue">€ 0,00</span>
+              </div>
+              <div class="payRow">
+                <span class="payLabel">Imposta 5%</span>
+                <span id="payImposta" class="payValue">€ 0,00</span>
+              </div>
+              <div class="payRow">
+                <span class="payLabel">Contributi INPS 26,07%</span>
+                <span id="payInps" class="payValue">€ 0,00</span>
+              </div>
+              <div class="payRow is-net">
+                <span class="payLabel">Netto in tasca (N)</span>
+                <span id="payNet" class="payValue">€ 0,00</span>
+              </div>
             </div>
           </div>
 
@@ -2198,12 +2333,22 @@ body{
 
       <details id="destinationsDetails" class="settingsDetails">
         <summary class="settingsSummary">
-          <span class="iconLabel">
-            <svg class="icon xs" aria-hidden="true"><use href="#i-map-pin"></use></svg>
-            <span>Destinazioni</span>
-          </span>
+          <div class="settingsSummaryMain">
+            <span class="iconLabel">
+              <svg class="icon xs" aria-hidden="true"><use href="#i-map-pin"></use></svg>
+            </span>
+            <div class="settingsSummaryText">
+              <span class="settingsSectionTitle">Destinazioni</span>
+              <span class="settingsSectionText">Elenco salvato, ricerca rapida e modifica delle destinazioni.</span>
+            </div>
+          </div>
+          <svg class="icon xs settingsSummaryCaret" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
         </summary>
         <div class="settingsBox">
+          <div class="settingsScope">
+            <div class="chipLabel">Elenco destinazioni</div>
+            <div class="payScopeText">Cerca, apri il dettaglio e modifica solo quando serve.</div>
+          </div>
           <div class="destToolbar">
             <label class="field">
               <span class="iconLabel">
@@ -2227,8 +2372,6 @@ body{
           <div id="destSettingsMsg" class="msg hidden"></div>
         </div>
       </details>
-
-      <div id="settingsMsg" class="msg"></div>
     </form>
   </div>
 </div>
@@ -3940,6 +4083,13 @@ function enforceAuthGate(){
         !$("promptOverlay")?.classList.contains("hidden") ||
         !$("listLoading")?.classList.contains("hidden");
       document.body.classList.toggle("modalOpen", !!hasOpenOverlay);
+    }
+    function enforceSettingsExclusiveOpen(openId){
+      ["paySheetDetails", "destinationsDetails"].forEach((id)=>{
+        const el = $(id);
+        if(!el || id === openId) return;
+        el.open = false;
+      });
     }
 
     function openPrompt({
@@ -5659,6 +5809,10 @@ list.innerHTML = "";
       settingsJustOpenedAt = Date.now();
       updateAuthButtons();
       updateAdminOnlyUI();
+      if(!$("paySheetDetails")?.open && !$("destinationsDetails")?.open){
+        const payDetails = $("paySheetDetails");
+        if(payDetails) payDetails.open = true;
+      }
       settingsDlg.classList.remove("hidden");
       syncModalOpenState();
     }
@@ -5687,6 +5841,14 @@ $("btnSettings").addEventListener("click", ()=>{
     if(user) $("emailInput").value = user.email || "";
   }).catch(()=>{});
 });
+    $("btnSettingsClose")?.addEventListener("click", ()=> closeSettings());
+    ["paySheetDetails", "destinationsDetails"].forEach((id)=>{
+      $(id)?.addEventListener("toggle", (e)=>{
+        if(e.currentTarget.open){
+          enforceSettingsExclusiveOpen(id);
+        }
+      });
+    });
 
     $("destSettingsSearch")?.addEventListener("input", ()=> renderDestinationsSettings());
     $("btnDestSettingsToggle")?.addEventListener("click", ()=>{
