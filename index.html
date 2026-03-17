@@ -1041,28 +1041,25 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       touch-action:pan-y;
     }
     .dlgTitle{font-weight:900; font-size:18px}
+    #settingsDlg .modalCard{
+      max-height:calc(100vh - 28px);
+      max-height:calc(100dvh - 28px);
+      overflow:auto;
+      overscroll-behavior:contain;
+      -webkit-overflow-scrolling:touch;
+    }
     .settingsInner{
       gap:14px;
-      padding-top:0;
+      padding-top:14px;
+      overflow:visible;
+      max-height:none;
     }
     .settingsTopbar{
-      position:sticky;
-      top:0;
-      z-index:2;
       display:flex;
-      align-items:flex-start;
+      align-items:center;
       justify-content:space-between;
       gap:12px;
-      margin:0 -16px;
-      padding:16px 16px 12px;
-      background:var(--card);
-      border-bottom:1px solid var(--line);
-    }
-    .settingsIntro{
-      margin-top:4px;
-      font-size:13px;
-      color:var(--muted);
-      line-height:1.35;
+      padding-bottom:2px;
     }
     .settingsCloseBtn{
       flex:0 0 auto;
@@ -1170,7 +1167,7 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     .settingsSummaryMain{
       min-width:0;
       display:flex;
-      align-items:flex-start;
+      align-items:center;
       gap:10px;
     }
     .settingsSummaryText{
@@ -1202,12 +1199,6 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       font-weight:900;
       letter-spacing:.3px;
       text-transform:uppercase;
-    }
-    .settingsScope{
-      padding:10px 12px;
-      border:1px solid var(--line);
-      border-radius:14px;
-      background:var(--card);
     }
     @media (min-width:900px){
       #settingsDlg .modalCard{
@@ -2151,22 +2142,14 @@ body{
   <div class="modalCard">
     <form class="dlgInner settingsInner" onsubmit="return false;">
       <div class="settingsTopbar">
-        <div>
-          <div class="dlgTitle">Impostazioni</div>
-          <div class="settingsIntro">Account, compensi e destinazioni in un unico pannello.</div>
-        </div>
+        <div class="dlgTitle">Impostazioni</div>
         <button id="btnSettingsClose" class="iconBtn settingsCloseBtn" type="button" aria-label="Chiudi impostazioni" title="Chiudi">
           <svg class="icon" aria-hidden="true"><use href="#i-x"></use></svg>
         </button>
       </div>
 
       <section class="settingsPanel settingsPanel-account">
-        <div class="settingsSectionHead">
-          <div>
-            <div class="settingsSectionTitle">Account</div>
-            <div class="settingsSectionText">Accesso, recupero password e stato dell’account.</div>
-          </div>
-        </div>
+        <div class="settingsSectionTitle">Account</div>
 
         <div id="authFields">
           <label class="field">
@@ -2220,13 +2203,12 @@ body{
             </span>
             <div class="settingsSummaryText">
               <span class="settingsSectionTitle">Compensi</span>
-              <span class="settingsSectionText">Valori usati per i recap e riepilogo economico.</span>
             </div>
           </div>
           <svg class="icon xs settingsSummaryCaret" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
         </summary>
         <div class="settingsBox">
-          <div class="payScope settingsScope">
+          <div class="payScope">
             <div class="chipLabel">Selezione home</div>
             <div id="payScopeText" class="payScopeText">Storico: tutti</div>
           </div>
@@ -2339,16 +2321,11 @@ body{
             </span>
             <div class="settingsSummaryText">
               <span class="settingsSectionTitle">Destinazioni</span>
-              <span class="settingsSectionText">Elenco salvato, ricerca rapida e modifica delle destinazioni.</span>
             </div>
           </div>
           <svg class="icon xs settingsSummaryCaret" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
         </summary>
         <div class="settingsBox">
-          <div class="settingsScope">
-            <div class="chipLabel">Elenco destinazioni</div>
-            <div class="payScopeText">Cerca, apri il dettaglio e modifica solo quando serve.</div>
-          </div>
           <div class="destToolbar">
             <label class="field">
               <span class="iconLabel">
