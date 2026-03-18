@@ -4068,6 +4068,15 @@ function enforceAuthGate(){
         el.open = false;
       });
     }
+    function resetSettingsUIState(){
+      const payDetails = $("paySheetDetails");
+      const destDetails = $("destinationsDetails");
+      if(payDetails) payDetails.open = false;
+      if(destDetails) destDetails.open = false;
+      setDestinationAddExpanded(false);
+      expandedDestinationId = null;
+      setDestSettingsMsg("", null);
+    }
 
     function openPrompt({
       title = "Conferma",
@@ -5250,6 +5259,7 @@ list.innerHTML = "";
     e.stopPropagation();
     const id = e.currentTarget.getAttribute("data-edit");
     openItemMenuId = null;
+    if(expandedPayRowId === String(id)) expandedPayRowId = null;
     startEditEndedRecord(id);
   });
 });
@@ -5257,7 +5267,13 @@ list.innerHTML = "";
           btn.addEventListener("click", (e)=>{
             e.stopPropagation();
             const id = String(e.currentTarget.getAttribute("data-more"));
-            openItemMenuId = openItemMenuId === id ? null : id;
+            if(openItemMenuId === id){
+              openItemMenuId = null;
+              if(expandedPayRowId === id) expandedPayRowId = null;
+            }else{
+              openItemMenuId = id;
+              if(expandedPayRowId && expandedPayRowId !== id) expandedPayRowId = null;
+            }
             renderAll();
           });
         });
@@ -5786,10 +5802,7 @@ list.innerHTML = "";
       settingsJustOpenedAt = Date.now();
       updateAuthButtons();
       updateAdminOnlyUI();
-      if(!$("paySheetDetails")?.open && !$("destinationsDetails")?.open){
-        const payDetails = $("paySheetDetails");
-        if(payDetails) payDetails.open = true;
-      }
+      resetSettingsUIState();
       settingsDlg.classList.remove("hidden");
       syncModalOpenState();
     }
@@ -5799,6 +5812,7 @@ function closeSettings(){
     return;
   }
   settingsDlg.classList.add("hidden");
+  resetSettingsUIState();
   syncModalOpenState();
 }
 settingsDlg.addEventListener("click", (e)=>{
