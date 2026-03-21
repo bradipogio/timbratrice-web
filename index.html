@@ -884,6 +884,15 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       box-shadow:var(--shadow);
     }
     body.selecting #list{padding-bottom:110px}
+    .historyViewSwitch{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .historyViewBtn.is-active{
+      background:rgba(210,43,43,.12);
+      border-color:rgba(210,43,43,.55);
+    }
     .itemTitle{
       font-weight:800;
       font-size:15px;
@@ -953,6 +962,118 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     }
     .itemMetaGrid .metaValue{text-align:center}
     .itemBtns{display:flex; gap:10px}
+    .calendarWrap{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      margin-top:10px;
+    }
+    .calendarToolbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+    .calendarMonth{
+      font-size:16px;
+      font-weight:900;
+      letter-spacing:-.2px;
+    }
+    .calendarNav{
+      display:flex;
+      gap:8px;
+    }
+    .calendarGrid{
+      display:grid;
+      grid-template-columns:repeat(7, minmax(0, 1fr));
+      gap:8px;
+    }
+    .calendarWeekday{
+      text-align:center;
+      font-size:11px;
+      color:var(--muted);
+      font-weight:900;
+      letter-spacing:.2px;
+      text-transform:uppercase;
+    }
+    .calendarCell{
+      min-height:112px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:var(--card2);
+      padding:8px;
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+      min-width:0;
+    }
+    .calendarCell.is-out{
+      opacity:.42;
+    }
+    .calendarDay{
+      font-family:var(--time);
+      font-size:15px;
+      font-weight:900;
+    }
+    .calendarEvents{
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+      min-width:0;
+    }
+    .calendarEvent{
+      width:100%;
+      border:1px solid rgba(210,43,43,.45);
+      background:rgba(210,43,43,.10);
+      color:var(--text);
+      border-radius:12px;
+      padding:7px 8px;
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      cursor:pointer;
+      text-align:left;
+      min-width:0;
+    }
+    .calendarEventTime{
+      font-family:var(--time);
+      font-size:12px;
+      font-weight:900;
+    }
+    .calendarEventMeta{
+      font-size:11px;
+      color:var(--muted);
+      font-weight:800;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .calendarEmpty{
+      flex:1 1 auto;
+      border:1px dashed rgba(0,0,0,.08);
+      border-radius:10px;
+    }
+    @media (max-width:680px){
+      .calendarGrid{
+        gap:6px;
+      }
+      .calendarCell{
+        min-height:92px;
+        padding:6px;
+      }
+      .calendarDay{
+        font-size:13px;
+      }
+      .calendarEvent{
+        padding:6px;
+      }
+      .calendarEventTime{
+        font-size:11px;
+      }
+      .calendarEventMeta{
+        font-size:10px;
+      }
+    }
     .itemPaySummary{
       margin-top:10px;
       display:grid;
@@ -2122,6 +2243,14 @@ body{
       <div class="summaryHead">
         <div class="h2">Storico</div>
         <div class="summaryActions listActions">
+          <div class="historyViewSwitch" aria-label="Vista storico">
+            <button id="btnViewList" class="miniBtn iconOnly historyViewBtn is-active" type="button" aria-label="Vista elenco" title="Vista elenco">
+              <svg class="icon xs" aria-hidden="true"><use href="#i-list"></use></svg>
+            </button>
+            <button id="btnViewCalendar" class="miniBtn iconOnly historyViewBtn" type="button" aria-label="Vista calendario" title="Vista calendario">
+              <svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>
+            </button>
+          </div>
           <button id="btnSelectMode" class="miniBtn" type="button">Seleziona</button>
         </div>
       </div>
@@ -2134,6 +2263,7 @@ body{
         <button id="btnDeleteSelected" class="btn danger" type="button" disabled>Elimina selezionati</button>
       </div>
       <div id="list" class="list"></div>
+      <div id="calendarView" class="calendarWrap hidden"></div>
       <div id="empty" class="empty hidden">Nessun record</div>
     </section>
   </main>
@@ -3454,6 +3584,8 @@ let visibleIds = [];
 let selectionMode = false;
 let openItemMenuId = null;
 let expandedPayRowId = null;
+let historyView = "list";
+let historyCalendarMonth = "";
 
     // Prevent concurrent network actions (can cause hangs / UI confusion)
     let refreshBusy = false;
@@ -5000,6 +5132,12 @@ function setSelectionMode(on){
     updateSelectionUI();
   }
 }
+function setHistoryView(view){
+  historyView = view === "calendar" ? "calendar" : "list";
+  if(historyView === "calendar" && selectionMode){
+    setSelectionMode(false);
+  }
+}
 function updateSelectionUI(){
   const count = selectedIds.size;
   const countEl = $("selectedCount");
@@ -5021,6 +5159,145 @@ function updateSelectionUI(){
       selectAll.disabled = false;
     }
   }
+}
+function getHistoryCalendarAnchorMonth(rows){
+  const filterOn = $("filterToggle")?.checked;
+  const fromValue = $("fromDate")?.value || "";
+  if(filterOn && fromValue){
+    return fromValue.slice(0, 7);
+  }
+  const latest = [...(rows || [])]
+    .map(r => r?.startISO || "")
+    .filter(Boolean)
+    .sort((a,b)=> b.localeCompare(a))[0];
+  if(latest){
+    const d = new Date(latest);
+    if(!isNaN(d.getTime())){
+      return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+    }
+  }
+  const now = new Date();
+  return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}`;
+}
+function formatHistoryCalendarMonth(monthKey){
+  const [year, month] = String(monthKey || "").split("-").map(Number);
+  const date = new Date(year || new Date().getFullYear(), (month || 1) - 1, 1);
+  return date.toLocaleDateString("it-IT", { month: "long", year: "numeric" });
+}
+function getHistoryRowById(id){
+  const key = String(id || "");
+  return history.find(r => String(r.id) === key) || null;
+}
+function showHistoryRowDetails(id){
+  const row = getHistoryRowById(id);
+  if(!row) return;
+  const start = row.startISO ? new Date(row.startISO).toLocaleString("it-IT") : "—";
+  const end = row.endISO ? new Date(row.endISO).toLocaleString("it-IT") : "—";
+  const vehicle = normalizeFurgone(row.furgone) || "macchina";
+  const kmInfo = vehicle === "car" ? `${Number(row.km || 0)} km` : vehicle;
+  const parts = [
+    `Inizio: ${start}`,
+    `Fine: ${end}`,
+    `Pausa: ${fmtHM(Number(row.pauseMin || 0))}`,
+    `Ore: ${fmtHM(Number(row.workMin || 0))}`,
+    `Km/Veicolo: ${kmInfo}`
+  ];
+  if(row.notes){
+    parts.push(`Note: ${row.notes}`);
+  }
+  appAlert(parts.join("\n"), {
+    title: row.title || "Dettaglio record"
+  });
+}
+function renderHistoryCalendar(rows){
+  const wrap = $("calendarView");
+  if(!wrap) return;
+  if(!historyCalendarMonth){
+    historyCalendarMonth = getHistoryCalendarAnchorMonth(rows);
+  }
+
+  const [yearRaw, monthRaw] = historyCalendarMonth.split("-").map(Number);
+  const year = Number.isFinite(yearRaw) ? yearRaw : new Date().getFullYear();
+  const month = Number.isFinite(monthRaw) ? monthRaw : (new Date().getMonth() + 1);
+  const monthStart = new Date(year, month - 1, 1);
+  const monthEnd = new Date(year, month, 0);
+  const startOffset = (monthStart.getDay() + 6) % 7;
+  const gridStart = new Date(monthStart);
+  gridStart.setDate(monthStart.getDate() - startOffset);
+  const gridEnd = new Date(monthEnd);
+  const endOffset = 6 - ((monthEnd.getDay() + 6) % 7);
+  gridEnd.setDate(monthEnd.getDate() + endOffset);
+
+  const rowsByDay = new Map();
+  for(const row of rows){
+    if(!row?.startISO) continue;
+    const d = new Date(row.startISO);
+    if(isNaN(d.getTime())) continue;
+    const key = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    if(!rowsByDay.has(key)) rowsByDay.set(key, []);
+    rowsByDay.get(key).push(row);
+  }
+  rowsByDay.forEach(list => list.sort((a,b)=> (a.startISO || "").localeCompare(b.startISO || "")));
+
+  const weekdayLabels = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
+  const cells = [];
+  const cursor = new Date(gridStart);
+  while(cursor <= gridEnd){
+    const dayKey = `${cursor.getFullYear()}-${pad2(cursor.getMonth() + 1)}-${pad2(cursor.getDate())}`;
+    const inMonth = cursor.getMonth() === monthStart.getMonth();
+    const dayRows = rowsByDay.get(dayKey) || [];
+    const eventsHtml = dayRows.map(row => {
+      const start = row.startISO ? new Date(row.startISO).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "--:--";
+      const kmText = `${Number(row.km || 0)} km`;
+      return `<button class="calendarEvent" type="button" data-calendar-row="${row.id}" title="${escapeHTML(row.title || "Dettaglio record")}">
+  <span class="calendarEventTime">${escapeHTML(start)}</span>
+  <span class="calendarEventMeta">${escapeHTML(fmtHM(Number(row.workMin || 0)))} · ${escapeHTML(kmText)}</span>
+</button>`;
+    }).join("");
+
+    cells.push(`<div class="calendarCell ${inMonth ? "" : "is-out"}">
+  <div class="calendarDay">${cursor.getDate()}</div>
+  ${eventsHtml ? `<div class="calendarEvents">${eventsHtml}</div>` : `<div class="calendarEmpty"></div>`}
+</div>`);
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  wrap.innerHTML = `
+    <div class="calendarToolbar">
+      <div class="calendarMonth">${escapeHTML(formatHistoryCalendarMonth(historyCalendarMonth))}</div>
+      <div class="calendarNav">
+        <button id="btnCalendarPrev" class="miniBtn iconOnly" type="button" aria-label="Mese precedente" title="Mese precedente">
+          ${iconSvg("i-chevron-down","icon xs")}
+        </button>
+        <button id="btnCalendarNext" class="miniBtn iconOnly" type="button" aria-label="Mese successivo" title="Mese successivo" style="transform:rotate(180deg)">
+          ${iconSvg("i-chevron-down","icon xs")}
+        </button>
+      </div>
+    </div>
+    <div class="calendarGrid">
+      ${weekdayLabels.map(label => `<div class="calendarWeekday">${label}</div>`).join("")}
+      ${cells.join("")}
+    </div>
+  `;
+
+  $("btnCalendarPrev")?.addEventListener("click", ()=>{
+    const [y, m] = historyCalendarMonth.split("-").map(Number);
+    const prev = new Date(y, (m || 1) - 2, 1);
+    historyCalendarMonth = `${prev.getFullYear()}-${pad2(prev.getMonth() + 1)}`;
+    renderAll();
+  });
+  $("btnCalendarNext")?.addEventListener("click", ()=>{
+    const [y, m] = historyCalendarMonth.split("-").map(Number);
+    const next = new Date(y, m || 1, 1);
+    historyCalendarMonth = `${next.getFullYear()}-${pad2(next.getMonth() + 1)}`;
+    renderAll();
+  });
+  wrap.querySelectorAll("[data-calendar-row]").forEach(btn=>{
+    btn.addEventListener("click", (e)=>{
+      e.stopPropagation();
+      showHistoryRowDetails(e.currentTarget.getAttribute("data-calendar-row"));
+    });
+  });
 }
     // --------- UI rendering ---------
     function renderAll(){
@@ -5114,11 +5391,22 @@ function updateSelectionUI(){
         $("rangeText").textContent = "Storico: tutti";
       }
 
-      // list
+      const listBtn = $("btnViewList");
+      const calendarBtn = $("btnViewCalendar");
+      if(listBtn) listBtn.classList.toggle("is-active", historyView === "list");
+      if(calendarBtn) calendarBtn.classList.toggle("is-active", historyView === "calendar");
+      const selectBtn = $("btnSelectMode");
+      if(selectBtn) selectBtn.disabled = historyView === "calendar";
+
+      const list = $("list");
+      const calendarView = $("calendarView");
+      if(list) list.classList.toggle("hidden", historyView !== "list");
+      if(calendarView) calendarView.classList.toggle("hidden", historyView !== "calendar");
+
+      // list / calendar
       syncSelectionWithHistory();
-// list (con search)
-const list = $("list");
-list.innerHTML = "";
+      if(list) list.innerHTML = "";
+      if(calendarView) calendarView.innerHTML = "";
 
   if(filteredHistory.length === 0){
     $("empty").classList.remove("hidden");
@@ -5131,6 +5419,13 @@ list.innerHTML = "";
   visibleIds = sorted.map(r => String(r.id));
   if(openItemMenuId && !visibleIds.includes(String(openItemMenuId))) openItemMenuId = null;
   if(expandedPayRowId && !visibleIds.includes(String(expandedPayRowId))) expandedPayRowId = null;
+  if(historyView === "calendar"){
+    visibleIds = [];
+    renderHistoryCalendar(filteredHistory);
+    updateSelectionUI();
+    updatePayRecap();
+    return;
+  }
   const fmtListDT = (iso)=>{
     if(!iso) return "—";
     const d = new Date(iso);
@@ -6418,6 +6713,17 @@ $("endInput").addEventListener("change", async ()=>{
       }catch(err){
         await appAlert(err.message || String(err), { title: "Errore" });
       }
+    });
+    $("btnViewList")?.addEventListener("click", ()=>{
+      setHistoryView("list");
+      renderAll();
+    });
+    $("btnViewCalendar")?.addEventListener("click", ()=>{
+      if(!historyCalendarMonth){
+        historyCalendarMonth = getHistoryCalendarAnchorMonth(getSearchFilteredHistory());
+      }
+      setHistoryView("calendar");
+      renderAll();
     });
     const searchWrap = $("searchWrap");
     const searchBtn = $("btnSearchToggle");
