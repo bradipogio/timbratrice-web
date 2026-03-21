@@ -5247,11 +5247,11 @@ function renderHistoryCalendar(rows){
     const inMonth = cursor.getMonth() === monthStart.getMonth();
     const dayRows = rowsByDay.get(dayKey) || [];
     const eventsHtml = dayRows.map(row => {
-      const start = row.startISO ? new Date(row.startISO).toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" }) : "--:--";
+      const workText = fmtHM(Number(row.workMin || 0));
       const kmText = `${Number(row.km || 0)} km`;
       return `<button class="calendarEvent" type="button" data-calendar-row="${row.id}" title="${escapeHTML(row.title || "Dettaglio record")}">
-  <span class="calendarEventTime">${escapeHTML(start)}</span>
-  <span class="calendarEventMeta">${escapeHTML(fmtHM(Number(row.workMin || 0)))} · ${escapeHTML(kmText)}</span>
+  <span class="calendarEventTime">${escapeHTML(workText)}</span>
+  <span class="calendarEventMeta">${escapeHTML(kmText)}</span>
 </button>`;
     }).join("");
 
