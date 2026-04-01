@@ -2529,7 +2529,7 @@ body{
                 <input id="payHourly" type="text" inputmode="decimal" placeholder="0">
               </label>
               <label class="field">
-                <span>Paga Magazzino (€/h)</span>
+                <span>Paga Magazzino/Casa (€/h)</span>
                 <input id="payMagazzino" type="text" inputmode="decimal" placeholder="0">
               </label>
               <label class="field">
@@ -3027,8 +3027,14 @@ async function ensureXlsxReady(){
     let paySettings = { ...PAY_DEFAULTS };
 
     function isMagazzinoTitle(title){
-      const key = String(title || "").trim().toLowerCase();
-      return key.includes("magazzino");
+      const key = String(title || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      if(!key) return false;
+      const tokens = key.split(/[^a-z0-9]+/).filter(Boolean);
+      return tokens.includes("magazzino") || tokens.includes("casa");
     }
     function parseMoneyInput(value){
       const raw = String(value || "").trim().replace(",", ".");
