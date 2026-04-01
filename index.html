@@ -1949,7 +1949,7 @@ body{
       <circle cx="12" cy="19" r="1.7"></circle>
     </symbol>
   </svg>
-  <div id="listLoading" class="listLoading" role="status" aria-live="polite" aria-hidden="false">
+  <div id="listLoading" class="listLoading hidden" role="status" aria-live="polite" aria-hidden="true">
     <div class="listLoadingInner">
       <svg class="icon sm spin listLoadingIcon" aria-hidden="true"><use href="#i-gear"></use></svg>
       <span id="listLoadingText">Caricamento storico...</span>
@@ -2498,12 +2498,6 @@ body{
   </div>
 </div>
 
-  <!-- SheetJS (XLSX) -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-  <!-- Supabase JS v2 -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <script>
     if("serviceWorker" in navigator){
       window.addEventListener("load", ()=>{
@@ -2531,9 +2525,12 @@ body{
 
     const SUPABASE_URL = (SUPABASE_URL_RAW || "").trim();
     const SUPABASE_ANON_KEY = (SUPABASE_ANON_KEY_RAW || "").trim();
+    const SUPABASE_SDK_URL = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2";
+    const XLSX_SDK_URL = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
     const ADMIN_EMAIL = "mazzanti.giova@gmail.com";
     const ADMIN_EMAIL_NORM = ADMIN_EMAIL.trim().toLowerCase();
     const AUTH_SESSION_TIMEOUT_MS = 12000;
+    const LAST_USER_STORAGE_KEY = "timbratriceLastUser";
 
     if(!/^https?:\/\//i.test(SUPABASE_URL)){
       console.warn(`SUPABASE_URL non valido: "${SUPABASE_URL}"`);
@@ -2608,10 +2605,98 @@ async function restJSON(method, path, token, body){
   return json;
 }
 
+const scriptLoaders = new Map();
 let sb = null;
-try{
+let supabaseReadyPromise = null;
+let xlsxReadyPromise = null;
+let authListenerBound = false;
+
+function getLastKnownUserRef(){
+  try{
+    const raw = localStorage.getItem(LAST_USER_STORAGE_KEY);
+    if(!raw) return null;
+    const parsed = JSON.parse(raw);
+    if(!parsed || !parsed.id) return null;
+    return {
+      id: String(parsed.id),
+      email: parsed.email ? String(parsed.email) : ""
+    };
+  }catch{
+    return null;
+  }
+}
+
+function saveLastKnownUserRef(user){
+  if(!user?.id) return;
+  try{
+    localStorage.setItem(LAST_USER_STORAGE_KEY, JSON.stringify({
+      id: String(user.id),
+      email: user.email ? String(user.email) : ""
+    }));
+  }catch{}
+}
+
+function clearLastKnownUserRef(){
+  try{
+    localStorage.removeItem(LAST_USER_STORAGE_KEY);
+  }catch{}
+}
+
+function loadScriptOnce(src){
+  if(scriptLoaders.has(src)) return scriptLoaders.get(src);
+  const promise = new Promise((resolve, reject)=>{
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if(existing){
+      if(existing.dataset.loaded === "true"){
+        resolve();
+        return;
+      }
+      existing.addEventListener("load", ()=> resolve(), { once: true });
+      existing.addEventListener("error", ()=> reject(new Error(`Impossibile caricare ${src}`)), { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = src;
+    script.async = true;
+    script.crossOrigin = "anonymous";
+    script.addEventListener("load", ()=>{
+      script.dataset.loaded = "true";
+      resolve();
+    }, { once: true });
+    script.addEventListener("error", ()=>{
+      scriptLoaders.delete(src);
+      reject(new Error(`Impossibile caricare ${src}`));
+    }, { once: true });
+    document.head.appendChild(script);
+  });
+  scriptLoaders.set(src, promise);
+  return promise;
+}
+
+function bindSupabaseAuthListener(){
+  if(!sb || authListenerBound) return;
+  authListenerBound = true;
+  sb.auth.onAuthStateChange(async (event, session) => {
+    currentSession = session || null;
+    if(event === "SIGNED_OUT"){
+      clearLastKnownUserRef();
+      setUserUI(null);
+      return;
+    }
+    const user = session?.user || getLastKnownUserRef() || null;
+    setUserUI(user);
+    if(event === "PASSWORD_RECOVERY"){
+      setRecoveryMode(true);
+    }
+    loadDestinations({ force: true });
+    refresh(); // non await
+  });
+}
+
+function initSupabaseClient(){
+  if(sb) return sb;
   if(!window.supabase || typeof window.supabase.createClient !== "function"){
-    throw new Error("Supabase SDK non caricato (CDN bloccato o offline)");
+    throw new Error("Supabase SDK non caricato.");
   }
   sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     global: { fetch: fetchWithTimeout },
@@ -2621,8 +2706,43 @@ try{
       detectSessionInUrl: true
     }
   });
-}catch(err){
-  showDebug("❌ Init Supabase: " + (err.message || String(err)));
+  bindSupabaseAuthListener();
+  return sb;
+}
+
+async function ensureSupabaseReady(){
+  if(sb) return sb;
+  if(supabaseReadyPromise) return supabaseReadyPromise;
+  supabaseReadyPromise = (async ()=>{
+    if(!window.supabase || typeof window.supabase.createClient !== "function"){
+      await loadScriptOnce(SUPABASE_SDK_URL);
+    }
+    return initSupabaseClient();
+  })();
+  try{
+    return await supabaseReadyPromise;
+  }catch(err){
+    supabaseReadyPromise = null;
+    console.warn("Supabase SDK non pronto:", err);
+    return null;
+  }
+}
+
+async function ensureXlsxReady(){
+  if(window.XLSX) return true;
+  if(!xlsxReadyPromise){
+    xlsxReadyPromise = loadScriptOnce(XLSX_SDK_URL).catch((err)=>{
+      xlsxReadyPromise = null;
+      throw err;
+    });
+  }
+  try{
+    await xlsxReadyPromise;
+    return !!window.XLSX;
+  }catch(err){
+    console.warn("XLSX SDK non pronto:", err);
+    return false;
+  }
 }
 
     // --------- utilities ---------
@@ -3586,6 +3706,7 @@ let openItemMenuId = null;
 let expandedPayRowId = null;
 let historyView = "list";
 let historyCalendarMonth = "";
+let remoteBootstrapPromise = null;
 
     // Prevent concurrent network actions (can cause hangs / UI confusion)
     let refreshBusy = false;
@@ -3916,11 +4037,12 @@ function flashVehiclePick(){
       // Prefer cached values to avoid hangs
       if(currentUser) return currentUser;
       if(currentSession?.user) return currentSession.user;
-      if(!sb) return null;
+      const cachedUser = getLastKnownUserRef();
+      if(!sb) return cachedUser;
 
       const session = await getSessionSafe();
       if(session) currentSession = session;
-      return session?.user || null;
+      return session?.user || cachedUser || null;
     }
 
     async function requireUser(){
@@ -3970,6 +4092,7 @@ function flashVehiclePick(){
     function setUserUI(user){
       const hint = $("loginHint");
       currentUser = user || null;
+      if(user?.id) saveLastKnownUserRef(user);
       if(user){
         hint.classList.add("hidden");
       }else{
@@ -4409,6 +4532,7 @@ function enforceAuthGate(){
     }
 
     async function signIn(email, password){
+      await ensureSupabaseReady();
       if(!sb) throw new Error("Supabase non inizializzato.");
       const { data, error } = await withTimeout(
         sb.auth.signInWithPassword({ email, password }),
@@ -4424,6 +4548,7 @@ function enforceAuthGate(){
     }
 
     async function resetPassword(email){
+      await ensureSupabaseReady();
       if(!sb) throw new Error("Supabase non inizializzato.");
       const redirectTo = new URL('./', window.location.href).toString();
       const { error } = await withTimeout(
@@ -4436,14 +4561,22 @@ function enforceAuthGate(){
     }
 
     async function signOut(){
+      await ensureSupabaseReady();
+      if(!sb){
+        currentSession = null;
+        clearLastKnownUserRef();
+        setUserUI(null);
+        return;
+      }
       const { error } = await sb.auth.signOut();
       if(error) throw error;
     }
 
-    async function runDiagnostics(){
+async function runDiagnostics(){
   if(diagBusy) throw new Error("Diagnostica già in corso. Attendi...");
   diagBusy = true;
   try{
+    await ensureSupabaseReady();
     if(!sb) throw new Error("Supabase non inizializzato.");
 
     const token = await getAccessToken();
@@ -4475,19 +4608,6 @@ function enforceAuthGate(){
     diagBusy = false;
   }
 }
-
-    if(sb){
-sb.auth.onAuthStateChange(async (_event, session) => {
-  currentSession = session || null;
-  const user = session?.user || null;
-  setUserUI(user);
-  if(_event === "PASSWORD_RECOVERY"){
-    setRecoveryMode(true);
-  }
-  loadDestinations({ force: true });
-  refresh(); // non await
-});
-    }
 
     // --------- core computations ---------
     function computeWorkMin(row, nowISO){
@@ -4581,6 +4701,49 @@ sb.auth.onAuthStateChange(async (_event, session) => {
         active = null;
         history = [];
         renderAll();
+      }
+    }
+
+    async function bootFromLocalCache(){
+      const cachedUser = getLastKnownUserRef();
+      if(cachedUser){
+        setUserUI(cachedUser);
+        await loadFromCache(cachedUser);
+      }else{
+        syncInputsWithState();
+        renderAll();
+        await refreshNetStatus();
+      }
+      await loadDestinations({ force: true });
+    }
+
+    async function resumeRemoteBootstrap({ refreshAfterSync = false } = {}){
+      if(remoteBootstrapPromise) return remoteBootstrapPromise;
+      remoteBootstrapPromise = (async ()=>{
+        try{
+          const client = await ensureSupabaseReady();
+          if(!client){
+            await refreshNetStatus();
+            return;
+          }
+          const user = await getUser();
+          setUserUI(user);
+          await loadDestinations({ force: true });
+          if(user){
+            await syncQueue({ refreshAfter: refreshAfterSync });
+            await refresh();
+          }else{
+            await refreshNetStatus();
+          }
+        }catch(err){
+          console.warn("Bootstrap remoto non disponibile:", err);
+          await refreshNetStatus();
+        }
+      })();
+      try{
+        await remoteBootstrapPromise;
+      }finally{
+        remoteBootstrapPromise = null;
       }
     }
 
@@ -5714,7 +5877,8 @@ function renderHistoryCalendar(rows){
     async function exportXLSX(){
       const report = await getExportName();
       if(report === null) return;
-      if(!window.XLSX){
+      const xlsxReady = await ensureXlsxReady();
+      if(!xlsxReady || !window.XLSX){
         setActionMsg("❌ XLSX non disponibile (libreria non caricata).", "err");
         return;
       }
@@ -6057,8 +6221,7 @@ function renderHistoryCalendar(rows){
 
     window.addEventListener("online", ()=>{
       refreshNetStatus();
-      loadDestinations({ force: true });
-      if(currentUser) syncQueue({ refreshAfter: true });
+      resumeRemoteBootstrap({ refreshAfterSync: true });
     });
     window.addEventListener("offline", ()=> refreshNetStatus());
 
@@ -6084,6 +6247,7 @@ function renderHistoryCalendar(rows){
 
         // Clear local auth state immediately
         currentSession = null;
+        clearLastKnownUserRef();
         setUserUI(null);
 
         setSettingsMsg("✅ Logout", "ok");
@@ -6836,15 +7000,9 @@ $("btnSaveEdit").addEventListener("click", async (e)=>{
           setRecoveryMode(true);
         }
 
-        const user = await requireUser();
-        setUserUI(user);
-        // Segnale visivo che il JS è partito (se vedi questo, i bottoni sono collegati)
-        // hideDebug(); // lasciamo la barra nascosta di default
-
         syncInputsWithState();
-        await loadDestinations({ force: true });
-        await syncQueue({ refreshAfter: false });
-        await refresh();
+        await bootFromLocalCache();
+        resumeRemoteBootstrap({ refreshAfterSync: false });
       }catch(err){
         showDebug("❌ Boot: " + (err.message || String(err)));
       }

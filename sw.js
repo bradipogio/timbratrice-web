@@ -1,4 +1,4 @@
-const CACHE_NAME = "timbratrice-cache-v2";
+const CACHE_NAME = "timbratrice-cache-v3";
 const CORE_ASSETS = [
   "./",
   "index.html",
@@ -63,8 +63,10 @@ self.addEventListener("fetch", (event) => {
   }
 
   const isSameOrigin = url.origin === self.location.origin;
-  const isExternalScript = url.origin === "https://cdn.jsdelivr.net" &&
-    url.pathname.startsWith("/npm/@supabase/supabase-js@2");
+  const isExternalScript = url.origin === "https://cdn.jsdelivr.net" && (
+    url.pathname.startsWith("/npm/@supabase/supabase-js@2") ||
+    url.pathname.startsWith("/npm/xlsx@0.18.5/dist/xlsx.full.min.js")
+  );
   if (!isSameOrigin && !isExternalScript) return;
 
   event.respondWith((async () => {
