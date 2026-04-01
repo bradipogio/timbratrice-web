@@ -689,10 +689,6 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       justify-content:space-between;
       gap:12px;
     }
-    .summaryTitleBlock{
-      min-width:0;
-      flex:1 1 auto;
-    }
     .summaryToolbar{
       display:flex;
       align-items:center;
@@ -854,14 +850,14 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       width:100%;
     }
 
-    .filterBox{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
-    @media (max-width:520px){.filterBox{grid-template-columns:1fr}}
+    .filterBox{display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; margin-top:10px}
+    @media (max-width:520px){.filterBox{grid-template-columns:repeat(2, minmax(0, 1fr))}}
     .filterRow{
       grid-column:1 / -1;
-      display:flex;
-      flex-wrap:wrap;
-      gap:12px;
-      align-items:center;
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+      gap:8px;
+      align-items:stretch;
     }
     .row{display:flex; gap:10px; margin-top:12px}
 
@@ -1870,32 +1866,69 @@ body{
 }
 .filterBox .field{
   display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:flex-start;
+  gap:6px;
   background:var(--card2);
   border:1px solid var(--line);
   border-radius:16px;
-  padding:10px 12px;
+  padding:8px 10px;
 }
 .filterBox .field > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
   color:var(--muted);
   font-weight:800;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.02em;
 }
 .filterBox input{
-  width:auto;
-  min-width:120px;
-  text-align:right;
+  width:100%;
+  min-width:0;
+  text-align:center;
   background:var(--card2);
   border:1px solid var(--line);
   border-radius:12px;
   padding:8px 10px;
-  font-size:15px;
+  font-size:14px;
   color:var(--text);
   -webkit-text-fill-color: var(--text);
 }
 .filterBox input:focus{
   border-color: rgba(210,43,43,.55);
+}
+.filterRow .toggle{
+  position:relative;
+  justify-content:center;
+  padding:8px 10px;
+  border-radius:999px;
+  border:1px solid var(--line);
+  background:var(--card2);
+  color:var(--text);
+  gap:0;
+  font-size:13px;
+  line-height:1.1;
+}
+.filterRow .toggle input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+  width:1px;
+  height:1px;
+}
+.filterRow .toggle span{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+}
+.filterRow .toggle.is-on{
+  background:rgba(10,132,255,.14);
+  border-color:rgba(10,132,255,.45);
 }
 .btn.exportBtn{
   padding:10px 12px;
@@ -1916,7 +1949,7 @@ body{
   .summaryTitleRow{
     flex-direction:column;
     align-items:stretch;
-    gap:10px;
+    gap:6px;
   }
   .summaryToolbar{
     width:100%;
@@ -1946,6 +1979,17 @@ body{
   }
   #rangeText .rangeValue{
     font-size:14px;
+  }
+  .filterBox .field{
+    padding:8px;
+  }
+  .filterBox input{
+    padding:8px 6px;
+    font-size:13px;
+  }
+  .filterRow .toggle{
+    padding:8px 6px;
+    font-size:12px;
   }
 }
 
@@ -2237,9 +2281,6 @@ body{
     <section class="card summaryCard">
       <div class="summaryCardHead">
         <div class="summaryTitleRow">
-          <div class="summaryTitleBlock">
-            <div class="h2">Riepilogo</div>
-          </div>
           <div class="summaryActions summaryToolbar">
             <div class="summaryToolbarMain">
               <div id="searchWrap" class="searchAction" role="search">
@@ -7117,9 +7158,19 @@ $("btnSaveEdit").addEventListener("click", async (e)=>{
 });
 
     const filterLabel = $("filterLabel");
+    function updateVehicleFilterToggleUI(){
+      ["filterCar","filterVan","filterDrive"].forEach((id)=>{
+        const input = $(id);
+        const label = input?.closest("label");
+        if(label){
+          label.classList.toggle("is-on", !!input?.checked);
+        }
+      });
+    }
     if(filterLabel){
       filterLabel.classList.toggle("is-on", $("filterToggle").checked);
     }
+    updateVehicleFilterToggleUI();
     $("filterToggle").addEventListener("change", async ()=>{
       const on = $("filterToggle").checked;
       $("filterBox").classList.toggle("hidden", !on);
@@ -7144,6 +7195,7 @@ $("btnSaveEdit").addEventListener("click", async (e)=>{
       const el = $(id);
       if(!el) return;
       el.addEventListener("change", async ()=>{
+        updateVehicleFilterToggleUI();
         if(!$("filterToggle").checked) return;
         await refresh();
       });
