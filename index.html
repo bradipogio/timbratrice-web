@@ -678,14 +678,63 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
 
     .summaryHead{display:flex; align-items:center; justify-content:space-between; gap:10px}
     .summaryHead > div:first-child{min-width:0; flex:1 1 auto}
+    .summaryCardHead{
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .summaryTitleRow{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:12px;
+    }
+    .summaryTitleBlock{
+      min-width:0;
+      flex:1 1 auto;
+    }
+    .summaryToolbar{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:10px;
+      flex:0 0 auto;
+    }
     #rangeText{
-      display:block;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      min-width:0;
       white-space:normal;
-      overflow-wrap:anywhere;
-      font-size:18px;
+      overflow-wrap:normal;
+      word-break:normal;
+      font-size:15px;
       font-weight:900;
       color:var(--text);
-      margin-top:4px;
+      margin-top:0;
+      padding:10px 12px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:var(--card2);
+      line-height:1.25;
+    }
+    #rangeText .icon{
+      flex:0 0 auto;
+      color:var(--muted);
+    }
+    #rangeText .rangeLabel{
+      flex:0 0 auto;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.02em;
+    }
+    #rangeText .rangeValue{
+      min-width:0;
+      flex:1 1 auto;
+      text-align:left;
+      overflow-wrap:anywhere;
     }
     .summaryActions{display:flex; align-items:center; gap:10px; flex:0 0 auto; white-space:nowrap}
     .summaryActions .btn{flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center}
@@ -717,9 +766,6 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       opacity:1;
       border-color:var(--line);
       pointer-events:auto;
-    }
-    @media (max-width:520px){
-      .summaryActions .searchAction.is-open .searchBar{width:140px; max-width:140px}
     }
     .listActions{flex:1 1 auto; justify-content:flex-end; min-width:0}
     .listActions .miniBtn{flex:0 0 auto}
@@ -793,7 +839,7 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     }
 
     .filterBox{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
-    @media (max-width:520px){.filterBox{grid-template-columns:1fr 1fr}}
+    @media (max-width:520px){.filterBox{grid-template-columns:1fr}}
     .filterRow{
       grid-column:1 / -1;
       display:flex;
@@ -1830,6 +1876,36 @@ body{
   .item{padding:10px}
   .metaBox{padding:6px 8px}
   .chips, .chips3{gap:8px}
+  .summaryTitleRow{
+    flex-direction:column;
+    align-items:stretch;
+    gap:10px;
+  }
+  .summaryToolbar{
+    width:100%;
+    justify-content:stretch;
+  }
+  .summaryToolbar .searchAction{
+    flex:1 1 auto;
+    min-width:0;
+  }
+  .summaryToolbar .searchAction.is-open .searchBar{
+    width:100%;
+    max-width:none;
+    flex:1 1 auto;
+  }
+  .summaryToolbar .searchAction .searchBar{
+    min-width:0;
+  }
+  .summaryToolbar > *:not(.searchAction){
+    flex:0 0 auto;
+  }
+  #rangeText{
+    align-items:flex-start;
+  }
+  #rangeText .rangeValue{
+    font-size:14px;
+  }
 }
 
 .netTime .timeColon{
@@ -2118,35 +2194,40 @@ body{
     </section>
 
     <section class="card summaryCard">
-      <div class="summaryHead">
-        <div>
-          <div class="h2">Riepilogo</div>
-          <div class="sub" id="rangeText">Storico: tutti</div>
-        </div>
-
-        <div class="summaryActions">
-          <div id="searchWrap" class="searchAction" role="search">
-            <button id="btnSearchToggle" class="btn iconOnly" type="button" aria-label="Cerca" title="Cerca">
-              <svg class="icon xs" aria-hidden="true"><use href="#i-search"></use></svg>
-            </button>
-            <input id="searchInput" class="searchBar" type="text" placeholder="Cerca..." autocomplete="off" aria-label="Cerca" list="destinationsList" />
+      <div class="summaryCardHead">
+        <div class="summaryTitleRow">
+          <div class="summaryTitleBlock">
+            <div class="h2">Riepilogo</div>
           </div>
-          <div id="exportWrap" class="exportWrap">
-            <button id="btnExportMenu" class="btn exportBtn iconOnly" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Esporta" title="Esporta">
-              <svg class="icon xs" aria-hidden="true"><use href="#i-download"></use></svg>
-            </button>
-            <div id="exportMenu" class="exportMenu hidden" role="menu" aria-label="Esporta">
-              <button id="btnExportCsv" class="menuBtn" type="button" role="menuitem">CSV (Excel)</button>
-              <button id="btnExportXlsx" class="menuBtn" type="button" role="menuitem">XLSX (Excel)</button>
-              <button id="btnExportPdf" class="menuBtn" type="button" role="menuitem">PDF</button>
+          <div class="summaryActions summaryToolbar">
+            <div id="searchWrap" class="searchAction" role="search">
+              <button id="btnSearchToggle" class="btn iconOnly" type="button" aria-label="Cerca" title="Cerca">
+                <svg class="icon xs" aria-hidden="true"><use href="#i-search"></use></svg>
+              </button>
+              <input id="searchInput" class="searchBar" type="text" placeholder="Cerca..." autocomplete="off" aria-label="Cerca" list="destinationsList" />
             </div>
+            <div id="exportWrap" class="exportWrap">
+              <button id="btnExportMenu" class="btn exportBtn iconOnly" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Esporta" title="Esporta">
+                <svg class="icon xs" aria-hidden="true"><use href="#i-download"></use></svg>
+              </button>
+              <div id="exportMenu" class="exportMenu hidden" role="menu" aria-label="Esporta">
+                <button id="btnExportCsv" class="menuBtn" type="button" role="menuitem">CSV (Excel)</button>
+                <button id="btnExportXlsx" class="menuBtn" type="button" role="menuitem">XLSX (Excel)</button>
+                <button id="btnExportPdf" class="menuBtn" type="button" role="menuitem">PDF</button>
+              </div>
+            </div>
+            <label id="filterLabel" class="toggle iconOnly" aria-label="Filtra" title="Filtra">
+              <input id="filterToggle" type="checkbox" />
+              <span>
+                <svg class="icon xs" aria-hidden="true"><use href="#i-filter"></use></svg>
+              </span>
+            </label>
           </div>
-          <label id="filterLabel" class="toggle iconOnly" aria-label="Filtra" title="Filtra">
-            <input id="filterToggle" type="checkbox" />
-            <span>
-              <svg class="icon xs" aria-hidden="true"><use href="#i-filter"></use></svg>
-            </span>
-          </label>
+        </div>
+        <div id="rangeText" class="sub">
+          <svg class="icon xs" aria-hidden="true"><use href="#i-calendar"></use></svg>
+          <span class="rangeLabel">Storico</span>
+          <span class="rangeValue">tutti</span>
         </div>
       </div>
 
@@ -2956,7 +3037,7 @@ async function ensureXlsxReady(){
       const inps = imponibile * PAY_TAX.inps;
       const netto = grossTotal - imposta - inps;
 
-      let scopeText = $("rangeText")?.textContent || "Storico: tutti";
+      let scopeText = getSummaryScopeText();
       const searchText = getSearchQuery();
       if(searchText){
         scopeText += ` | Cerca: ${searchText}`;
@@ -5547,11 +5628,17 @@ function renderHistoryCalendar(rows){
       if(sumVanEl) sumVanEl.textContent = String(sumVan);
       if(sumDriveEl) sumDriveEl.textContent = String(sumDrive);
 
-      const ft = $("filterToggle").checked;
-      if(ft && $("fromDate").value && $("toDate").value){
-        $("rangeText").textContent = `Selezione: ${$("fromDate").value} → ${$("toDate").value}`;
-      }else{
-        $("rangeText").textContent = "Storico: tutti";
+      const rangeTextEl = $("rangeText");
+      const rangeLabelEl = rangeTextEl?.querySelector(".rangeLabel");
+      const rangeValueEl = rangeTextEl?.querySelector(".rangeValue");
+      if(rangeTextEl){
+        rangeTextEl.dataset.scope = getSummaryScopeText();
+      }
+      if(rangeLabelEl){
+        rangeLabelEl.textContent = getSummaryRangeLabel();
+      }
+      if(rangeValueEl){
+        rangeValueEl.textContent = getSummaryRangeText();
       }
 
       const listBtn = $("btnViewList");
@@ -5761,6 +5848,24 @@ function renderHistoryCalendar(rows){
       const d = new Date(raw);
       if(isNaN(d.getTime())) return "";
       return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}`;
+    }
+    function getSummaryRangeText(){
+      const filterOn = $("filterToggle")?.checked;
+      const fromValue = $("fromDate")?.value || "";
+      const toValue = $("toDate")?.value || "";
+      if(filterOn && fromValue && toValue){
+        const from = formatExportRangeDate(fromValue);
+        const to = formatExportRangeDate(toValue);
+        if(from && to) return `${from} -> ${to}`;
+      }
+      return "tutti";
+    }
+    function getSummaryRangeLabel(){
+      return getSummaryRangeText() === "tutti" ? "Storico" : "Selezione";
+    }
+    function getSummaryScopeText(){
+      const value = getSummaryRangeText();
+      return value === "tutti" ? "Storico: tutti" : `Selezione: ${value}`;
     }
     function getExportRangeLabel(rows = []){
       const filterOn = $("filterToggle")?.checked;
@@ -5997,7 +6102,7 @@ function renderHistoryCalendar(rows){
       }
 
       const title = report.trim() || defaultReportName;
-      const rangeText = ($("rangeText")?.textContent || "").trim();
+      const rangeText = getSummaryScopeText();
       const q = ($("searchInput")?.value || "").trim();
       const nowText = new Date().toLocaleString("it-IT");
 
