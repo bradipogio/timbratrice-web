@@ -1302,6 +1302,136 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       line-height:1.4;
       white-space:pre-line;
     }
+    .promptCustom{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+    .promptDetails{
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:var(--card2);
+      overflow:hidden;
+    }
+    .promptDetailsSummary{
+      list-style:none;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:12px 14px;
+      cursor:pointer;
+      font-weight:900;
+    }
+    .promptDetailsSummary::-webkit-details-marker{display:none}
+    .promptDetailsHint{
+      font-size:12px;
+      color:var(--muted);
+      font-weight:800;
+    }
+    .promptDetailsBody{
+      padding:0 14px 14px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .pdfOptionGroup{
+      display:flex;
+      flex-direction:column;
+      gap:8px;
+    }
+    .pdfOptionTitle{
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.3px;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+    .pdfChoice{
+      display:flex;
+      align-items:flex-start;
+      gap:10px;
+      padding:10px 12px;
+      border:1px solid var(--line);
+      border-radius:14px;
+      background:var(--card);
+      cursor:pointer;
+    }
+    .pdfChoice input{
+      margin:2px 0 0;
+      width:16px;
+      height:16px;
+      flex:0 0 auto;
+    }
+    .pdfChoiceText{
+      display:flex;
+      flex-direction:column;
+      gap:3px;
+      min-width:0;
+    }
+    .pdfChoiceLabel{
+      font-weight:900;
+      font-size:14px;
+    }
+    .pdfChoiceHelp{
+      font-size:12px;
+      line-height:1.35;
+      color:var(--muted);
+    }
+    .pdfPayDetails{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:10px;
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:8px;
+      min-width:0;
+    }
+    .pdfPayDetails[disabled]{
+      opacity:.55;
+    }
+    .pdfPayChoice{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      min-width:0;
+      padding:8px 10px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:var(--card);
+      cursor:pointer;
+    }
+    .pdfPayChoice input{
+      width:16px;
+      height:16px;
+      flex:0 0 auto;
+      margin:0;
+    }
+    .pdfPayBadge{
+      min-width:34px;
+      height:28px;
+      padding:0 8px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(210,43,43,.10);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.2px;
+      flex:0 0 auto;
+    }
+    .pdfPayText{
+      font-size:13px;
+      font-weight:800;
+      min-width:0;
+    }
+    @media (max-width:520px){
+      .pdfPayDetails{
+        grid-template-columns:minmax(0, 1fr);
+      }
+    }
     .promptActions{
       display:flex;
       gap:10px;
@@ -2667,6 +2797,7 @@ body{
       <div id="promptTitle" class="dlgTitle">Conferma</div>
       <div id="promptMsg" class="promptMsg"></div>
       <input id="promptInput" class="hidden" type="text" />
+      <div id="promptCustom" class="promptCustom hidden"></div>
       <div class="promptActions">
         <button id="promptCancel" class="btn" type="button">Annulla</button>
         <button id="promptExtra" class="btn danger hidden" type="button">Elimina</button>
@@ -3012,6 +3143,7 @@ async function ensureXlsxReady(){
     const isVanMode = (mode) => mode === "furgone" || mode === "guida";
     const toISO = (d) => new Date(d).toISOString();
     const PAY_SETTINGS_KEY = "timbratricePaySettings";
+    const PDF_EXPORT_SETTINGS_KEY = "timbratricePdfExportSettings";
     const PAY_DEFAULTS = {
       hourly: 0,
       magazzino: 0,
@@ -3019,6 +3151,23 @@ async function ensureXlsxReady(){
       van: 0,
       drive: 0
     };
+    const PDF_EXPORT_DEFAULTS = {
+      mode: "total",
+      includeComp: false,
+      detailKeys: ["grossHours", "transportPay", "grossKm", "grossVan", "grossDrive", "grossTotal", "imponibile", "imposta", "inps", "netTotal"]
+    };
+    const PDF_PAY_DETAIL_OPTIONS = [
+      { key: "grossHours", label: "Lordo ore", symbol: "LO" },
+      { key: "transportPay", label: "Trasporto", symbol: "TR" },
+      { key: "grossKm", label: "Rimborso km", symbol: "KM" },
+      { key: "grossVan", label: "Furgone", symbol: "V" },
+      { key: "grossDrive", label: "Guida", symbol: "G" },
+      { key: "grossTotal", label: "Lordo totale", symbol: "€" },
+      { key: "imponibile", label: "Imponibile", symbol: "67%" },
+      { key: "imposta", label: "Imposta", symbol: "5%" },
+      { key: "inps", label: "INPS", symbol: "IN" },
+      { key: "netTotal", label: "Netto", symbol: "N" }
+    ];
     const PAY_TAX = {
       coeff: 0.67,
       rate: 0.05,
@@ -3075,6 +3224,33 @@ async function ensureXlsxReady(){
         localStorage.setItem(PAY_SETTINGS_KEY, JSON.stringify(paySettings));
       }catch(err){}
     }
+    function normalizePdfExportOptions(raw = {}){
+      const allowedKeys = new Set(PDF_PAY_DETAIL_OPTIONS.map((opt)=> opt.key));
+      const rawMode = String(raw?.mode || PDF_EXPORT_DEFAULTS.mode).trim().toLowerCase();
+      const mode = rawMode === "split" ? "split" : "total";
+      const detailKeys = Array.isArray(raw?.detailKeys)
+        ? raw.detailKeys.map((key)=> String(key || "").trim()).filter((key, idx, arr)=> key && allowedKeys.has(key) && arr.indexOf(key) === idx)
+        : [...PDF_EXPORT_DEFAULTS.detailKeys];
+      return {
+        mode,
+        includeComp: !!raw?.includeComp,
+        detailKeys: detailKeys.length ? detailKeys : [...PDF_EXPORT_DEFAULTS.detailKeys]
+      };
+    }
+    function loadPdfExportOptions(){
+      try{
+        const raw = localStorage.getItem(PDF_EXPORT_SETTINGS_KEY);
+        if(!raw) return { ...PDF_EXPORT_DEFAULTS, detailKeys: [...PDF_EXPORT_DEFAULTS.detailKeys] };
+        return normalizePdfExportOptions(JSON.parse(raw));
+      }catch(_err){
+        return { ...PDF_EXPORT_DEFAULTS, detailKeys: [...PDF_EXPORT_DEFAULTS.detailKeys] };
+      }
+    }
+    function savePdfExportOptions(options){
+      try{
+        localStorage.setItem(PDF_EXPORT_SETTINGS_KEY, JSON.stringify(normalizePdfExportOptions(options)));
+      }catch(_err){}
+    }
     function syncPayInputs(){
       const hourly = $("payHourly");
       const magazzino = $("payMagazzino");
@@ -3116,29 +3292,50 @@ async function ensureXlsxReady(){
       });
       updatePayRecap();
     }
-    function updatePayRecap(){
-      const grossEl = $("payGrossTotal");
-      if(!grossEl) return;
-      const rows = getVisibleHistory();
-      const sumWorkMin = rows.reduce((a,r)=>a + Number(r.workMin||0), 0);
-      const sumKm = rows.reduce((a,r)=>a + Number(r.km||0), 0);
-      const sumVan = rows.filter(r => normalizeFurgone(r.furgone) === "furgone").length;
-      const sumDrive = rows.filter(r => normalizeFurgone(r.furgone) === "guida").length;
+    function computePayTotals(rows = []){
+      const list = Array.isArray(rows) ? rows : [];
+      const sumWorkMin = list.reduce((a,r)=> a + Number(r?.workMin || 0), 0);
+      const sumKm = list.reduce((a,r)=> a + Number(r?.km || 0), 0);
+      const sumVan = list.filter((r)=> normalizeFurgone(r?.furgone) === "furgone").length;
+      const sumDrive = list.filter((r)=> normalizeFurgone(r?.furgone) === "guida").length;
       const magazzinoRate = paySettings.magazzino || paySettings.hourly;
-      const grossHours = rows.reduce((total, r)=>{
-        const hoursDec = Number(r.workMin || 0) / 60;
-        const rate = isMagazzinoTitle(r.title) ? magazzinoRate : paySettings.hourly;
+      const grossHours = list.reduce((total, r)=>{
+        const hoursDec = Number(r?.workMin || 0) / 60;
+        const rate = isMagazzinoTitle(r?.title) ? magazzinoRate : paySettings.hourly;
         return total + (hoursDec * rate);
       }, 0);
       const grossKm = sumKm * paySettings.km;
       const grossVan = sumVan * paySettings.van;
       const grossDrive = sumDrive * paySettings.drive;
-      const grossTotal = grossHours + grossKm + grossVan + grossDrive;
-
+      const transportPay = grossKm + grossVan + grossDrive;
+      const grossTotal = grossHours + transportPay;
       const imponibile = grossTotal * PAY_TAX.coeff;
       const imposta = imponibile * PAY_TAX.rate;
       const inps = imponibile * PAY_TAX.inps;
-      const netto = grossTotal - imposta - inps;
+      const netTotal = grossTotal - imposta - inps;
+      return {
+        turns: list.length,
+        sumWorkMin,
+        sumKm,
+        sumVan,
+        sumDrive,
+        grossHours,
+        grossKm,
+        grossVan,
+        grossDrive,
+        transportPay,
+        grossTotal,
+        imponibile,
+        imposta,
+        inps,
+        netTotal
+      };
+    }
+    function updatePayRecap(){
+      const grossEl = $("payGrossTotal");
+      if(!grossEl) return;
+      const rows = getVisibleHistory();
+      const totals = computePayTotals(rows);
 
       let scopeText = getSummaryScopeText();
       const searchText = getSearchQuery();
@@ -3152,44 +3349,28 @@ async function ensureXlsxReady(){
       const scopeEl = $("payScopeText");
       if(scopeEl) scopeEl.textContent = scopeText;
 
-      $("payHours").textContent = fmtHM(sumWorkMin);
-      $("payKmTotal").textContent = formatPlain(sumKm);
-      $("payVanTotal").textContent = String(sumVan);
-      $("payDriveTotal").textContent = String(sumDrive);
+      $("payHours").textContent = fmtHM(totals.sumWorkMin);
+      $("payKmTotal").textContent = formatPlain(totals.sumKm);
+      $("payVanTotal").textContent = String(totals.sumVan);
+      $("payDriveTotal").textContent = String(totals.sumDrive);
 
-      $("payGrossHours").textContent = formatEuro(grossHours);
-      $("payGrossKm").textContent = formatEuro(grossKm);
-      $("payGrossVan").textContent = formatEuro(grossVan);
-      $("payGrossDrive").textContent = formatEuro(grossDrive);
-      grossEl.textContent = formatEuro(grossTotal);
+      $("payGrossHours").textContent = formatEuro(totals.grossHours);
+      $("payGrossKm").textContent = formatEuro(totals.grossKm);
+      $("payGrossVan").textContent = formatEuro(totals.grossVan);
+      $("payGrossDrive").textContent = formatEuro(totals.grossDrive);
+      grossEl.textContent = formatEuro(totals.grossTotal);
 
-      $("payImponibile").textContent = formatEuro(imponibile);
-      $("payImposta").textContent = formatEuro(imposta);
-      $("payInps").textContent = formatEuro(inps);
-      $("payNet").textContent = formatEuro(netto);
+      $("payImponibile").textContent = formatEuro(totals.imponibile);
+      $("payImposta").textContent = formatEuro(totals.imposta);
+      $("payInps").textContent = formatEuro(totals.inps);
+      $("payNet").textContent = formatEuro(totals.netTotal);
     }
     function computeRowPaySummary(row){
-      const workMin = Number(row?.workMin || 0);
-      const km = Number(row?.km || 0);
-      const vehicle = normalizeFurgone(row?.furgone);
-      const vanCount = vehicle === "furgone" ? 1 : 0;
-      const driveCount = vehicle === "guida" ? 1 : 0;
-      const magazzinoRate = paySettings.magazzino || paySettings.hourly;
-      const hourlyRate = isMagazzinoTitle(row?.title) ? magazzinoRate : paySettings.hourly;
-      const grossHours = (workMin / 60) * hourlyRate;
-      const grossKm = km * paySettings.km;
-      const grossVan = vanCount * paySettings.van;
-      const grossDrive = driveCount * paySettings.drive;
-      const transportPay = grossKm + grossVan + grossDrive;
-      const grossTotal = grossHours + transportPay;
-      const imponibile = grossTotal * PAY_TAX.coeff;
-      const imposta = imponibile * PAY_TAX.rate;
-      const inps = imponibile * PAY_TAX.inps;
-      const netTotal = grossTotal - imposta - inps;
+      const totals = computePayTotals(row ? [row] : []);
       return {
-        transportPay,
-        grossTotal,
-        netTotal
+        transportPay: totals.transportPay,
+        grossTotal: totals.grossTotal,
+        netTotal: totals.netTotal
       };
     }
 
@@ -4492,6 +4673,8 @@ function enforceAuthGate(){
     let promptAllowCancel = true;
     let promptInputEnabled = false;
     let promptLastFocus = null;
+    let promptCustomReader = null;
+    let promptCustomCleanup = null;
 
     function syncModalOpenState(){
       const hasOpenOverlay =
@@ -4529,17 +4712,26 @@ function enforceAuthGate(){
       inputValue = "",
       inputPlaceholder = "",
       extraText = "",
-      extraClass = ""
+      extraClass = "",
+      customHTML = "",
+      getCustomValue = null,
+      onOpen = null
     } = {}){
       const overlay = $("promptOverlay");
       const titleEl = $("promptTitle");
       const msgEl = $("promptMsg");
       const inputEl = $("promptInput");
+      const customEl = $("promptCustom");
       const okBtn = $("promptOk");
       const cancelBtn = $("promptCancel");
       const extraBtn = $("promptExtra");
-      if(!overlay || !titleEl || !msgEl || !inputEl || !okBtn || !cancelBtn || !extraBtn){
+      if(!overlay || !titleEl || !msgEl || !inputEl || !customEl || !okBtn || !cancelBtn || !extraBtn){
         return Promise.resolve(showInput ? null : false);
+      }
+
+      if(promptCustomCleanup){
+        try{ promptCustomCleanup(); }catch(_err){}
+        promptCustomCleanup = null;
       }
 
       if(promptActive && promptResolve){
@@ -4572,6 +4764,10 @@ function enforceAuthGate(){
         inputEl.placeholder = "";
       }
 
+      customEl.innerHTML = customHTML || "";
+      customEl.classList.toggle("hidden", !customHTML);
+      promptCustomReader = typeof getCustomValue === "function" ? getCustomValue : null;
+
       overlay.classList.remove("hidden");
       overlay.setAttribute("aria-hidden", "false");
       syncModalOpenState();
@@ -4579,6 +4775,16 @@ function enforceAuthGate(){
       return new Promise((resolve)=>{
         promptResolve = resolve;
         setTimeout(()=>{
+          if(typeof onOpen === "function"){
+            promptCustomCleanup = onOpen({
+              overlay,
+              inputEl,
+              customEl,
+              okBtn,
+              cancelBtn,
+              extraBtn
+            }) || null;
+          }
           if(showInput){
             inputEl.focus();
             inputEl.select();
@@ -4608,6 +4814,11 @@ function enforceAuthGate(){
         }
       }
 
+      if(promptCustomReader && result === true){
+        const customValue = promptCustomReader();
+        value = promptInputEnabled ? { value, custom: customValue } : customValue;
+      }
+
       if(promptResolve){
         promptResolve(value);
         promptResolve = null;
@@ -4615,6 +4826,16 @@ function enforceAuthGate(){
       promptActive = false;
       promptAllowCancel = true;
       promptInputEnabled = false;
+      promptCustomReader = null;
+      if(promptCustomCleanup){
+        try{ promptCustomCleanup(); }catch(_err){}
+        promptCustomCleanup = null;
+      }
+      const customEl = $("promptCustom");
+      if(customEl){
+        customEl.innerHTML = "";
+        customEl.classList.add("hidden");
+      }
 
       if(promptLastFocus && typeof promptLastFocus.focus === "function"){
         promptLastFocus.focus();
@@ -4683,6 +4904,23 @@ function enforceAuthGate(){
         e.preventDefault();
         closePrompt(promptAllowCancel ? false : true);
       }else if(e.key === "Enter"){
+        const activeEl = document.activeElement;
+        const activeId = activeEl?.id || "";
+        const activeType = String(activeEl?.type || "").toLowerCase();
+        const activeTag = String(activeEl?.tagName || "").toUpperCase();
+        if(activeId === "promptCancel"){
+          e.preventDefault();
+          closePrompt(false);
+          return;
+        }
+        if(activeId === "promptExtra"){
+          e.preventDefault();
+          closePrompt("extra");
+          return;
+        }
+        if(activeType === "checkbox" || activeType === "radio" || activeTag === "SUMMARY" || activeTag === "SELECT" || activeTag === "TEXTAREA"){
+          return;
+        }
         e.preventDefault();
         closePrompt(true);
       }
@@ -6168,57 +6406,131 @@ function renderHistoryCalendar(rows){
     }
 
     // --------- PDF export (stampa -> salva PDF) ---------
-    async function exportPDF(){
-      const rows = getVisibleHistory();
-      if(rows.length === 0){
-        setActionMsg("Nessun record da esportare.", "err");
-        return;
-      }
+    function formatPdfDateTime(iso){
+      if(!iso) return "";
+      const d = new Date(iso);
+      if(isNaN(d.getTime())) return "";
+      const yyyy = d.getFullYear();
+      const mm = pad2(d.getMonth() + 1);
+      const dd = pad2(d.getDate());
+      const HH = pad2(d.getHours());
+      const MI = pad2(d.getMinutes());
+      return `${yyyy}/${mm}/${dd} ${HH}:${MI}`;
+    }
+    function getPdfModeLabel(mode){
+      return mode === "split" ? "Divisa" : "Totale";
+    }
+    function getPdfExportCustomHtml(options){
+      const normalized = normalizePdfExportOptions(options);
+      return `
+        <details class="promptDetails" open>
+          <summary class="promptDetailsSummary">
+            <span class="iconLabel">${iconSvg("i-filter","icon xs")}<span>Opzioni PDF</span></span>
+            <span class="promptDetailsHint">Modalita, recap, compensi</span>
+          </summary>
+          <div class="promptDetailsBody">
+            <div class="pdfOptionGroup">
+              <div class="pdfOptionTitle">Modalita di esportazione</div>
+              <label class="pdfChoice">
+                <input type="radio" name="pdfExportMode" value="total" ${normalized.mode === "total" ? "checked" : ""}>
+                <span class="pdfChoiceText">
+                  <span class="pdfChoiceLabel">Totale</span>
+                  <span class="pdfChoiceHelp">Tutti i record insieme, con un solo recap.</span>
+                </span>
+              </label>
+              <label class="pdfChoice">
+                <input type="radio" name="pdfExportMode" value="split" ${normalized.mode === "split" ? "checked" : ""}>
+                <span class="pdfChoiceText">
+                  <span class="pdfChoiceLabel">Divisa</span>
+                  <span class="pdfChoiceHelp">Prima sezione eventi, seconda sezione magazzino/casa, ognuna col suo recap.</span>
+                </span>
+              </label>
+            </div>
+            <div class="pdfOptionGroup">
+              <label class="pdfChoice">
+                <input id="pdfIncludeComp" type="checkbox" ${normalized.includeComp ? "checked" : ""}>
+                <span class="pdfChoiceText">
+                  <span class="pdfChoiceLabel">Compensi</span>
+                  <span class="pdfChoiceHelp">Aggiunge al recap le voci economiche usando le impostazioni attuali.</span>
+                </span>
+              </label>
+              <fieldset id="pdfPayDetails" class="pdfPayDetails" ${normalized.includeComp ? "" : "disabled"}>
+                ${PDF_PAY_DETAIL_OPTIONS.map((opt)=> `
+                  <label class="pdfPayChoice">
+                    <input type="checkbox" data-pdf-pay-detail="${escapeHTML(opt.key)}" ${normalized.detailKeys.includes(opt.key) ? "checked" : ""}>
+                    <span class="pdfPayBadge">${escapeHTML(opt.symbol)}</span>
+                    <span class="pdfPayText">${escapeHTML(opt.label)}</span>
+                  </label>
+                `).join("")}
+              </fieldset>
+            </div>
+          </div>
+        </details>
+      `;
+    }
+    function readPdfExportOptionsFromPrompt(root){
+      if(!root) return normalizePdfExportOptions();
+      const mode = root.querySelector('input[name="pdfExportMode"]:checked')?.value || PDF_EXPORT_DEFAULTS.mode;
+      const includeComp = !!root.querySelector("#pdfIncludeComp")?.checked;
+      const detailKeys = Array.from(root.querySelectorAll("[data-pdf-pay-detail]:checked"))
+        .map((input)=> String(input.getAttribute("data-pdf-pay-detail") || "").trim())
+        .filter(Boolean);
+      return normalizePdfExportOptions({ mode, includeComp, detailKeys });
+    }
+    async function getPdfExportConfig(rows = []){
       const defaultReportName = getDefaultPdfReportName(rows);
-      const report = await getExportName({
+      const savedOptions = loadPdfExportOptions();
+      const raw = await openPrompt({
         title: "Esporta PDF",
-        message: "Nome file PDF. Puoi modificarlo prima di esportare.",
-        defaultValue: defaultReportName,
-        fallback: defaultReportName
+        message: "Nome file PDF e opzioni del recap.",
+        confirmText: "Esporta",
+        cancelText: "Annulla",
+        showCancel: true,
+        showInput: true,
+        inputValue: defaultReportName,
+        customHTML: getPdfExportCustomHtml(savedOptions),
+        getCustomValue: ()=> readPdfExportOptionsFromPrompt($("promptCustom")),
+        onOpen: ({ customEl })=>{
+          const includeComp = customEl.querySelector("#pdfIncludeComp");
+          const payDetails = customEl.querySelector("#pdfPayDetails");
+          if(!includeComp || !payDetails) return null;
+          const syncDetails = ()=>{
+            payDetails.disabled = !includeComp.checked;
+          };
+          includeComp.addEventListener("change", syncDetails);
+          syncDetails();
+          return ()=>{
+            includeComp.removeEventListener("change", syncDetails);
+          };
+        }
       });
-      if(report === null) return;
-
-      const dt = (iso)=>{
-        if(!iso) return "";
-        const d = new Date(iso);
-        const yyyy = d.getFullYear();
-        const mm = pad2(d.getMonth()+1);
-        const dd = pad2(d.getDate());
-        const HH = pad2(d.getHours());
-        const MI = pad2(d.getMinutes());
-        return `${yyyy}/${mm}/${dd} ${HH}:${MI}`;
-      };
-
-      let sumWork = 0;
-      let sumKm = 0;
-      let sumVan = 0;
-      let sumDrive = 0;
-      for(const r of rows){
-        sumWork += Number(r.workMin||0);
-        sumKm += Number(r.km||0);
-        const fLabel = normalizeFurgone(r.furgone);
-        if(fLabel === "furgone") sumVan += 1;
-        if(fLabel === "guida") sumDrive += 1;
+      if(raw === null) return null;
+      const report = String(raw?.value || "").trim() || defaultReportName;
+      const options = normalizePdfExportOptions(raw?.custom || savedOptions);
+      savePdfExportOptions(options);
+      return { report, options };
+    }
+    function splitPdfRows(rows = []){
+      const eventRows = [];
+      const magazzinoRows = [];
+      for(const row of rows){
+        if(isMagazzinoTitle(row?.title)){
+          magazzinoRows.push(row);
+        }else{
+          eventRows.push(row);
+        }
       }
-
-      const title = report.trim() || defaultReportName;
-      const rangeText = getSummaryScopeText();
-      const q = ($("searchInput")?.value || "").trim();
-      const nowText = new Date().toLocaleString("it-IT");
-
-      const rowsHtml = rows.map((r, i)=>{
+      return { eventRows, magazzinoRows };
+    }
+    function getPdfTableRowsHtml(rows = []){
+      return rows.map((r, i)=>{
         const t = escapeHTML(r.title || "Senza titolo");
-        const start = escapeHTML(dt(r.startISO));
-        const end = escapeHTML(dt(r.endISO));
-        const pause = escapeHTML(fmtHM(Number(r.pauseMin||0)));
-        const work = escapeHTML(fmtHM(Number(r.workMin||0)));
-        const km = escapeHTML(String(Number(r.km||0)));
-        const fLabel = escapeHTML(normalizeFurgone(r.furgone));
+        const start = escapeHTML(formatPdfDateTime(r.startISO));
+        const end = escapeHTML(formatPdfDateTime(r.endISO));
+        const pause = escapeHTML(fmtHM(Number(r.pauseMin || 0)));
+        const work = escapeHTML(fmtHM(Number(r.workMin || 0)));
+        const km = escapeHTML(String(Number(r.km || 0)));
+        const fLabel = escapeHTML(normalizeFurgone(r.furgone) || "—");
         const zebra = i % 2 ? " class=\"alt\"" : "";
         return `<tr${zebra}>
   <td>${t}</td>
@@ -6230,9 +6542,162 @@ function renderHistoryCalendar(rows){
   <td class="center">${fLabel}</td>
 </tr>`;
       }).join("");
+    }
+    function getPdfPayDetailValue(key, totals){
+      switch(key){
+        case "grossHours": return formatEuro(totals.grossHours);
+        case "transportPay": return formatEuro(totals.transportPay);
+        case "grossKm": return formatEuro(totals.grossKm);
+        case "grossVan": return formatEuro(totals.grossVan);
+        case "grossDrive": return formatEuro(totals.grossDrive);
+        case "grossTotal": return formatEuro(totals.grossTotal);
+        case "imponibile": return formatEuro(totals.imponibile);
+        case "imposta": return formatEuro(totals.imposta);
+        case "inps": return formatEuro(totals.inps);
+        case "netTotal": return formatEuro(totals.netTotal);
+        default: return formatEuro(0);
+      }
+    }
+    function getPdfActivitySummaryHtml(totals){
+      return `
+        <div class="summaryGrid">
+          <div class="summaryCardPdf">
+            <div class="summaryBadge">#</div>
+            <div>
+              <div class="summaryLabel">Turni</div>
+              <div class="summaryValue">${totals.turns}</div>
+            </div>
+          </div>
+          <div class="summaryCardPdf">
+            <div class="summaryBadge">H</div>
+            <div>
+              <div class="summaryLabel">Ore totali</div>
+              <div class="summaryValue">${escapeHTML(fmtHM(totals.sumWorkMin))}</div>
+            </div>
+          </div>
+          <div class="summaryCardPdf">
+            <div class="summaryBadge">KM</div>
+            <div>
+              <div class="summaryLabel">Km totali</div>
+              <div class="summaryValue">${escapeHTML(String(totals.sumKm))}</div>
+            </div>
+          </div>
+          <div class="summaryCardPdf">
+            <div class="summaryBadge">V</div>
+            <div>
+              <div class="summaryLabel">Furgone / Guida</div>
+              <div class="summaryStack">Furgone: ${totals.sumVan}<br>Guida: ${totals.sumDrive}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+    function getPdfPaySummaryHtml(totals, detailKeys = []){
+      if(!detailKeys.length) return "";
+      return `
+        <div class="summaryBlock">
+          <div class="summaryBlockTitle">Compensi</div>
+          <div class="summaryGrid summaryGrid-pay">
+            ${detailKeys.map((key)=>{
+              const opt = PDF_PAY_DETAIL_OPTIONS.find((item)=> item.key === key);
+              if(!opt) return "";
+              return `
+                <div class="summaryCardPdf">
+                  <div class="summaryBadge">${escapeHTML(opt.symbol)}</div>
+                  <div>
+                    <div class="summaryLabel">${escapeHTML(opt.label)}</div>
+                    <div class="summaryValue summaryValue-pay">${escapeHTML(getPdfPayDetailValue(key, totals))}</div>
+                  </div>
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      `;
+    }
+    function getPdfSectionHtml({ title, subtitle = "", rows = [], options, pageBreak = false }){
+      if(!rows.length) return "";
+      const totals = computePayTotals(rows);
+      const rowsHtml = getPdfTableRowsHtml(rows);
+      const payHtml = options.includeComp ? getPdfPaySummaryHtml(totals, options.detailKeys) : "";
+      return `
+        <section class="pdfSection ${pageBreak ? "pageBreak" : ""}">
+          <div class="sectionHeader">
+            <div>
+              <div class="sectionTitle">${escapeHTML(title)}</div>
+              ${subtitle ? `<div class="sectionSub">${escapeHTML(subtitle)}</div>` : ""}
+            </div>
+            <div class="sectionCount">${rows.length} record</div>
+          </div>
+          <div class="summaryWrap">
+            <div class="summaryBlock">
+              <div class="summaryBlockTitle">Riepilogo attivita</div>
+              ${getPdfActivitySummaryHtml(totals)}
+            </div>
+            ${payHtml}
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Titolo</th>
+                <th>Inizio</th>
+                <th>Fine</th>
+                <th>Pausa</th>
+                <th>Ore</th>
+                <th class="right">Km</th>
+                <th class="center">Furgone</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </section>
+      `;
+    }
+    async function exportPDF(){
+      const rows = getVisibleHistory();
+      if(rows.length === 0){
+        setActionMsg("Nessun record da esportare.", "err");
+        return;
+      }
+      const config = await getPdfExportConfig(rows);
+      if(config === null) return;
+
+      const title = config.report.trim() || getDefaultPdfReportName(rows);
+      const options = normalizePdfExportOptions(config.options);
+      const rangeText = getSummaryScopeText();
+      const q = ($("searchInput")?.value || "").trim();
+      const vehicleLabel = getVehicleFilterLabel();
+      const nowText = new Date().toLocaleString("it-IT");
+      const { eventRows, magazzinoRows } = splitPdfRows(rows);
+      const sections = options.mode === "split"
+        ? [
+            getPdfSectionHtml({
+              title: "Eventi",
+              subtitle: "Turni standard",
+              rows: eventRows,
+              options
+            }),
+            getPdfSectionHtml({
+              title: "Magazzino / Casa",
+              subtitle: "Turni riconosciuti dal titolo",
+              rows: magazzinoRows,
+              options,
+              pageBreak: eventRows.length > 0
+            })
+          ].filter(Boolean).join("")
+        : getPdfSectionHtml({
+            title: "Recap completo",
+            subtitle: "Tutti i record selezionati",
+            rows,
+            options
+          });
 
       const metaLines = [
         rangeText ? `<div class="meta">${escapeHTML(rangeText)}</div>` : "",
+        vehicleLabel ? `<div class="meta">Filtro mezzo: ${escapeHTML(vehicleLabel)}</div>` : "",
+        `<div class="meta">Modalita PDF: ${escapeHTML(getPdfModeLabel(options.mode))}</div>`,
         q ? `<div class="meta">Ricerca: ${escapeHTML(q)}</div>` : "",
         `<div class="meta">Generato: ${escapeHTML(nowText)}</div>`
       ].filter(Boolean).join("");
@@ -6250,6 +6715,18 @@ function renderHistoryCalendar(rows){
     }
     h1{ font-size:20px; margin:0 0 6px; }
     .meta{ font-size:12px; color:#555; margin-bottom:3px; }
+    .pdfSection{ margin-top:18px; }
+    .pdfSection.pageBreak{ break-before:page; page-break-before:always; }
+    .sectionHeader{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:12px;
+    }
+    .sectionTitle{ font-size:18px; font-weight:900; }
+    .sectionSub{ font-size:12px; color:#666; margin-top:3px; }
+    .sectionCount{ font-size:12px; font-weight:800; color:#666; white-space:nowrap; }
     table{ width:100%; border-collapse:collapse; margin-top:12px; }
     th, td{ font-size:10.5px; padding:6px 6px; border-bottom:1px solid #ddd; vertical-align:top; }
     th{ background:#f2f2f2; text-align:left; }
@@ -6258,82 +6735,68 @@ function renderHistoryCalendar(rows){
     .right{ text-align:right; }
     .center{ text-align:center; }
     .nowrap{ white-space:nowrap; }
-    .totals{ margin-top:16px; padding:12px; border:1px solid #d9d9d9; border-radius:12px; background:#f6f6f6; break-inside:avoid; page-break-inside:avoid; }
-    .totalsTitle{ font-size:14px; font-weight:800; margin-bottom:10px; text-transform:uppercase; letter-spacing:.6px; }
-    .totalsGrid{ display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; break-inside:avoid; page-break-inside:avoid; }
-    .totalsCard{ background:#fff; border:1px solid #d9d9d9; border-radius:12px; padding:10px; display:flex; gap:8px; align-items:center; break-inside:avoid; page-break-inside:avoid; }
-    .totalsIcon{ width:22px; height:22px; color:#555; flex:0 0 auto; }
-    .totalsLabel{ font-size:11px; color:#666; font-weight:700; letter-spacing:.4px; text-transform:uppercase; }
-    .totalsValue{ font-size:22px; font-weight:900; margin-top:2px; }
-    .totalsValueStack{ font-size:14px; font-weight:900; line-height:1.25; margin-top:2px; }
-    .totalsCard.noIcon{ gap:0; }
-    .totalsCard.noIcon .totalsIcon{ display:none; }
+    .summaryWrap{ display:flex; flex-direction:column; gap:12px; }
+    .summaryBlock{
+      padding:12px;
+      border:1px solid #d9d9d9;
+      border-radius:12px;
+      background:#f6f6f6;
+      break-inside:avoid;
+      page-break-inside:avoid;
+    }
+    .summaryBlockTitle{
+      font-size:13px;
+      font-weight:800;
+      margin-bottom:10px;
+      text-transform:uppercase;
+      letter-spacing:.6px;
+    }
+    .summaryGrid{
+      display:grid;
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+      gap:10px;
+      break-inside:avoid;
+      page-break-inside:avoid;
+    }
+    .summaryGrid.summaryGrid-pay{
+      grid-template-columns:repeat(3, minmax(0, 1fr));
+    }
+    .summaryCardPdf{
+      background:#fff;
+      border:1px solid #d9d9d9;
+      border-radius:12px;
+      padding:10px;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      break-inside:avoid;
+      page-break-inside:avoid;
+    }
+    .summaryBadge{
+      min-width:32px;
+      height:32px;
+      border-radius:999px;
+      border:1px solid #d9d9d9;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:11px;
+      font-weight:900;
+      color:#555;
+      background:#f3f3f3;
+      padding:0 6px;
+      flex:0 0 auto;
+    }
+    .summaryLabel{ font-size:11px; color:#666; font-weight:700; letter-spacing:.4px; text-transform:uppercase; }
+    .summaryValue{ font-size:20px; font-weight:900; margin-top:2px; }
+    .summaryValue.summaryValue-pay{ font-size:18px; }
+    .summaryStack{ font-size:14px; font-weight:900; line-height:1.25; margin-top:2px; }
   </style>
 </head>
 <body>
   <h1>${escapeHTML(title)}</h1>
   ${metaLines}
-  <div class="totals">
-    <div class="totalsTitle">Riepilogo</div>
-    <div class="totalsGrid">
-      <div class="totalsCard">
-        <svg class="totalsIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 6h12"></path>
-          <path d="M8 12h12"></path>
-          <path d="M8 18h12"></path>
-          <circle cx="4" cy="6" r="1"></circle>
-          <circle cx="4" cy="12" r="1"></circle>
-          <circle cx="4" cy="18" r="1"></circle>
-        </svg>
-        <div>
-          <div class="totalsLabel">Turni</div>
-          <div class="totalsValue">${rows.length}</div>
-        </div>
-      </div>
-      <div class="totalsCard">
-        <svg class="totalsIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="9"></circle>
-          <path d="M12 7v5l3 2"></path>
-        </svg>
-        <div>
-          <div class="totalsLabel">Ore totali</div>
-          <div class="totalsValue">${escapeHTML(fmtHM(sumWork))}</div>
-        </div>
-      </div>
-      <div class="totalsCard">
-        <svg class="totalsIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 11l1.5-4.5A2 2 0 0 1 8.4 5h7.2a2 2 0 0 1 1.9 1.5L19 11"></path>
-          <path d="M3 13h18v5a1 1 0 0 1-1 1h-2a1 1 0 0 1-1-1v-1H7v1a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-5z"></path>
-          <path d="M7 11h10"></path>
-        </svg>
-        <div>
-          <div class="totalsLabel">Km totali</div>
-          <div class="totalsValue">${escapeHTML(String(sumKm))}</div>
-        </div>
-      </div>
-      <div class="totalsCard noIcon">
-        <div>
-          <div class="totalsValueStack">Furgone: ${sumVan}<br>Guida: ${sumDrive}</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Titolo</th>
-        <th>Inizio</th>
-        <th>Fine</th>
-        <th>Pausa</th>
-        <th>Ore</th>
-        <th class="right">Km</th>
-        <th class="center">Furgone</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${rowsHtml}
-    </tbody>
-  </table>
+  ${sections}
 </body>
 </html>`;
 
