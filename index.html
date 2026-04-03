@@ -4069,6 +4069,16 @@ async function ensureXlsxReady(){
       const dd = pad2(d.getDate());
       return `${yyyy}-${mm}-${dd}`;
     }
+    function getPreviousMonthRange(baseDate = new Date()){
+      const base = baseDate instanceof Date ? new Date(baseDate) : new Date(baseDate);
+      const firstOfCurrentMonth = new Date(base.getFullYear(), base.getMonth(), 1);
+      const firstOfPreviousMonth = new Date(firstOfCurrentMonth.getFullYear(), firstOfCurrentMonth.getMonth() - 1, 1);
+      const lastOfPreviousMonth = new Date(firstOfCurrentMonth.getTime() - 1);
+      return {
+        from: todayISODate(firstOfPreviousMonth),
+        to: todayISODate(lastOfPreviousMonth)
+      };
+    }
 function isoToLocalInput(iso){
   if(!iso) return "";
   const d = new Date(iso);
@@ -7724,8 +7734,9 @@ $("btnSaveEdit").addEventListener("click", async (e)=>{
         if(!draftTitle){
           draftTitle = `Turno ${new Date().toLocaleDateString("it-IT")}`;
         }
-        $("fromDate").value = todayISODate(new Date(new Date().setDate(new Date().getDate()-7)));
-        $("toDate").value = todayISODate();
+        const previousMonthRange = getPreviousMonthRange();
+        $("fromDate").value = previousMonthRange.from;
+        $("toDate").value = previousMonthRange.to;
         $("filterBox").classList.add("hidden");
 
         if(window.location.hash.includes("type=recovery")){
