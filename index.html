@@ -6727,13 +6727,11 @@ function renderHistoryCalendar(rows){
         ? [
             getPdfSectionHtml({
               title: "Eventi",
-              subtitle: "Turni standard",
               rows: eventRows,
               options
             }),
             getPdfSectionHtml({
               title: "Magazzino / Casa",
-              subtitle: "Turni riconosciuti dal titolo",
               rows: magazzinoRows,
               options,
               pageBreak: eventRows.length > 0
@@ -6749,7 +6747,6 @@ function renderHistoryCalendar(rows){
       const metaLines = [
         rangeText ? `<div class="meta">${escapeHTML(rangeText)}</div>` : "",
         vehicleLabel ? `<div class="meta">Filtro mezzo: ${escapeHTML(vehicleLabel)}</div>` : "",
-        `<div class="meta">Modalita PDF: ${escapeHTML(getPdfModeLabel(options.mode))}</div>`,
         q ? `<div class="meta">Ricerca: ${escapeHTML(q)}</div>` : "",
         `<div class="meta">Generato: ${escapeHTML(nowText)}</div>`
       ].filter(Boolean).join("");
