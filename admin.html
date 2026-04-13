@@ -3144,6 +3144,7 @@ async function deleteDestination(id){
         if(fLabel === "furgone") sumVan += 1;
         if(fLabel === "guida") sumDrive += 1;
       }
+      const includeVehicleColumn = (sumVan + sumDrive) > 0;
 
       const userFilterId = ($("userSelect").value || "").trim();
       const userFilterLabel = userFilterId ? getUserLabelFromId(userFilterId) : "";
@@ -3160,6 +3161,7 @@ async function deleteDestination(id){
         const work = escapeHTML(fmtHM(Number(r.work_min||0)));
         const km = escapeHTML(String(Number(r.km||0)));
         const fLabel = escapeHTML(normalizeFurgone(r.furgone));
+        const vehicleCell = includeVehicleColumn ? `<td class="center">${fLabel}</td>` : "";
         const paidMark = r.paid ? "(v)" : "( )";
         const zebra = i % 2 ? " class=\"alt\"" : "";
         return `<tr${zebra}>
@@ -3170,7 +3172,7 @@ async function deleteDestination(id){
   <td class="center">${pause}</td>
   <td class="center">${work}</td>
   <td class="right">${km}</td>
-  <td class="center">${fLabel}</td>
+  ${vehicleCell}
   <td class="center paidCol">${paidMark}</td>
 </tr>`;
       }).join("");
@@ -3230,7 +3232,7 @@ async function deleteDestination(id){
         <th>Pausa</th>
         <th>Ore</th>
         <th class="right">Km</th>
-        <th class="center">Furgone</th>
+        ${includeVehicleColumn ? `<th class="center">Furgone</th>` : ""}
         <th class="center paidCol">Confermato</th>
       </tr>
     </thead>
@@ -3286,11 +3288,11 @@ async function deleteDestination(id){
           <div class="totalsValue">${escapeHTML(String(sumKm))}</div>
         </div>
       </div>
-      <div class="totalsCard noIcon">
+      ${includeVehicleColumn ? `<div class="totalsCard noIcon">
         <div>
           <div class="totalsValueStack">Furgone: ${sumVan}<br>Guida: ${sumDrive}</div>
         </div>
-      </div>
+      </div>` : ""}
     </div>
   </div>
 </body>

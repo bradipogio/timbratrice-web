@@ -6561,7 +6561,7 @@ function renderHistoryCalendar(rows){
       }
       return { eventRows, magazzinoRows };
     }
-    function getPdfTableRowsHtml(rows = []){
+    function getPdfTableRowsHtml(rows = [], includeVehicleColumn = true){
       return rows.map((r, i)=>{
         const t = escapeHTML(r.title || "Senza titolo");
         const start = escapeHTML(formatPdfDateTime(r.startISO));
@@ -6570,6 +6570,7 @@ function renderHistoryCalendar(rows){
         const work = escapeHTML(fmtHM(Number(r.workMin || 0)));
         const km = escapeHTML(String(Number(r.km || 0)));
         const fLabel = escapeHTML(normalizeFurgone(r.furgone) || "—");
+        const vehicleCell = includeVehicleColumn ? `<td class="center">${fLabel}</td>` : "";
         const zebra = i % 2 ? " class=\"alt\"" : "";
         return `<tr${zebra}>
   <td>${t}</td>
@@ -6578,7 +6579,7 @@ function renderHistoryCalendar(rows){
   <td class="center">${pause}</td>
   <td class="center">${work}</td>
   <td class="right">${km}</td>
-  <td class="center">${fLabel}</td>
+  ${vehicleCell}
 </tr>`;
       }).join("");
     }
@@ -6638,31 +6639,38 @@ function renderHistoryCalendar(rows){
       `;
     }
     function getPdfActivitySummaryHtml(totals){
+      const vanDriveCard = (totals.sumVan + totals.sumDrive) > 0
+        ? getPdfSummaryCardHtml({ icon: "i-van", label: "Furgone / Guida", value: `Furgone: ${totals.sumVan}<br>Guida: ${totals.sumDrive}`, stack: true })
+        : "";
       return `
         <div class="summaryGrid">
           ${getPdfSummaryCardHtml({ icon: "i-list", label: "Turni", value: String(totals.turns) })}
           ${getPdfSummaryCardHtml({ icon: "i-clock", label: "Ore totali", value: escapeHTML(fmtHM(totals.sumWorkMin)) })}
           ${getPdfSummaryCardHtml({ icon: "i-car", label: "Km totali", value: escapeHTML(String(totals.sumKm)) })}
-          ${getPdfSummaryCardHtml({ icon: "i-van", label: "Furgone / Guida", value: `Furgone: ${totals.sumVan}<br>Guida: ${totals.sumDrive}`, stack: true })}
+          ${vanDriveCard}
         </div>
       `;
     }
     function getPdfPaySummaryHtml(totals, detailKeys = []){
       if(!detailKeys.length) return "";
+      const cardsHtml = detailKeys.map((key)=>{
+        if(key === "grossVan" && totals.sumVan === 0) return "";
+        if(key === "grossDrive" && totals.sumDrive === 0) return "";
+        const opt = PDF_PAY_DETAIL_OPTIONS.find((item)=> item.key === key);
+        if(!opt) return "";
+        return getPdfSummaryCardHtml({
+          icon: opt.icon,
+          label: opt.label,
+          value: escapeHTML(getPdfPayDetailValue(key, totals)),
+          valueClass: "summaryValue-pay"
+        });
+      }).join("");
+      if(!cardsHtml) return "";
       return `
         <div class="summaryBlock">
           <div class="summaryBlockTitle">Compensi</div>
           <div class="summaryGrid summaryGrid-pay">
-            ${detailKeys.map((key)=>{
-              const opt = PDF_PAY_DETAIL_OPTIONS.find((item)=> item.key === key);
-              if(!opt) return "";
-              return getPdfSummaryCardHtml({
-                icon: opt.icon,
-                label: opt.label,
-                value: escapeHTML(getPdfPayDetailValue(key, totals)),
-                valueClass: "summaryValue-pay"
-              });
-            }).join("")}
+            ${cardsHtml}
           </div>
         </div>
       `;
@@ -6670,7 +6678,8 @@ function renderHistoryCalendar(rows){
     function getPdfSectionHtml({ title, subtitle = "", rows = [], options, pageBreak = false }){
       if(!rows.length) return "";
       const totals = computePayTotals(rows);
-      const rowsHtml = getPdfTableRowsHtml(rows);
+      const includeVehicleColumn = (totals.sumVan + totals.sumDrive) > 0;
+      const rowsHtml = getPdfTableRowsHtml(rows, includeVehicleColumn);
       const payHtml = options.includeComp ? getPdfPaySummaryHtml(totals, options.detailKeys) : "";
       return `
         <section class="pdfSection ${pageBreak ? "pageBreak" : ""}">
@@ -6697,7 +6706,7 @@ function renderHistoryCalendar(rows){
                 <th>Pausa</th>
                 <th>Ore</th>
                 <th class="right">Km</th>
-                <th class="center">Furgone</th>
+                ${includeVehicleColumn ? `<th class="center">Furgone</th>` : ""}
               </tr>
             </thead>
             <tbody>
