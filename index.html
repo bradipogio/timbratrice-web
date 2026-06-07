@@ -4459,6 +4459,20 @@ function flashVehiclePick(){
       return currentUser;
     }
 
+    async function refreshCurrentUser(){
+      if(!sb?.auth?.getUser) return currentUser || currentSession?.user || null;
+      try{
+        const { data, error } = await withTimeout(sb.auth.getUser(), 4000, "Utente");
+        if(error) throw error;
+        if(data?.user){
+          currentUser = data.user;
+          if(currentSession) currentSession.user = data.user;
+          saveLastKnownUserRef(data.user);
+        }
+      }catch(_err){}
+      return currentUser || currentSession?.user || null;
+    }
+
     function isAdminUser(user = currentUser){
       const email = (user?.email || "").trim().toLowerCase();
       return !!email && email === ADMIN_EMAIL_NORM;
@@ -6268,9 +6282,22 @@ function renderHistoryCalendar(rows){
       const today = formatExportRangeDate(new Date().toISOString());
       return today ? `${today}-${today}` : "";
     }
+    function getCurrentUserDisplayName(){
+      const user = currentUser || currentSession?.user || null;
+      const meta = user?.user_metadata || {};
+      const rawName =
+        meta.display_name ||
+        meta.full_name ||
+        meta.name ||
+        meta.nickname ||
+        user?.email ||
+        "";
+      return String(rawName).trim() || "timbratrice";
+    }
     function getDefaultPdfReportName(rows = []){
       const range = getExportRangeLabel(rows);
-      return range ? `Recap Giovanni Mazzanti - ${range}` : "Recap Giovanni Mazzanti";
+      const userName = getCurrentUserDisplayName();
+      return range ? `Recap ${userName} - ${range}` : `Recap ${userName}`;
     }
     async function getExportName({
       title = "Esporta",
@@ -6517,6 +6544,7 @@ function renderHistoryCalendar(rows){
       return normalizePdfExportOptions({ mode, includeComp, detailKeys });
     }
     async function getPdfExportConfig(rows = []){
+      await refreshCurrentUser();
       const defaultReportName = getDefaultPdfReportName(rows);
       const savedOptions = loadPdfExportOptions();
       const raw = await openPrompt({
