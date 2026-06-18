@@ -1049,7 +1049,7 @@
             </div>
             <div class="chipValue" id="sumHours">0:00</div>
           </div>
-          <div id="sumKmToggle" class="chip recapToggle" role="button" tabindex="0" aria-label="Mostra furgone">
+          <div id="sumKmToggle" class="chip recapToggle" role="button" tabindex="0" aria-label="Mostra passeggero">
             <div class="recapView recapView-km">
               <div class="chipLabel">
                 <span class="iconLabel">
@@ -1065,7 +1065,7 @@
               <div class="chipLabel">
                 <span class="iconLabel">
                   <svg class="icon xs" aria-hidden="true"><use href="#i-van"></use></svg>
-                  Furgone
+                  Passeggero
                 </span>
               </div>
               <div class="chipValue">
@@ -1076,7 +1076,7 @@
               <div class="chipLabel">
                 <span class="iconLabel">
                   <svg class="icon xs" aria-hidden="true"><use href="#i-wheel"></use></svg>
-                  Guida
+                  Guida furgone
                 </span>
               </div>
               <div class="chipValue">
@@ -1335,6 +1335,16 @@
       if(v === "guida") return "guida";
       if(v === "furgone") return "furgone";
       return "";
+    };
+    const getVehicleModeLabel = (mode) => {
+      const normalized = mode === "car" ? "car" : normalizeFurgone(mode);
+      if(normalized === "guida") return "Guida furgone";
+      if(normalized === "furgone") return "Passeggero";
+      return "Auto";
+    };
+    const getStoredVehicleLabel = (value, emptyLabel = "") => {
+      const normalized = normalizeFurgone(value);
+      return normalized ? getVehicleModeLabel(normalized) : emptyLabel;
     };
     const toISO = (d) => new Date(d).toISOString();
 
@@ -1735,8 +1745,8 @@ function initRecapToggle(){
       views[key]?.classList.toggle("hidden", key !== state);
     });
     const labels = {
-      km: "Mostra furgone",
-      van: "Mostra guida",
+      km: "Mostra passeggero",
+      van: "Mostra guida furgone",
       drive: "Mostra km"
     };
     toggle.setAttribute("aria-label", labels[state]);
@@ -1818,7 +1828,7 @@ document.addEventListener("keydown", (e)=>{
         const userLabel = getUserLabelFromRecord(r);
         const paidChecked = !!r.paid;
         const fLabel = normalizeFurgone(r.furgone);
-        const kmDisplay = fLabel ? fLabel : String(r.km||0);
+        const kmDisplay = fLabel ? getVehicleModeLabel(fLabel) : String(r.km||0);
         const el = document.createElement("div");
         el.className = "item";
         el.innerHTML = `
@@ -2997,13 +3007,13 @@ async function deleteDestination(id){
       };
 
       let csv = "\uFEFF";
-      csv += ["Utente","Titolo","DataOraInizio","DataOraFine","Pausa_min","Ore_nette_hh:mm","Km","Furgone"].join(sep) + "\r\n";
+      csv += ["Utente","Titolo","DataOraInizio","DataOraFine","Pausa_min","Ore_nette_hh:mm","Km","Funzione"].join(sep) + "\r\n";
 
       let sumWork = 0, sumKm = 0;
       for(const r of rows){
         sumWork += Number(r.work_min||0);
         sumKm += Number(r.km||0);
-        const fLabel = normalizeFurgone(r.furgone);
+        const fLabel = getStoredVehicleLabel(r.furgone, "Auto");
         csv += [
           csvEscape(getUserLabelFromRecord(r), sep),
           csvEscape(r.title||"", sep),
@@ -3038,7 +3048,7 @@ async function deleteDestination(id){
         return;
       }
 
-      const header = ["Utente","Titolo","DataOraInizio","DataOraFine","Pausa_min","Ore_nette","Km","Furgone"];
+      const header = ["Utente","Titolo","DataOraInizio","DataOraFine","Pausa_min","Ore_nette","Km","Funzione"];
       const data = [header];
       let sumWork = 0;
       let sumKm = 0;
@@ -3053,6 +3063,7 @@ async function deleteDestination(id){
         const workMin = Number(r.work_min || 0);
         const km = Number(r.km || 0);
         const fLabel = normalizeFurgone(r.furgone);
+        const vehicleLabel = getStoredVehicleLabel(r.furgone, "Auto");
         sumPause += pauseMin;
         sumWork += workMin;
         sumKm += km;
@@ -3067,7 +3078,7 @@ async function deleteDestination(id){
           pauseMin,
           workMin / 1440,
           km,
-          fLabel
+          vehicleLabel
         ]);
       }
 
@@ -3077,8 +3088,8 @@ async function deleteDestination(id){
       data.push(["Ore totali (nette)", fmtHM(sumWork)]);
       data.push(["Pausa totale", fmtHM(sumPause)]);
       data.push(["Km totali", String(sumKm)]);
-      data.push(["Furgone", String(sumVan)]);
-      data.push(["Guida", String(sumDrive)]);
+      data.push(["Passeggero", String(sumVan)]);
+      data.push(["Guida furgone", String(sumDrive)]);
 
       const ws = XLSX.utils.aoa_to_sheet(data, { cellDates: true });
       ws["!cols"] = [
@@ -3160,7 +3171,7 @@ async function deleteDestination(id){
         const pause = escapeHTML(fmtHM(Number(r.pause_min||0)));
         const work = escapeHTML(fmtHM(Number(r.work_min||0)));
         const km = escapeHTML(String(Number(r.km||0)));
-        const fLabel = escapeHTML(normalizeFurgone(r.furgone));
+        const fLabel = escapeHTML(getStoredVehicleLabel(r.furgone, "Auto"));
         const vehicleCell = includeVehicleColumn ? `<td class="center">${fLabel}</td>` : "";
         const paidMark = r.paid ? "(v)" : "( )";
         const zebra = i % 2 ? " class=\"alt\"" : "";
@@ -3232,7 +3243,7 @@ async function deleteDestination(id){
         <th>Pausa</th>
         <th>Ore</th>
         <th class="right">Km</th>
-        ${includeVehicleColumn ? `<th class="center">Furgone</th>` : ""}
+        ${includeVehicleColumn ? `<th class="center">Funzione</th>` : ""}
         <th class="center paidCol">Confermato</th>
       </tr>
     </thead>
@@ -3290,7 +3301,7 @@ async function deleteDestination(id){
       </div>
       ${includeVehicleColumn ? `<div class="totalsCard noIcon">
         <div>
-          <div class="totalsValueStack">Furgone: ${sumVan}<br>Guida: ${sumDrive}</div>
+          <div class="totalsValueStack">Passeggero: ${sumVan}<br>Guida furgone: ${sumDrive}</div>
         </div>
       </div>` : ""}
     </div>

@@ -245,12 +245,12 @@
     }
     .punchHead{display:flex; align-items:center; justify-content:space-between; gap:10px}
     .vehiclePick{
-      display:flex;
+      display:grid;
+      grid-template-columns:repeat(3, minmax(0, 1fr));
       gap:10px;
       margin-top:10px;
     }
     .vehicleOption{
-      flex:1;
       border:1px solid var(--line);
       background:var(--card2);
       border-radius:14px;
@@ -258,9 +258,13 @@
       cursor:pointer;
       display:flex;
       flex-direction:column;
+      align-items:center;
+      justify-content:center;
       gap:6px;
       font-weight:900;
+      text-align:center;
       user-select:none;
+      min-height:54px;
       min-width:0;
       transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
     }
@@ -269,7 +273,13 @@
       box-shadow:0 0 0 2px rgba(0,122,255,.18);
       background:rgba(0,122,255,.10);
     }
-    .vehicleOption .iconLabel{font-size:14px}
+    .vehicleOption .iconLabel{
+      justify-content:center;
+      flex-wrap:wrap;
+      font-size:13px;
+      line-height:1.15;
+      text-align:center;
+    }
     .driveSwitch{
       display:inline-flex;
       align-items:center;
@@ -534,11 +544,13 @@
       pointer-events:none;
     }
     @media (max-width:520px){
+      .vehiclePick{gap:8px}
+      .vehicleOption{padding:9px 6px}
+      .vehicleOption .iconLabel{font-size:12px; gap:4px}
       .vehicleSelect{
-        width:20px;
-        padding:4px 4px;
-        text-indent:-9999px;
-        color:transparent;
+        max-width:124px;
+        padding:4px 20px 4px 7px;
+        font-size:11px;
       }
       .vehicleSelectWrap::after{right:6px}
     }
@@ -2058,6 +2070,8 @@ body{
   display:inline-flex;
   align-items:center;
   justify-content:center;
+  text-align:center;
+  overflow-wrap:anywhere;
   width:100%;
 }
 .filterRow .toggle.is-on{
@@ -2312,19 +2326,20 @@ body{
         <div id="vehicleCarBtn" class="vehicleOption" role="button" tabindex="0" data-vehicle="car">
           <span class="iconLabel">
             <svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>
-            <span>Macchina</span>
+            <span>Auto</span>
           </span>
         </div>
         <div id="vehicleVanBtn" class="vehicleOption" role="button" tabindex="0" data-vehicle="van">
           <span class="iconLabel">
             <svg class="icon xs" aria-hidden="true"><use href="#i-van"></use></svg>
-            <span>Furgone</span>
+            <span>Passeggero</span>
           </span>
-          <label class="driveSwitch">
-            <input id="vanDriveToggle" type="checkbox" />
-            <span class="switchTrack"></span>
-            <span class="switchLabel">Guida</span>
-          </label>
+        </div>
+        <div id="vehicleDriveBtn" class="vehicleOption" role="button" tabindex="0" data-vehicle="drive">
+          <span class="iconLabel">
+            <svg class="icon xs" aria-hidden="true"><use href="#i-wheel"></use></svg>
+            <span>Guida furgone</span>
+          </span>
         </div>
       </div>
 
@@ -2361,18 +2376,14 @@ body{
             </span>
             <span class="vehicleSelectWrap">
               <select id="vehicleSelect" class="vehicleSelect" aria-label="Veicolo">
-                <option value="car">Macchina</option>
-                <option value="van">Furgone</option>
+                <option value="car">Auto</option>
+                <option value="van">Passeggero</option>
+                <option value="drive">Guida furgone</option>
               </select>
             </span>
           </div>
           <input id="kmInput" class="chipInput" inputmode="numeric" type="text" placeholder="0">
-          <label id="vanDriveInline" class="driveSwitch driveInline hidden">
-            <input id="vanDriveInlineToggle" type="checkbox" />
-            <span class="switchTrack"></span>
-            <span class="switchLabel">Guida</span>
-          </label>
-          <div id="vanLabelInline" class="chipValue hidden"></div>
+          <div id="vehicleInlineLabel" class="chipValue hidden"></div>
         </div>
         <div id="mapsChip" class="chip mapChip hidden">
           <div class="chipLabel">
@@ -2495,7 +2506,7 @@ body{
           </div>
           <div class="chipValue" id="sumHours">0:00</div>
         </div>
-        <div id="sumKmToggle" class="chip recapToggle" role="button" tabindex="0" aria-label="Mostra furgone">
+        <div id="sumKmToggle" class="chip recapToggle" role="button" tabindex="0" aria-label="Mostra passeggero">
           <div class="recapView recapView-km">
             <div class="chipLabel">
               <span class="iconLabel">
@@ -2511,7 +2522,7 @@ body{
             <div class="chipLabel">
               <span class="iconLabel">
                 <svg class="icon xs" aria-hidden="true"><use href="#i-van"></use></svg>
-                Furgone
+                Passeggero
               </span>
             </div>
             <div class="chipValue">
@@ -2522,7 +2533,7 @@ body{
             <div class="chipLabel">
               <span class="iconLabel">
                 <svg class="icon xs" aria-hidden="true"><use href="#i-wheel"></use></svg>
-                Guida
+                Guida furgone
               </span>
             </div>
             <div class="chipValue">
@@ -2550,15 +2561,15 @@ body{
         <div class="filterRow">
           <label class="toggle">
             <input id="filterCar" type="checkbox" checked />
-            <span>Macchina</span>
+            <span>Auto</span>
           </label>
           <label class="toggle">
             <input id="filterVan" type="checkbox" checked />
-            <span>Furgone</span>
+            <span>Passeggero</span>
           </label>
           <label class="toggle">
             <input id="filterDrive" type="checkbox" checked />
-            <span>Guida</span>
+            <span>Guida furgone</span>
           </label>
         </div>
       </div>
@@ -2696,7 +2707,7 @@ body{
                 <input id="payKm" type="text" inputmode="decimal" placeholder="0">
               </label>
               <label class="field">
-                <span>Paga furgone (€/turno)</span>
+                <span>Paga passeggero (€/turno)</span>
                 <input id="payVan" type="text" inputmode="decimal" placeholder="0">
               </label>
               <label class="field">
@@ -2718,11 +2729,11 @@ body{
                 <span id="payKmTotal" class="payValue">0</span>
               </div>
               <div class="payRow">
-                <span class="payLabel">Furgone</span>
+                <span class="payLabel">Passeggero</span>
                 <span id="payVanTotal" class="payValue">0</span>
               </div>
               <div class="payRow">
-                <span class="payLabel">Guida</span>
+                <span class="payLabel">Guida furgone</span>
                 <span id="payDriveTotal" class="payValue">0</span>
               </div>
             </div>
@@ -2740,7 +2751,7 @@ body{
                 <span id="payGrossKm" class="payValue">€ 0,00</span>
               </div>
               <div class="payRow">
-                <span class="payLabel">Furgone</span>
+                <span class="payLabel">Passeggero</span>
                 <span id="payGrossVan" class="payValue">€ 0,00</span>
               </div>
               <div class="payRow">
@@ -3160,6 +3171,16 @@ async function ensureXlsxReady(){
       if(v === "furgone") return "furgone";
       return "";
     };
+    const getVehicleModeLabel = (mode) => {
+      const normalized = mode === "car" ? "car" : normalizeFurgone(mode);
+      if(normalized === "guida") return "Guida furgone";
+      if(normalized === "furgone") return "Passeggero";
+      return "Auto";
+    };
+    const getStoredVehicleLabel = (value, emptyLabel = "") => {
+      const normalized = normalizeFurgone(value);
+      return normalized ? getVehicleModeLabel(normalized) : emptyLabel;
+    };
     const furgoneFromMode = (mode) => {
       if(mode === "guida") return "guida";
       if(mode === "furgone") return "furgone";
@@ -3189,8 +3210,8 @@ async function ensureXlsxReady(){
       { key: "grossHours", label: "Lordo ore", icon: "i-clock" },
       { key: "transportPay", label: "Trasporto", icon: "i-map-pin" },
       { key: "grossKm", label: "Rimborso km", icon: "i-car" },
-      { key: "grossVan", label: "Furgone", icon: "i-van" },
-      { key: "grossDrive", label: "Guida", icon: "i-wheel" },
+      { key: "grossVan", label: "Passeggero", icon: "i-van" },
+      { key: "grossDrive", label: "Guida furgone", icon: "i-wheel" },
       { key: "grossTotal", label: "Lordo totale", icon: "i-coins" },
       { key: "imponibile", label: "Imponibile", icon: "i-receipt" },
       { key: "imposta", label: "Imposta", icon: "i-percent" },
@@ -4241,38 +4262,31 @@ function getCurrentVehicleMode(){
 function updateVehicleUI(){
   const carBtn = $("vehicleCarBtn");
   const vanBtn = $("vehicleVanBtn");
-  const driveToggle = $("vanDriveToggle");
+  const driveBtn = $("vehicleDriveBtn");
   const vehicleSelect = $("vehicleSelect");
-  const driveInlineToggle = $("vanDriveInlineToggle");
-  const driveInlineWrap = $("vanDriveInline");
-  const vanLabelInline = $("vanLabelInline");
+  const vehicleInlineLabel = $("vehicleInlineLabel");
   const kmInput = $("kmInput");
 
   const inDraft = !active && !editRow;
   const draftMode = getDraftVehicleMode();
 
   if(carBtn) carBtn.classList.toggle("active", inDraft && draftMode === "car");
-  if(vanBtn) vanBtn.classList.toggle("active", inDraft && (draftMode === "furgone" || draftMode === "guida"));
-  if(driveToggle) driveToggle.checked = draftMode === "guida";
+  if(vanBtn) vanBtn.classList.toggle("active", inDraft && draftMode === "furgone");
+  if(driveBtn) driveBtn.classList.toggle("active", inDraft && draftMode === "guida");
 
   const mode = inDraft ? (draftMode || "car") : getCurrentVehicleMode();
   const isVan = isVanMode(mode);
 
-  if(vehicleSelect) vehicleSelect.value = isVan ? "van" : "car";
-  if(driveInlineToggle) driveInlineToggle.checked = mode === "guida";
-  if(kmInput && driveInlineWrap){
-    const showInlineDrive = isVan && !inDraft;
-    kmInput.classList.toggle("hidden", isVan);
-    driveInlineWrap.classList.toggle("hidden", !showInlineDrive);
+  if(vehicleSelect){
+    vehicleSelect.value = mode === "guida" ? "drive" : (mode === "furgone" ? "van" : "car");
   }
-  if(vanLabelInline){
+  if(kmInput){
+    kmInput.classList.toggle("hidden", isVan);
+  }
+  if(vehicleInlineLabel){
     const showLabel = isVan && inDraft;
-    vanLabelInline.classList.toggle("hidden", !showLabel);
-    if(showLabel){
-      vanLabelInline.textContent = mode === "guida" ? "Guida" : "Furgone";
-    }else{
-      vanLabelInline.textContent = "";
-    }
+    vehicleInlineLabel.classList.toggle("hidden", !showLabel);
+    vehicleInlineLabel.textContent = showLabel ? getVehicleModeLabel(mode) : "";
   }
 }
 
@@ -4306,8 +4320,8 @@ function initRecapToggle(){
       views[key]?.classList.toggle("hidden", key !== state);
     });
     const labels = {
-      km: "Mostra furgone",
-      van: "Mostra guida",
+      km: "Mostra passeggero",
+      van: "Mostra guida furgone",
       drive: "Mostra km"
     };
     toggle.setAttribute("aria-label", labels[state]);
@@ -4330,6 +4344,7 @@ function initRecapToggle(){
 function setVehicleMode(mode){
   let normalized = mode;
   if(normalized === "van") normalized = "furgone";
+  if(normalized === "drive") normalized = "guida";
   if(normalized !== "car" && normalized !== "furgone" && normalized !== "guida"){
     normalized = null;
   }
@@ -5130,11 +5145,11 @@ async function runDiagnostics(){
       const state = getVehicleFilterState();
       if(!state.active) return "";
       const parts = [];
-      if(state.car) parts.push("Macchina");
-      if(state.van) parts.push("Furgone");
-      if(state.drive) parts.push("Guida");
-      if(parts.length === 0) return "Veicoli: nessuno";
-      return `Veicoli: ${parts.join(", ")}`;
+      if(state.car) parts.push("Auto");
+      if(state.van) parts.push("Passeggero");
+      if(state.drive) parts.push("Guida furgone");
+      if(parts.length === 0) return "Funzioni: nessuna";
+      return `Funzioni: ${parts.join(", ")}`;
     }
 
     async function loadFromCache(user){
@@ -5569,7 +5584,7 @@ async function runDiagnostics(){
 
       if(!hasDraftVehicleSelection()){
         flashVehiclePick();
-        setActionMsg("❌ Seleziona macchina o furgone.", "err");
+        setActionMsg("❌ Seleziona auto, passeggero o guida furgone.", "err");
         return;
       }
 
@@ -5833,8 +5848,8 @@ function showHistoryRowDetails(id){
   if(!row) return;
   const start = row.startISO ? new Date(row.startISO).toLocaleString("it-IT") : "—";
   const end = row.endISO ? new Date(row.endISO).toLocaleString("it-IT") : "—";
-  const vehicle = normalizeFurgone(row.furgone) || "macchina";
-  const kmInfo = vehicle === "car" ? `${Number(row.km || 0)} km` : vehicle;
+  const vehicle = vehicleModeFromRow(row);
+  const kmInfo = vehicle === "car" ? `${Number(row.km || 0)} km` : getVehicleModeLabel(vehicle);
   const parts = [
     `Inizio: ${start}`,
     `Fine: ${end}`,
@@ -6085,7 +6100,7 @@ function renderHistoryCalendar(rows){
           const end = fmtListDT(r.endISO);
           const isChecked = selectedIds.has(String(r.id));
           const fLabel = normalizeFurgone(r.furgone);
-          const kmDisplay = fLabel ? fLabel : String(r.km||0);
+          const kmDisplay = fLabel ? getVehicleModeLabel(fLabel) : String(r.km||0);
           const menuOpen = openItemMenuId === String(r.id);
           const payOpen = expandedPayRowId === String(r.id);
           const paySummary = computeRowPaySummary(r);
@@ -6352,14 +6367,14 @@ function renderHistoryCalendar(rows){
       };
 
       let csv = "\uFEFF";
-      csv += ["Titolo","DataOraInizio","DataOraFine","Ore_nette_hh:mm","Km","Furgone"].join(sep) + "\r\n";
+      csv += ["Titolo","DataOraInizio","DataOraFine","Ore_nette_hh:mm","Km","Funzione"].join(sep) + "\r\n";
 
       let sumWork = 0, sumKm = 0;
 
       for(const r of rows){
         sumWork += Number(r.workMin||0);
         sumKm += Number(r.km||0);
-        const fLabel = normalizeFurgone(r.furgone);
+        const fLabel = getStoredVehicleLabel(r.furgone, "Auto");
         csv += [
           csvEscape(r.title||"", sep),
           dt(r.startISO),
@@ -6403,7 +6418,7 @@ function renderHistoryCalendar(rows){
         return;
       }
 
-      const header = ["Titolo","DataOraInizio","DataOraFine","Ore_nette","Km","Furgone"];
+      const header = ["Titolo","DataOraInizio","DataOraFine","Ore_nette","Km","Funzione"];
       const data = [header];
       let sumWork = 0;
       let sumKm = 0;
@@ -6416,6 +6431,7 @@ function renderHistoryCalendar(rows){
         const workMin = Number(r.workMin || 0);
         const km = Number(r.km || 0);
         const fLabel = normalizeFurgone(r.furgone);
+        const vehicleLabel = getStoredVehicleLabel(r.furgone, "Auto");
         sumWork += workMin;
         sumKm += km;
         if(fLabel === "furgone") sumVan += 1;
@@ -6426,7 +6442,7 @@ function renderHistoryCalendar(rows){
           end instanceof Date && !isNaN(end.getTime()) ? end : "",
           workMin / 1440,
           km,
-          fLabel
+          vehicleLabel
         ]);
       }
 
@@ -6435,8 +6451,8 @@ function renderHistoryCalendar(rows){
       data.push(["Turni", String(rows.length)]);
       data.push(["Ore totali (nette)", fmtHM(sumWork)]);
       data.push(["Km totali", String(sumKm)]);
-      data.push(["Furgone", String(sumVan)]);
-      data.push(["Guida", String(sumDrive)]);
+      data.push(["Passeggero", String(sumVan)]);
+      data.push(["Guida furgone", String(sumDrive)]);
 
       const ws = XLSX.utils.aoa_to_sheet(data, { cellDates: true });
       ws["!cols"] = [
@@ -6597,7 +6613,7 @@ function renderHistoryCalendar(rows){
         const pause = escapeHTML(fmtHM(Number(r.pauseMin || 0)));
         const work = escapeHTML(fmtHM(Number(r.workMin || 0)));
         const km = escapeHTML(String(Number(r.km || 0)));
-        const fLabel = escapeHTML(normalizeFurgone(r.furgone) || "—");
+        const fLabel = escapeHTML(getStoredVehicleLabel(r.furgone, "Auto"));
         const vehicleCell = includeVehicleColumn ? `<td class="center">${fLabel}</td>` : "";
         const zebra = i % 2 ? " class=\"alt\"" : "";
         return `<tr${zebra}>
@@ -6668,7 +6684,7 @@ function renderHistoryCalendar(rows){
     }
     function getPdfActivitySummaryHtml(totals){
       const vanDriveCard = (totals.sumVan + totals.sumDrive) > 0
-        ? getPdfSummaryCardHtml({ icon: "i-van", label: "Furgone / Guida", value: `Furgone: ${totals.sumVan}<br>Guida: ${totals.sumDrive}`, stack: true })
+        ? getPdfSummaryCardHtml({ icon: "i-van", label: "Passeggero / Guida furgone", value: `Passeggero: ${totals.sumVan}<br>Guida furgone: ${totals.sumDrive}`, stack: true })
         : "";
       return `
         <div class="summaryGrid">
@@ -6733,7 +6749,7 @@ function renderHistoryCalendar(rows){
                 <th>Pausa</th>
                 <th>Ore</th>
                 <th class="right">Km</th>
-                ${includeVehicleColumn ? `<th class="center">Furgone</th>` : ""}
+                ${includeVehicleColumn ? `<th class="center">Funzione</th>` : ""}
               </tr>
             </thead>
             <tbody>
@@ -6782,7 +6798,7 @@ function renderHistoryCalendar(rows){
 
       const metaLines = [
         rangeText ? `<div class="meta">${escapeHTML(rangeText)}</div>` : "",
-        vehicleLabel ? `<div class="meta">Filtro mezzo: ${escapeHTML(vehicleLabel)}</div>` : "",
+        vehicleLabel ? `<div class="meta">Filtro funzione: ${escapeHTML(vehicleLabel)}</div>` : "",
         q ? `<div class="meta">Ricerca: ${escapeHTML(q)}</div>` : "",
         `<div class="meta">Generato: ${escapeHTML(nowText)}</div>`
       ].filter(Boolean).join("");
@@ -7219,9 +7235,8 @@ $("btnSettings").addEventListener("click", ()=>{
 
     const vehicleCarBtn = $("vehicleCarBtn");
     const vehicleVanBtn = $("vehicleVanBtn");
-    const vanDriveToggle = $("vanDriveToggle");
+    const vehicleDriveBtn = $("vehicleDriveBtn");
     const vehicleSelect = $("vehicleSelect");
-    const vanDriveInlineToggle = $("vanDriveInlineToggle");
 
     function handleVehicleKey(e){
       if(e.key === "Enter" || e.key === " "){
@@ -7240,27 +7255,15 @@ $("btnSettings").addEventListener("click", ()=>{
       });
       vehicleVanBtn.addEventListener("keydown", handleVehicleKey);
     }
-    if(vanDriveToggle){
-      const driveWrap = vanDriveToggle.closest(".driveSwitch");
-      driveWrap?.addEventListener("click", (e)=> e.stopPropagation());
-      vanDriveToggle.addEventListener("click", (e)=> e.stopPropagation());
-      vanDriveToggle.addEventListener("change", (e)=>{
-        setVehicleMode(e.currentTarget.checked ? "guida" : "furgone");
+    if(vehicleDriveBtn){
+      vehicleDriveBtn.addEventListener("click", ()=>{
+        setVehicleMode("guida");
       });
+      vehicleDriveBtn.addEventListener("keydown", handleVehicleKey);
     }
     if(vehicleSelect){
       vehicleSelect.addEventListener("change", (e)=>{
-        if(e.currentTarget.value === "car"){
-          setVehicleMode("car");
-        }else{
-          const driveOn = !!$("vanDriveInlineToggle")?.checked;
-          setVehicleMode(driveOn ? "guida" : "furgone");
-        }
-      });
-    }
-    if(vanDriveInlineToggle){
-      vanDriveInlineToggle.addEventListener("change", (e)=>{
-        setVehicleMode(e.currentTarget.checked ? "guida" : "furgone");
+        setVehicleMode(e.currentTarget.value);
       });
     }
 
