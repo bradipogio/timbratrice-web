@@ -791,6 +791,17 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       border-color:var(--line);
       pointer-events:auto;
     }
+    .filterNav{
+      display:flex;
+      align-items:center;
+      gap:6px;
+      flex:0 0 auto;
+    }
+    .filterNav .miniBtn{
+      min-width:34px;
+      padding:8px;
+      background:var(--card2);
+    }
     .listActions{flex:1 1 auto; justify-content:flex-end; min-width:0}
     .listActions .miniBtn{flex:0 0 auto}
     .listActions .searchBarInline{flex:1 1 140px; min-width:0; max-width:240px}
@@ -2213,6 +2224,15 @@ body{
       <path d="M6 12h12"></path>
       <path d="M10 19h4"></path>
     </symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24">
+      <path d="M15 6l-6 6 6 6"></path>
+    </symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24">
+      <path d="M9 6l6 6-6 6"></path>
+    </symbol>
+    <symbol id="i-infinity" viewBox="0 0 24 24">
+      <path d="M8.5 8.5c-2.5 0-4.5 1.8-4.5 4s2 4 4.5 4c3.5 0 4.5-8 7-8 2.5 0 4.5 1.8 4.5 4s-2 4-4.5 4c-3.5 0-4.5-8-7-8z"></path>
+    </symbol>
     <symbol id="i-search" viewBox="0 0 24 24">
       <circle cx="11" cy="11" r="7"></circle>
       <path d="M20 20l-4.2-4.2"></path>
@@ -2442,7 +2462,18 @@ body{
                 </button>
                 <input id="searchInput" class="searchBar" type="text" placeholder="Cerca..." autocomplete="off" aria-label="Cerca" list="destinationsList" />
               </div>
-              <label id="filterLabel" class="toggle iconOnly" aria-label="Filtra" title="Filtra">
+              <div id="filterNav" class="filterNav hidden" aria-label="Navigazione mese storico">
+                <button id="btnFilterPrevMonth" class="miniBtn iconOnly" type="button" aria-label="Mese precedente" title="Mese precedente">
+                  <svg class="icon xs" aria-hidden="true"><use href="#i-chevron-left"></use></svg>
+                </button>
+                <button id="btnFilterNextMonth" class="miniBtn iconOnly" type="button" aria-label="Mese successivo" title="Mese successivo">
+                  <svg class="icon xs" aria-hidden="true"><use href="#i-chevron-right"></use></svg>
+                </button>
+                <button id="btnFilterAll" class="miniBtn iconOnly" type="button" aria-label="Tutti" title="Tutti">
+                  <svg class="icon xs" aria-hidden="true"><use href="#i-infinity"></use></svg>
+                </button>
+              </div>
+              <label id="filterLabel" class="toggle iconOnly" role="button" tabindex="0" aria-label="Filtra" aria-expanded="false" title="Filtra">
                 <input id="filterToggle" type="checkbox" />
                 <span>
                   <svg class="icon xs" aria-hidden="true"><use href="#i-filter"></use></svg>
@@ -3480,23 +3511,26 @@ async function ensureXlsxReady(){
       await idbPut(STORE_RECORDS, record);
     }
 
-    async function cacheRecordsForUser(userId, rows){
+    async function cacheRecordsForUser(userId, rows, { replaceAll = true } = {}){
       if(!userId) return;
       const keep = new Set((rows || []).map(r => String(r.id)));
       const db = await openLocalDb();
       await new Promise((resolve, reject)=>{
         const tx = db.transaction(STORE_RECORDS, "readwrite");
         const store = tx.objectStore(STORE_RECORDS);
-        const idx = store.index("by_user");
-        const req = idx.openCursor(IDBKeyRange.only(userId));
-        req.onsuccess = ()=>{
-          const cursor = req.result;
-          if(cursor){
-            const id = String(cursor.primaryKey);
-            if(!keep.has(id)) cursor.delete();
-            cursor.continue();
-          }
-        };
+        if(replaceAll){
+          const idx = store.index("by_user");
+          const req = idx.openCursor(IDBKeyRange.only(userId));
+          req.onsuccess = ()=>{
+            const cursor = req.result;
+            if(cursor){
+              const id = String(cursor.primaryKey);
+              if(!keep.has(id)) cursor.delete();
+              cursor.continue();
+            }
+          };
+          req.onerror = ()=> reject(req.error);
+        }
         for(const r of (rows || [])){
           store.put({ ...r, userId });
         }
@@ -4073,15 +4107,23 @@ async function ensureXlsxReady(){
       const dd = pad2(d.getDate());
       return `${yyyy}-${mm}-${dd}`;
     }
-    function getPreviousMonthRange(baseDate = new Date()){
+    function getMonthRange(baseDate = new Date(), offset = 0){
       const base = baseDate instanceof Date ? new Date(baseDate) : new Date(baseDate);
-      const firstOfCurrentMonth = new Date(base.getFullYear(), base.getMonth(), 1);
-      const firstOfPreviousMonth = new Date(firstOfCurrentMonth.getFullYear(), firstOfCurrentMonth.getMonth() - 1, 1);
-      const lastOfPreviousMonth = new Date(firstOfCurrentMonth.getTime() - 1);
+      const safeBase = isNaN(base.getTime()) ? new Date() : base;
+      const firstOfMonth = new Date(safeBase.getFullYear(), safeBase.getMonth() + offset, 1);
+      const lastOfMonth = new Date(firstOfMonth.getFullYear(), firstOfMonth.getMonth() + 1, 0);
       return {
-        from: todayISODate(firstOfPreviousMonth),
-        to: todayISODate(lastOfPreviousMonth)
+        from: todayISODate(firstOfMonth),
+        to: todayISODate(lastOfMonth)
       };
+    }
+    function getCurrentMonthRange(){
+      return getMonthRange(new Date(), 0);
+    }
+    function getFilterMonthBaseDate(){
+      const value = $("fromDate")?.value || "";
+      const parsed = value ? new Date(`${value}T00:00:00`) : new Date();
+      return isNaN(parsed.getTime()) ? new Date() : parsed;
     }
 function isoToLocalInput(iso){
   if(!iso) return "";
@@ -4114,6 +4156,7 @@ let openItemMenuId = null;
 let expandedPayRowId = null;
 let historyView = "list";
 let historyCalendarMonth = "";
+let filterPanelOpen = false;
 let remoteBootstrapPromise = null;
 
     // Prevent concurrent network actions (can cause hangs / UI confusion)
@@ -5134,6 +5177,46 @@ async function runDiagnostics(){
       if(parts.length === 0) return "Funzioni: nessuna";
       return `Funzioni: ${parts.join(", ")}`;
     }
+    function setFilterDateRange(range){
+      const fromInput = $("fromDate");
+      const toInput = $("toDate");
+      if(fromInput) fromInput.value = range?.from || "";
+      if(toInput) toInput.value = range?.to || "";
+    }
+    function ensureCurrentMonthFilterRange(){
+      if($("fromDate")?.value && $("toDate")?.value) return;
+      setFilterDateRange(getCurrentMonthRange());
+    }
+    function updateHistoryFilterUI(){
+      const on = !!$("filterToggle")?.checked;
+      const filterLabel = $("filterLabel");
+      const filterNav = $("filterNav");
+      const filterBox = $("filterBox");
+      if(filterLabel){
+        filterLabel.classList.toggle("is-on", on);
+        filterLabel.setAttribute("aria-expanded", on && filterPanelOpen ? "true" : "false");
+      }
+      const showPanel = on && filterPanelOpen;
+      if(filterNav) filterNav.classList.toggle("hidden", !showPanel);
+      if(filterBox) filterBox.classList.toggle("hidden", !showPanel);
+    }
+    async function setHistoryFilterOn(on, { openPanel = false, refreshList = true, resetToCurrentMonth = false } = {}){
+      const filterToggle = $("filterToggle");
+      if(filterToggle) filterToggle.checked = !!on;
+      filterPanelOpen = !!on && !!openPanel;
+      if(on && resetToCurrentMonth) setFilterDateRange(getCurrentMonthRange());
+      else if(on) ensureCurrentMonthFilterRange();
+      updateHistoryFilterUI();
+      if(refreshList) await refresh();
+    }
+    async function shiftHistoryFilterMonth(offset){
+      const base = getFilterMonthBaseDate();
+      setFilterDateRange(getMonthRange(base, offset));
+      const filterToggle = $("filterToggle");
+      if(filterToggle) filterToggle.checked = true;
+      updateHistoryFilterUI();
+      await refresh();
+    }
 
     async function loadFromCache(user){
       if(!user) return;
@@ -5143,6 +5226,7 @@ async function runDiagnostics(){
         const toISO = getFilterToISO();
         const filtered = (rowsRaw || []).filter(r => {
           if(!r.startISO) return false;
+          if(!r.endISO) return true;
           if(fromISO && r.startISO < fromISO) return false;
           if(toISO && r.startISO > toISO) return false;
           return true;
@@ -5258,9 +5342,10 @@ async function runDiagnostics(){
         // Build query (RLS already restricts by auth.uid(), but we also filter by user_id)
         const fromISO = getFilterFromISO();
         const toISO = getFilterToISO();
+        const dateFilterActive = !!(fromISO && toISO);
 
         let qs = `select=*&user_id=eq.${encodeURIComponent(user.id)}&order=start_ts.desc`;
-        if(fromISO && toISO){
+        if(dateFilterActive){
           qs += `&start_ts=gte.${encodeURIComponent(fromISO)}&start_ts=lte.${encodeURIComponent(toISO)}`;
         }
 
@@ -5268,11 +5353,23 @@ async function runDiagnostics(){
 
         let data;
         try{
-          data = await withTimeout(
-            restJSON("GET", `/rest/v1/work_records?${qs}`, token),
+          const requests = [
+            restJSON("GET", `/rest/v1/work_records?${qs}`, token)
+          ];
+          if(dateFilterActive){
+            const activeQs = `select=*&user_id=eq.${encodeURIComponent(user.id)}&end_ts=is.null&order=start_ts.desc`;
+            requests.push(restJSON("GET", `/rest/v1/work_records?${activeQs}`, token));
+          }
+          const resultSets = await withTimeout(
+            Promise.all(requests),
             17000,
             "Caricamento"
           );
+          const byId = new Map();
+          resultSets.flat().forEach((row)=>{
+            if(row?.id) byId.set(String(row.id), row);
+          });
+          data = [...byId.values()];
         }catch(e){
           console.error(e);
           if(isNetworkError(e)){
@@ -5307,7 +5404,7 @@ async function runDiagnostics(){
         const ended = rows.filter(r => !!r.endISO);
         history = filterRowsByVehicle(ended);
 
-        await cacheRecordsForUser(user.id, rows);
+        await cacheRecordsForUser(user.id, rows, { replaceAll: !dateFilterActive });
         await refreshNetStatus();
         syncInputsWithState();
         renderAll();
@@ -6083,8 +6180,7 @@ function renderHistoryCalendar(rows){
     const end = getListDateParts(endISO);
     if(start === "—" && end === "—") return "—";
     if(start !== "—" && end !== "—"){
-      if(start.date === end.date) return `${start.date}, ${start.time}-${end.time}`;
-      return `${start.date}, ${start.time}-${end.date}, ${end.time}`;
+      return `${start.date}, ${start.time}-${end.time}`;
     }
     if(start !== "—") return `${start.date}, ${start.time}-—`;
     return `—-${end.date}, ${end.time}`;
@@ -7708,7 +7804,6 @@ $("btnSaveEdit").addEventListener("click", async (e)=>{
   }
 });
 
-    const filterLabel = $("filterLabel");
     function updateVehicleFilterToggleUI(){
       ["filterCar","filterVan","filterDrive"].forEach((id)=>{
         const input = $(id);
@@ -7718,27 +7813,44 @@ $("btnSaveEdit").addEventListener("click", async (e)=>{
         }
       });
     }
-    if(filterLabel){
-      filterLabel.classList.toggle("is-on", $("filterToggle").checked);
-    }
+    const filterLabel = $("filterLabel");
+    const filterToggle = $("filterToggle");
     updateVehicleFilterToggleUI();
-    $("filterToggle").addEventListener("change", async ()=>{
-      const on = $("filterToggle").checked;
-      $("filterBox").classList.toggle("hidden", !on);
-      if(filterLabel){filterLabel.classList.toggle("is-on", on)}
-      await refresh();
-    });
+    updateHistoryFilterUI();
+    if(filterLabel){
+      filterLabel.addEventListener("click", async (e)=>{
+        e.preventDefault();
+        if(filterToggle?.checked){
+          filterPanelOpen = !filterPanelOpen;
+          updateHistoryFilterUI();
+        }else{
+          await setHistoryFilterOn(true, { openPanel: true, resetToCurrentMonth: true });
+        }
+      });
+      filterLabel.addEventListener("keydown", async (e)=>{
+        if(e.key !== "Enter" && e.key !== " ") return;
+        e.preventDefault();
+        filterLabel.click();
+      });
+    }
+    $("btnFilterPrevMonth")?.addEventListener("click", async ()=> shiftHistoryFilterMonth(-1));
+    $("btnFilterNextMonth")?.addEventListener("click", async ()=> shiftHistoryFilterMonth(1));
+    $("btnFilterAll")?.addEventListener("click", async ()=> setHistoryFilterOn(false, { openPanel: false }));
 
     $("fromDate").addEventListener("change", async ()=>{
       if($("toDate").value && $("fromDate").value > $("toDate").value){
         $("toDate").value = $("fromDate").value;
       }
+      if(filterToggle) filterToggle.checked = true;
+      updateHistoryFilterUI();
       await refresh();
     });
     $("toDate").addEventListener("change", async ()=>{
       if($("fromDate").value && $("toDate").value < $("fromDate").value){
         $("fromDate").value = $("toDate").value;
       }
+      if(filterToggle) filterToggle.checked = true;
+      updateHistoryFilterUI();
       await refresh();
     });
 
@@ -7761,10 +7873,11 @@ $("btnSaveEdit").addEventListener("click", async (e)=>{
         if(!draftTitle){
           draftTitle = `Turno ${new Date().toLocaleDateString("it-IT")}`;
         }
-        const previousMonthRange = getPreviousMonthRange();
-        $("fromDate").value = previousMonthRange.from;
-        $("toDate").value = previousMonthRange.to;
-        $("filterBox").classList.add("hidden");
+        const currentMonthRange = getCurrentMonthRange();
+        setFilterDateRange(currentMonthRange);
+        $("filterToggle").checked = true;
+        filterPanelOpen = false;
+        updateHistoryFilterUI();
 
         if(window.location.hash.includes("type=recovery")){
           setRecoveryMode(true);
