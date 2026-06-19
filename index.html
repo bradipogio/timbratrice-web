@@ -900,8 +900,10 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       align-self:center;
       font-weight:900;
       font-family:var(--time);
-      font-size:25px;
+      font-size:22px;
       line-height:1.05;
+      white-space:normal;
+      overflow-wrap:anywhere;
     }
     .itemBtns{grid-column:3; grid-row:1; justify-self:end; align-self:center}
     .itemActions{
@@ -928,10 +930,7 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
     .itemSub{
       grid-column:2 / -1;
       grid-row:2;
-      display:grid;
-      grid-template-columns:1fr auto;
-      gap:10px;
-      align-items:baseline;
+      display:block;
       min-width:0;
     }
     .listTools{align-items:center; flex-wrap:wrap}
@@ -971,22 +970,6 @@ textarea:focus{border-color: rgba(210,43,43,.55)}
       white-space:normal;
       overflow-wrap:break-word;
       word-break:break-word;
-    }
-    .itemEnd{
-      display:flex;
-      align-items:center;
-      gap:6px;
-      font-size:13px;
-      color:var(--muted);
-      font-weight:800;
-      white-space:nowrap;
-      justify-self:end;
-    }
-    .itemEndValue{
-      font-family:var(--time);
-      font-variant-numeric: tabular-nums;
-      font-weight:800;
-      color:var(--text);
     }
     .itemMeta{font-family:var(--mono); color:var(--muted); font-size:12px}
     .itemMetaGrid{
@@ -6087,17 +6070,27 @@ function renderHistoryCalendar(rows){
     updatePayRecap();
     return;
   }
-  const fmtListDT = (iso)=>{
+  const getListDateParts = (iso)=>{
     if(!iso) return "—";
     const d = new Date(iso);
     if(isNaN(d.getTime())) return "—";
     const date = d.toLocaleDateString("it-IT", { day:"numeric", month:"short" }).replace(/\./g, "");
     const time = d.toLocaleTimeString("it-IT", { hour:"numeric", minute:"2-digit" });
-    return `${date}, ${time}`;
+    return { date, time };
+  };
+  const fmtListRange = (startISO, endISO)=>{
+    const start = getListDateParts(startISO);
+    const end = getListDateParts(endISO);
+    if(start === "—" && end === "—") return "—";
+    if(start !== "—" && end !== "—"){
+      if(start.date === end.date) return `${start.date}, ${start.time}-${end.time}`;
+      return `${start.date}, ${start.time}-${end.date}, ${end.time}`;
+    }
+    if(start !== "—") return `${start.date}, ${start.time}-—`;
+    return `—-${end.date}, ${end.time}`;
   };
   for(const r of sorted){
-          const start = fmtListDT(r.startISO);
-          const end = fmtListDT(r.endISO);
+          const range = fmtListRange(r.startISO, r.endISO);
           const isChecked = selectedIds.has(String(r.id));
           const fLabel = normalizeFurgone(r.furgone);
           const kmDisplay = fLabel ? getVehicleModeLabel(fLabel) : String(r.km||0);
@@ -6112,7 +6105,7 @@ function renderHistoryCalendar(rows){
               <label class="itemCheck">
                 <input class="rowCheck" type="checkbox" data-check="${r.id}" ${isChecked ? "checked" : ""}>
               </label>
-              <div class="itemStart">${escapeHTML(start)}</div>
+              <div class="itemStart">${escapeHTML(range)}</div>
               <div class="itemBtns">
                 <div class="itemActions">
                   ${menuOpen ? `
@@ -6135,7 +6128,6 @@ function renderHistoryCalendar(rows){
               </div>
               <div class="itemSub">
                 <div class="itemTitle">${escapeHTML(r.title || "Senza titolo")}</div>
-                <div class="itemEnd"><span class="itemEndLabel">Fine</span><span class="itemEndValue">${escapeHTML(end)}</span></div>
               </div>
             </div>
             <div class="itemMetaGrid">
