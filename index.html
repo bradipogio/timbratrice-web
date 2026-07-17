@@ -509,12 +509,15 @@
       outline:2px solid rgba(210,43,43,.55);
       outline-offset:3px;
     }
-    .chipLabelRow{display:flex; align-items:center; gap:8px}
+    .chipLabelRow{display:flex; align-items:center; gap:8px; min-width:0}
     .vehicleSelectWrap{
       margin-left:auto;
       position:relative;
       display:none;
       align-items:center;
+      flex:1 1 0;
+      min-width:0;
+      max-width:100%;
     }
     .punch.is-active .vehicleSelectWrap,
     .punch.is-editing .vehicleSelectWrap{
@@ -523,6 +526,10 @@
     .vehicleSelect{
       appearance:none;
       -webkit-appearance:none;
+      display:block;
+      width:100%;
+      min-width:0;
+      max-width:100%;
       border:1px solid var(--line);
       background:var(--card);
       color:var(--text);
@@ -547,12 +554,24 @@
       .vehiclePick{gap:8px}
       .vehicleOption{padding:9px 6px}
       .vehicleOption .iconLabel{font-size:12px; gap:4px}
-      .vehicleSelect{
-        max-width:124px;
-        padding:4px 20px 4px 7px;
-        font-size:11px;
+      .punch.is-active .vehicleChip,
+      .punch.is-editing .vehicleChip{
+        padding-left:6px;
+        padding-right:6px;
       }
-      .vehicleSelectWrap::after{right:6px}
+      .punch.is-active .vehicleChip .chipLabelRow,
+      .punch.is-editing .vehicleChip .chipLabelRow{
+        gap:5px;
+      }
+      .punch.is-active .vehicleChip .chipLabelRow > .iconLabel,
+      .punch.is-editing .vehicleChip .chipLabelRow > .iconLabel{
+        display:none;
+      }
+      .vehicleSelect{
+        padding:4px 13px 4px 3px;
+        font-size:9.5px;
+      }
+      .vehicleSelectWrap::after{right:4px}
     }
     .chipValue{
       margin-top:4px;
@@ -2371,7 +2390,7 @@ body{
           </div>
           <input id="pauseHHMMUI" class="chipInput" type="time" step="60" value="00:00">
         </div>
-        <div class="chip">
+        <div class="chip vehicleChip">
           <div class="chipLabel chipLabelRow">
             <span class="iconLabel">
               <svg class="icon xs" aria-hidden="true"><use href="#i-car"></use></svg>
